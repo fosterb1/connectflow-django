@@ -60,20 +60,23 @@ A unified communication platform for organizational collaboration with hierarchi
 
 ### Backend
 - **Django 5.0+**: Web framework
-- **Django REST Framework**: RESTful API
+- **Django REST Framework**: RESTful API (for mobile/external integrations)
 - **Django Channels**: WebSocket support for real-time features
 - **PostgreSQL**: Primary database
 - **Redis**: Caching, sessions, and Channels layer
 - **Celery**: Async task processing
 - **django-storages + AWS S3**: File storage
 
-### Frontend (To be developed)
-- React or Vue.js
-- WebSocket client for real-time updates
-- Responsive design
+### Frontend
+- **Django Templates**: Server-side rendering with Jinja2 template engine
+- **HTML5 + CSS3**: Modern semantic markup and styling
+- **JavaScript (Vanilla/Alpine.js)**: Interactivity and dynamic features
+- **Tailwind CSS**: Utility-first CSS framework for rapid UI development
+- **WebSocket (JavaScript)**: Real-time client for Django Channels
+- **HTMX** (optional): Modern interactions without heavy JavaScript
 
 ### Development Tools
-- **Poetry** or **pip**: Dependency management
+- **pip + venv**: Dependency management and virtual environments
 - **Black**: Code formatting
 - **Flake8**: Linting
 - **pytest**: Testing
@@ -139,7 +142,16 @@ connectflow-django/
 │   ├── breakouts/            # Breakout room functionality
 │   ├── notifications/        # Notification system
 │   └── analytics/            # Analytics & reporting
-├── static/                   # Static files
+├── templates/                # Django HTML templates
+│   ├── base.html
+│   ├── accounts/
+│   ├── channels/
+│   ├── messaging/
+│   └── components/           # Reusable template components
+├── static/                   # Static files (CSS, JS, images)
+│   ├── css/
+│   ├── js/
+│   └── images/
 ├── media/                    # Uploaded files
 └── tests/                    # Test suite
 ```
@@ -162,22 +174,24 @@ connectflow-django/
 
 ### Phase 1: Foundation (Weeks 1-2)
 - ✅ Project setup and configuration
-- Django project initialization
-- Database models
-- Basic authentication
+- ✅ Django project initialization
+- Database models (User, Organization, Department, Team)
+- Basic authentication with Django templates
 - Admin interface
+- Base templates and layout
 
 ### Phase 2: Core Features (Weeks 3-4)
-- RESTful API endpoints
-- Channel management
-- Real-time messaging with Channels
-- File upload system
+- Channel management with CRUD views
+- Real-time messaging with Channels + WebSocket
+- File upload system with forms
+- Template-based UI for chat interface
 
 ### Phase 3: Advanced Features (Weeks 5-6)
-- Breakout rooms
-- Message reactions and replies
-- Search functionality
-- User mentions
+- Breakout rooms with dynamic UI
+- Message reactions and threading
+- Search functionality with filters
+- User mentions with autocomplete
+- Django template tags for common components
 
 ### Phase 4: Management & Polish (Weeks 7-8)
 - Analytics dashboard
