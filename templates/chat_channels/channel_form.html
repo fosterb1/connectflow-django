@@ -1,0 +1,138 @@
+{% extends 'base.html' %}
+
+{% block title %}{{ action }} Channel - ConnectFlow Pro{% endblock %}
+
+{% block content %}
+<div class="max-w-3xl mx-auto">
+    <div class="bg-white shadow-lg rounded-lg p-8">
+        <h1 class="text-3xl font-bold text-gray-800 mb-6">{{ action }} Channel</h1>
+
+        <form method="post" class="space-y-6">
+            {% csrf_token %}
+
+            {% if form.non_field_errors %}
+                <div class="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-lg">
+                    {{ form.non_field_errors }}
+                </div>
+            {% endif %}
+
+            <!-- Channel Name -->
+            <div>
+                <label for="{{ form.name.id_for_label }}" class="block text-sm font-medium text-gray-700 mb-2">
+                    Channel Name *
+                </label>
+                {{ form.name }}
+                {% if form.name.errors %}
+                    <p class="text-red-500 text-sm mt-1">{{ form.name.errors.0 }}</p>
+                {% endif %}
+                <p class="text-gray-500 text-sm mt-1">Use lowercase with hyphens (e.g., general, project-alpha)</p>
+            </div>
+
+            <!-- Description -->
+            <div>
+                <label for="{{ form.description.id_for_label }}" class="block text-sm font-medium text-gray-700 mb-2">
+                    Description
+                </label>
+                {{ form.description }}
+                {% if form.description.errors %}
+                    <p class="text-red-500 text-sm mt-1">{{ form.description.errors.0 }}</p>
+                {% endif %}
+            </div>
+
+            <!-- Channel Type -->
+            <div>
+                <label for="{{ form.channel_type.id_for_label }}" class="block text-sm font-medium text-gray-700 mb-2">
+                    Channel Type *
+                </label>
+                {{ form.channel_type }}
+                {% if form.channel_type.errors %}
+                    <p class="text-red-500 text-sm mt-1">{{ form.channel_type.errors.0 }}</p>
+                {% endif %}
+                <div class="mt-2 text-sm text-gray-600 space-y-1">
+                    <p>📢 <strong>Official:</strong> Organization-wide announcements</p>
+                    <p>🏢 <strong>Department:</strong> Department-specific channel</p>
+                    <p>👥 <strong>Team:</strong> Team collaboration channel</p>
+                    <p>📁 <strong>Project:</strong> Cross-functional project channel</p>
+                    <p>🔒 <strong>Private:</strong> Invite-only private group</p>
+                </div>
+            </div>
+
+            <!-- Department (optional) -->
+            <div>
+                <label for="{{ form.department.id_for_label }}" class="block text-sm font-medium text-gray-700 mb-2">
+                    Department (optional)
+                </label>
+                {{ form.department }}
+                {% if form.department.errors %}
+                    <p class="text-red-500 text-sm mt-1">{{ form.department.errors.0 }}</p>
+                {% endif %}
+                <p class="text-gray-500 text-sm mt-1">Link to a department (for department channels)</p>
+            </div>
+
+            <!-- Team (optional) -->
+            <div>
+                <label for="{{ form.team.id_for_label }}" class="block text-sm font-medium text-gray-700 mb-2">
+                    Team (optional)
+                </label>
+                {{ form.team }}
+                {% if form.team.errors %}
+                    <p class="text-red-500 text-sm mt-1">{{ form.team.errors.0 }}</p>
+                {% endif %}
+                <p class="text-gray-500 text-sm mt-1">Link to a team (for team channels)</p>
+            </div>
+
+            <!-- Members -->
+            <div>
+                <label for="{{ form.members.id_for_label }}" class="block text-sm font-medium text-gray-700 mb-2">
+                    Channel Members
+                </label>
+                {{ form.members }}
+                {% if form.members.errors %}
+                    <p class="text-red-500 text-sm mt-1">{{ form.members.errors.0 }}</p>
+                {% endif %}
+                <p class="text-gray-500 text-sm mt-1">Hold Ctrl (Cmd on Mac) to select multiple members</p>
+            </div>
+
+            <!-- Channel Settings -->
+            <div class="bg-gray-50 border border-gray-200 rounded-lg p-4 space-y-3">
+                <h3 class="font-semibold text-gray-800 mb-2">Channel Settings</h3>
+                
+                <div class="flex items-center">
+                    {{ form.is_private }}
+                    <label for="{{ form.is_private.id_for_label }}" class="ml-2 text-sm font-medium text-gray-700">
+                        Private Channel (only members can see and access)
+                    </label>
+                </div>
+
+                <div class="flex items-center">
+                    {{ form.read_only }}
+                    <label for="{{ form.read_only.id_for_label }}" class="ml-2 text-sm font-medium text-gray-700">
+                        Read-only (only admins can post messages)
+                    </label>
+                </div>
+            </div>
+
+            <!-- Buttons -->
+            <div class="flex space-x-4">
+                <button type="submit" 
+                        class="flex-1 bg-indigo-600 hover:bg-indigo-700 text-white font-semibold py-3 px-6 rounded-lg transition">
+                    {{ action }} Channel
+                </button>
+                <a href="{% url 'chat_channels:channel_list' %}" 
+                   class="flex-1 bg-gray-200 hover:bg-gray-300 text-gray-700 font-semibold py-3 px-6 rounded-lg transition text-center">
+                    Cancel
+                </a>
+            </div>
+
+            {% if channel %}
+                <div class="pt-6 border-t border-gray-200">
+                    <a href="{% url 'chat_channels:channel_delete' channel.pk %}" 
+                       class="text-red-600 hover:text-red-700 text-sm">
+                        Delete this channel
+                    </a>
+                </div>
+            {% endif %}
+        </form>
+    </div>
+</div>
+{% endblock %}

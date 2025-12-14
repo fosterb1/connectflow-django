@@ -1,0 +1,111 @@
+{% extends 'base.html' %}
+
+{% block title %}{% if department %}{{ department.name }} - {% endif %}Teams - ConnectFlow Pro{% endblock %}
+
+{% block content %}
+<div class="max-w-7xl mx-auto">
+    <!-- Header -->
+    <div class="mb-8">
+        {% if department %}
+            <div class="flex items-center text-sm text-gray-600 mb-2">
+                <a href="{% url 'organizations:overview' %}" class="hover:text-indigo-600">Organization</a>
+                <span class="mx-2">/</span>
+                <a href="{% url 'organizations:department_list' %}" class="hover:text-indigo-600">Departments</a>
+                <span class="mx-2">/</span>
+                <span class="font-medium">{{ department.name }}</span>
+            </div>
+        {% endif %}
+        
+        <div class="flex items-center justify-between">
+            <div>
+                <h1 class="text-4xl font-bold text-gray-800">
+                    {% if department %}{{ department.name }} - {% endif %}Teams
+                </h1>
+                {% if department and department.description %}
+                    <p class="text-gray-600 mt-2">{{ department.description }}</p>
+                {% endif %}
+            </div>
+            {% if can_manage and department %}
+                <a href="{% url 'organizations:team_create' department.pk %}" 
+                   class="bg-indigo-600 hover:bg-indigo-700 text-white px-6 py-3 rounded-lg transition">
+                    + New Team
+                </a>
+            {% endif %}
+        </div>
+    </div>
+
+    <!-- Teams Grid -->
+    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+        {% for team in teams %}
+            <div class="bg-white shadow-lg rounded-lg p-6 hover:shadow-xl transition">
+                <div class="flex items-start justify-between mb-4">
+                    <div class="flex-1">
+                        <h2 class="text-xl font-bold text-gray-800 mb-1">{{ team.name }}</h2>
+                        <p class="text-sm text-gray-600">{{ team.department.name }}</p>
+                    </div>
+                    {% if not team.is_active %}
+                        <span class="bg-red-100 text-red-600 text-xs px-2 py-1 rounded">Inactive</span>
+                    {% endif %}
+                </div>
+
+                {% if team.description %}
+                    <p class="text-gray-600 mb-4 text-sm">{{ team.description|truncatewords:15 }}</p>
+                {% endif %}
+
+                <!-- Manager Info -->
+                <div class="mb-4 pb-4 border-b border-gray-200">
+                    <p class="text-xs text-gray-500 uppercase">Team Manager</p>
+                    {% if team.manager %}
+                        <p class="text-sm font-medium text-gray-800">{{ team.manager.get_full_name }}</p>
+                    {% else %}
+                        <p class="text-sm text-gray-500">No manager assigned</p>
+                    {% endif %}
+                </div>
+
+                <!-- Members Count -->
+                <div class="flex items-center justify-between mb-4">
+                    <div>
+                        <p class="text-2xl font-bold text-indigo-600">{{ team.member_count }}</p>
+                        <p class="text-xs text-gray-500">Team Member{{ team.member_count|pluralize }}</p>
+                    </div>
+                    {% if team.members.all %}
+                        <div class="flex -space-x-2">
+                            {% for member in team.members.all|slice:":4" %}
+                                <div class="w-8 h-8 bg-indigo-500 rounded-full flex items-center justify-center text-white text-xs font-bold border-2 border-white" 
+                                     title="{{ member.get_full_name }}">
+                                    {{ member.first_name.0|default:member.username.0|upper }}
+                                </div>
+                            {% endfor %}
+                            {% if team.member_count > 4 %}
+                                <div class="w-8 h-8 bg-gray-300 rounded-full flex items-center justify-center text-gray-700 text-xs font-bold border-2 border-white">
+                                    +{{ team.member_count|add:"-4" }}
+                                </div>
+                            {% endif %}
+                        </div>
+                    {% endif %}
+                </div>
+
+                <!-- Actions -->
+                {% if can_manage %}
+                    <div class="flex space-x-2">
+                        <a href="{% url 'organizations:team_edit' team.pk %}" 
+                           class="flex-1 bg-indigo-100 hover:bg-indigo-200 text-indigo-700 text-center px-4 py-2 rounded-lg transition text-sm">
+                            Edit Team
+                        </a>
+                    </div>
+                {% endif %}
+            </div>
+        {% empty %}
+            <div class="col-span-3 bg-gray-50 border-2 border-dashed border-gray-300 rounded-lg p-12 text-center">
+                <p class="text-gray-500 text-lg mb-4">No teams found{% if department %} in this department{% endif %}.</p>
+                {% if can_manage and department %}
+                    <a href="{% url 'organizations:team_create' department.pk %}" 
+                       class="bg-indigo-600 hover:bg-indigo-700 text-white px-6 py-3 rounded-lg transition inline-block">
+                        Create First Team
+                    </a>
+                {% endif %}
+            </div>
+        {% endfor %}
+    </div>
+</div>
+{% endblock %}

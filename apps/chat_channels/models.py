@@ -1,0 +1,334 @@
+from django.db import models
+from django.utils.translation import gettext_lazy as _
+from django.contrib.auth import get_user_model
+import uuid
+
+User = get_user_model()
+
+
+class Channel(models.Model):
+    """
+    Channel model - represents communication channels.
+    Different types: Official, Department, Team, Project, Private, Direct
+    """
+    
+    class ChannelType(models.TextChoices):
+        OFFICIAL = 'OFFICIAL', _('Official Announcement')
+        DEPARTMENT = 'DEPARTMENT', _('Department Channel')
+        TEAM = 'TEAM', _('Team Channel')
+        PROJECT = 'PROJECT', _('Project Channel')
+        PRIVATE = 'PRIVATE', _('Private Group')
+        DIRECT = 'DIRECT', _('Direct Message')
+    
+    id = models.UUIDField(
+        primary_key=True,
+        default=uuid.uuid4,
+        editable=False
+    )
+    
+    name = models.CharField(
+        max_length=200,
+        help_text=_("Channel name")
+    )
+    
+    description = models.TextField(
+        blank=True,
+        help_text=_("Channel description")
+    )
+    
+    channel_type = models.CharField(
+        max_length=20,
+        choices=ChannelType.choices,
+        default=ChannelType.TEAM,
+        help_text=_("Type of channel")
+    )
+    
+    organization = models.ForeignKey(
+        'organizations.Organization',
+        on_delete=models.CASCADE,
+        related_name='channels',
+        help_text=_("Organization this channel belongs to")
+    )
+    
+    # Related entities (optional - depends on channel type)
+    department = models.ForeignKey(
+        'organizations.Department',
+        on_delete=models.CASCADE,
+        related_name='channels',
+        null=True,
+        blank=True,
+        help_text=_("Department (for department channels)")
+    )
+    
+    team = models.ForeignKey(
+        'organizations.Team',
+        on_delete=models.CASCADE,
+        related_name='channels',
+        null=True,
+        blank=True,
+        help_text=_("Team (for team channels)")
+    )
+    
+    # Channel ownership and membership
+    created_by = models.ForeignKey(
+        User,
+        on_delete=models.SET_NULL,
+        null=True,
+        related_name='created_channels',
+        help_text=_("User who created this channel")
+    )
+    
+    members = models.ManyToManyField(
+        User,
+        related_name='channels',
+        blank=True,
+        help_text=_("Channel members")
+    )
+    
+    # Channel settings
+    is_private = models.BooleanField(
+        default=False,
+        help_text=_("Is this a private channel?")
+    )
+    
+    is_archived = models.BooleanField(
+        default=False,
+        help_text=_("Is this channel archived?")
+    )
+    
+    read_only = models.BooleanField(
+        default=False,
+        help_text=_("Is this channel read-only? (only admins can post)")
+    )
+    
+    # Timestamps
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+    
+    class Meta:
+        db_table = 'channels'
+        verbose_name = _('Channel')
+        verbose_name_plural = _('Channels')
+        ordering = ['-created_at']
+        unique_together = [['organization', 'name']]
+    
+    def __str__(self):
+        return f"#{self.name} ({self.get_channel_type_display()})"
+    
+    @property
+    def member_count(self):
+        """Return number of members in this channel."""
+        return self.members.count()
+    
+    def can_user_post(self, user):
+        """Check if user can post in this channel."""
+        if self.read_only:
+            # Only super admins and channel creator can post in read-only channels
+            return user.is_admin or self.created_by == user
+        return user in self.members.all()
+    
+    def can_user_view(self, user):
+        """Check if user can view this channel."""
+        # Super admins can view everything in their organization
+        if user.is_admin and user.organization == self.organization:
+            return True
+        
+        # Official channels - everyone in org can view
+        if self.channel_type == self.ChannelType.OFFICIAL:
+            return user.organization == self.organization
+        
+        # Department channels - department members can view
+        if self.channel_type == self.ChannelType.DEPARTMENT and self.department:
+            return user in self.department.teams.all().values_list('members', flat=True)
+        
+        # Team channels - team members can view
+        if self.channel_type == self.ChannelType.TEAM and self.team:
+            return user in self.team.members.all()
+        
+        # Private/Project/Direct - only members can view
+        return user in self.members.all()
+
+
+class Message(models.Model):
+    """
+    Message model - represents messages in channels.
+    Supports text, files, mentions, reactions, and threading.
+    """
+    
+    id = models.UUIDField(
+        primary_key=True,
+        default=uuid.uuid4,
+        editable=False
+    )
+    
+    channel = models.ForeignKey(
+        Channel,
+        on_delete=models.CASCADE,
+        related_name='messages',
+        help_text=_("Channel this message belongs to")
+    )
+    
+    sender = models.ForeignKey(
+        User,
+        on_delete=models.CASCADE,
+        related_name='sent_messages',
+        help_text=_("User who sent this message")
+    )
+    
+    content = models.TextField(
+        blank=True,
+        default='',
+        help_text=_("Message content")
+    )
+    
+    # Threading support
+    parent_message = models.ForeignKey(
+        'self',
+        on_delete=models.CASCADE,
+        null=True,
+        blank=True,
+        related_name='replies',
+        help_text=_("Parent message if this is a reply")
+    )
+    
+    # File attachment
+    file = models.FileField(
+        upload_to='messages/files/%Y/%m/%d/',
+        null=True,
+        blank=True,
+        help_text=_("Attached file")
+    )
+    
+    # Voice message
+    voice_message = models.FileField(
+        upload_to='messages/voice/%Y/%m/%d/',
+        null=True,
+        blank=True,
+        help_text=_("Voice message audio file")
+    )
+    
+    voice_duration = models.IntegerField(
+        null=True,
+        blank=True,
+        help_text=_("Duration of voice message in seconds")
+    )
+    
+    # Message status
+    is_edited = models.BooleanField(
+        default=False,
+        help_text=_("Has this message been edited?")
+    )
+    
+    is_deleted = models.BooleanField(
+        default=False,
+        help_text=_("Is this message deleted?")
+    )
+    
+    # Timestamps
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+    
+    class Meta:
+        db_table = 'messages'
+        verbose_name = _('Message')
+        verbose_name_plural = _('Messages')
+        ordering = ['created_at']
+        indexes = [
+            models.Index(fields=['channel', 'created_at']),
+            models.Index(fields=['sender', 'created_at']),
+        ]
+    
+    def __str__(self):
+        return f"{self.sender.username} in #{self.channel.name}: {self.content[:50]}"
+    
+    @property
+    def reply_count(self):
+        """Return number of replies to this message."""
+        return self.replies.count()
+    
+    @property
+    def reaction_summary(self):
+        """Return summary of reactions."""
+        reactions = self.reactions.values('emoji').annotate(count=models.Count('id'))
+        return {r['emoji']: r['count'] for r in reactions}
+
+
+class MessageReaction(models.Model):
+    """
+    MessageReaction model - represents emoji reactions to messages.
+    """
+    
+    id = models.UUIDField(
+        primary_key=True,
+        default=uuid.uuid4,
+        editable=False
+    )
+    
+    message = models.ForeignKey(
+        Message,
+        on_delete=models.CASCADE,
+        related_name='reactions',
+        help_text=_("Message being reacted to")
+    )
+    
+    user = models.ForeignKey(
+        User,
+        on_delete=models.CASCADE,
+        related_name='message_reactions',
+        help_text=_("User who reacted")
+    )
+    
+    emoji = models.CharField(
+        max_length=10,
+        help_text=_("Emoji reaction (e.g., 👍, ❤️, 😊)")
+    )
+    
+    created_at = models.DateTimeField(auto_now_add=True)
+    
+    class Meta:
+        db_table = 'message_reactions'
+        verbose_name = _('Message Reaction')
+        verbose_name_plural = _('Message Reactions')
+        unique_together = [['message', 'user', 'emoji']]
+        ordering = ['created_at']
+    
+    def __str__(self):
+        return f"{self.user.username} reacted {self.emoji} to message"
+
+
+class MessageReadReceipt(models.Model):
+    """
+    MessageReadReceipt model - tracks when users read messages.
+    """
+    
+    id = models.UUIDField(
+        primary_key=True,
+        default=uuid.uuid4,
+        editable=False
+    )
+    
+    message = models.ForeignKey(
+        Message,
+        on_delete=models.CASCADE,
+        related_name='read_receipts',
+        help_text=_("Message that was read")
+    )
+    
+    user = models.ForeignKey(
+        User,
+        on_delete=models.CASCADE,
+        related_name='read_messages',
+        help_text=_("User who read the message")
+    )
+    
+    read_at = models.DateTimeField(auto_now_add=True)
+    
+    class Meta:
+        db_table = 'message_read_receipts'
+        verbose_name = _('Message Read Receipt')
+        verbose_name_plural = _('Message Read Receipts')
+        unique_together = [['message', 'user']]
+        ordering = ['read_at']
+    
+    def __str__(self):
+        return f"{self.user.username} read message at {self.read_at}"

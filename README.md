@@ -9,12 +9,14 @@ A unified communication platform for organizational collaboration with hierarchi
 ## ✨ Core Features
 
 ### 1. **Multi-Tiered Organizational Structure**
+
 - Role-based access: Super Admin, Department Head, Team Manager, Team Member
 - Visual organizational chart
 - Department & Team channels with automatic assignment
 - Cross-functional project channels
 
 ### 2. **Intelligent Channel System**
+
 - **Official Announcements**: Broadcast-only leadership communications
 - **Department Channels**: Intra-department collaboration
 - **Team Spaces**: Daily team collaboration
@@ -22,12 +24,14 @@ A unified communication platform for organizational collaboration with hierarchi
 - **Private Groups**: Sensitive discussions
 
 ### 3. **Dynamic Breakout Rooms**
+
 - Create temporary discussion rooms from any channel
 - Timer-based sessions with auto-return
 - Selective participant invitations
 - AI-powered summary generation
 
 ### 4. **Real-Time Messaging**
+
 - Instant message delivery via WebSockets (Django Channels)
 - Online presence indicators
 - Typing indicators
@@ -35,6 +39,7 @@ A unified communication platform for organizational collaboration with hierarchi
 - Message reactions and replies
 
 ### 5. **File Sharing (Telegram-Style)**
+
 - Multi-file upload (5-10 files at once)
 - Drag & drop support
 - Image preview and compression
@@ -43,6 +48,7 @@ A unified communication platform for organizational collaboration with hierarchi
 - Document handling (PDF, DOC, ZIP)
 
 ### 6. **Message Features**
+
 - Copy, edit, delete messages
 - Reply threading
 - Emoji reactions
@@ -51,6 +57,7 @@ A unified communication platform for organizational collaboration with hierarchi
 - Voice messages
 
 ### 7. **Management & Analytics**
+
 - Manager dashboard with team metrics
 - Approval workflows
 - Emergency broadcast system
@@ -59,6 +66,7 @@ A unified communication platform for organizational collaboration with hierarchi
 ## 🛠️ Technology Stack
 
 ### Backend
+
 - **Django 5.0+**: Web framework
 - **Django REST Framework**: RESTful API (for mobile/external integrations)
 - **Django Channels**: WebSocket support for real-time features
@@ -68,6 +76,7 @@ A unified communication platform for organizational collaboration with hierarchi
 - **django-storages + AWS S3**: File storage
 
 ### Frontend
+
 - **Django Templates**: Server-side rendering with Jinja2 template engine
 - **HTML5 + CSS3**: Modern semantic markup and styling
 - **JavaScript (Vanilla/Alpine.js)**: Interactivity and dynamic features
@@ -76,6 +85,7 @@ A unified communication platform for organizational collaboration with hierarchi
 - **HTMX** (optional): Modern interactions without heavy JavaScript
 
 ### Development Tools
+
 - **pip + venv**: Dependency management and virtual environments
 - **Black**: Code formatting
 - **Flake8**: Linting
@@ -87,12 +97,14 @@ A unified communication platform for organizational collaboration with hierarchi
 ### Functional Requirements
 
 #### Authentication & Authorization
+
 - User registration with organization codes
 - Role-based permissions (RBAC)
 - Session management
 - Multi-device support
 
 #### Communication
+
 - Real-time message delivery
 - Channel-based conversations
 - Direct messages
@@ -100,17 +112,20 @@ A unified communication platform for organizational collaboration with hierarchi
 - File attachments up to 10MB
 
 #### Organization Management
+
 - Create/manage departments and teams
 - Assign users to roles
 - Channel creation and permissions
 - User directory and org chart
 
 #### Notifications
+
 - In-app notifications
 - Email notifications
 - Push notifications (future)
 
 ### Non-Functional Requirements
+
 - **Performance**: Message delivery < 100ms
 - **Scalability**: Support 1000+ concurrent users
 - **Security**: Encrypted connections, secure file storage
@@ -159,6 +174,7 @@ connectflow-django/
 ## 🗃️ Database Models Overview
 
 ### Core Models
+
 - **Organization**: Company/organization entity
 - **User**: Extended Django user with roles
 - **Department**: Organizational departments
@@ -173,6 +189,7 @@ connectflow-django/
 ## 🚀 Development Phases
 
 ### Phase 1: Foundation (Weeks 1-2)
+
 - ✅ Project setup and configuration
 - ✅ Django project initialization
 - Database models (User, Organization, Department, Team)
@@ -181,12 +198,14 @@ connectflow-django/
 - Base templates and layout
 
 ### Phase 2: Core Features (Weeks 3-4)
+
 - Channel management with CRUD views
 - Real-time messaging with Channels + WebSocket
 - File upload system with forms
 - Template-based UI for chat interface
 
 ### Phase 3: Advanced Features (Weeks 5-6)
+
 - Breakout rooms with dynamic UI
 - Message reactions and threading
 - Search functionality with filters
@@ -194,6 +213,7 @@ connectflow-django/
 - Django template tags for common components
 
 ### Phase 4: Management & Polish (Weeks 7-8)
+
 - Analytics dashboard
 - Approval workflows
 - Testing and optimization
@@ -265,4 +285,4 @@ Built as a learning project to understand Django architecture and real-time web 
 
 **Version**: 0.1.0  
 **Status**: Initial Setup  
-**Last Updated**: December 2024
+**Last Updated**: December 2025

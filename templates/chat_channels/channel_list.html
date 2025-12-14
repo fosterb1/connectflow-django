@@ -1,0 +1,154 @@
+{% extends 'base.html' %}
+
+{% block title %}Channels - ConnectFlow Pro{% endblock %}
+
+{% block content %}
+<div class="max-w-7xl mx-auto">
+    <!-- Header -->
+    <div class="flex items-center justify-between mb-8">
+        <div>
+            <h1 class="text-4xl font-bold text-gray-800">Channels</h1>
+            <p class="text-gray-600 mt-2">Browse and join communication channels</p>
+        </div>
+        {% if can_create %}
+            <a href="{% url 'chat_channels:channel_create' %}" 
+               class="bg-indigo-600 hover:bg-indigo-700 text-white px-6 py-3 rounded-lg transition">
+                + New Channel
+            </a>
+        {% endif %}
+    </div>
+
+    <!-- Official Channels -->
+    {% if official_channels %}
+        <div class="mb-8">
+            <h2 class="text-2xl font-bold text-gray-800 mb-4 flex items-center">
+                <span class="bg-red-100 text-red-600 px-3 py-1 rounded-full text-sm mr-3">📢 Official</span>
+                Announcements
+            </h2>
+            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                {% for channel in official_channels %}
+                    <a href="{% url 'chat_channels:channel_detail' channel.pk %}" 
+                       class="bg-white border-2 border-red-200 hover:border-red-400 rounded-lg p-4 transition">
+                        <div class="flex items-start justify-between mb-2">
+                            <h3 class="text-lg font-semibold text-gray-800">#{{ channel.name }}</h3>
+                            {% if channel.read_only %}
+                                <span class="text-xs bg-yellow-100 text-yellow-700 px-2 py-1 rounded">Read-only</span>
+                            {% endif %}
+                        </div>
+                        {% if channel.description %}
+                            <p class="text-sm text-gray-600 mb-2">{{ channel.description|truncatewords:15 }}</p>
+                        {% endif %}
+                        <p class="text-xs text-gray-500">{{ channel.member_count }} member{{ channel.member_count|pluralize }}</p>
+                    </a>
+                {% endfor %}
+            </div>
+        </div>
+    {% endif %}
+
+    <!-- Department Channels -->
+    {% if department_channels %}
+        <div class="mb-8">
+            <h2 class="text-2xl font-bold text-gray-800 mb-4 flex items-center">
+                <span class="bg-blue-100 text-blue-600 px-3 py-1 rounded-full text-sm mr-3">🏢 Department</span>
+                Department Channels
+            </h2>
+            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                {% for channel in department_channels %}
+                    <a href="{% url 'chat_channels:channel_detail' channel.pk %}" 
+                       class="bg-white border-2 border-blue-200 hover:border-blue-400 rounded-lg p-4 transition">
+                        <h3 class="text-lg font-semibold text-gray-800 mb-1">#{{ channel.name }}</h3>
+                        <p class="text-sm text-blue-600 mb-2">{{ channel.department.name }}</p>
+                        {% if channel.description %}
+                            <p class="text-sm text-gray-600 mb-2">{{ channel.description|truncatewords:15 }}</p>
+                        {% endif %}
+                        <p class="text-xs text-gray-500">{{ channel.member_count }} member{{ channel.member_count|pluralize }}</p>
+                    </a>
+                {% endfor %}
+            </div>
+        </div>
+    {% endif %}
+
+    <!-- Team Channels -->
+    {% if team_channels %}
+        <div class="mb-8">
+            <h2 class="text-2xl font-bold text-gray-800 mb-4 flex items-center">
+                <span class="bg-green-100 text-green-600 px-3 py-1 rounded-full text-sm mr-3">👥 Team</span>
+                Team Channels
+            </h2>
+            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                {% for channel in team_channels %}
+                    <a href="{% url 'chat_channels:channel_detail' channel.pk %}" 
+                       class="bg-white border-2 border-green-200 hover:border-green-400 rounded-lg p-4 transition">
+                        <h3 class="text-lg font-semibold text-gray-800 mb-1">#{{ channel.name }}</h3>
+                        <p class="text-sm text-green-600 mb-2">{{ channel.team.name }}</p>
+                        {% if channel.description %}
+                            <p class="text-sm text-gray-600 mb-2">{{ channel.description|truncatewords:15 }}</p>
+                        {% endif %}
+                        <p class="text-xs text-gray-500">{{ channel.member_count }} member{{ channel.member_count|pluralize }}</p>
+                    </a>
+                {% endfor %}
+            </div>
+        </div>
+    {% endif %}
+
+    <!-- Project Channels -->
+    {% if project_channels %}
+        <div class="mb-8">
+            <h2 class="text-2xl font-bold text-gray-800 mb-4 flex items-center">
+                <span class="bg-purple-100 text-purple-600 px-3 py-1 rounded-full text-sm mr-3">📁 Project</span>
+                Project Channels
+            </h2>
+            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                {% for channel in project_channels %}
+                    <a href="{% url 'chat_channels:channel_detail' channel.pk %}" 
+                       class="bg-white border-2 border-purple-200 hover:border-purple-400 rounded-lg p-4 transition">
+                        <h3 class="text-lg font-semibold text-gray-800 mb-1">#{{ channel.name }}</h3>
+                        {% if channel.description %}
+                            <p class="text-sm text-gray-600 mb-2">{{ channel.description|truncatewords:15 }}</p>
+                        {% endif %}
+                        <p class="text-xs text-gray-500">{{ channel.member_count }} member{{ channel.member_count|pluralize }}</p>
+                    </a>
+                {% endfor %}
+            </div>
+        </div>
+    {% endif %}
+
+    <!-- Private Channels -->
+    {% if private_channels %}
+        <div class="mb-8">
+            <h2 class="text-2xl font-bold text-gray-800 mb-4 flex items-center">
+                <span class="bg-gray-100 text-gray-600 px-3 py-1 rounded-full text-sm mr-3">🔒 Private</span>
+                Private Groups
+            </h2>
+            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                {% for channel in private_channels %}
+                    <a href="{% url 'chat_channels:channel_detail' channel.pk %}" 
+                       class="bg-white border-2 border-gray-200 hover:border-gray-400 rounded-lg p-4 transition">
+                        <h3 class="text-lg font-semibold text-gray-800 mb-1">#{{ channel.name }}</h3>
+                        {% if channel.description %}
+                            <p class="text-sm text-gray-600 mb-2">{{ channel.description|truncatewords:15 }}</p>
+                        {% endif %}
+                        <p class="text-xs text-gray-500">{{ channel.member_count }} member{{ channel.member_count|pluralize }}</p>
+                    </a>
+                {% endfor %}
+            </div>
+        </div>
+    {% endif %}
+
+    <!-- Empty State -->
+    {% if not official_channels and not department_channels and not team_channels and not project_channels and not private_channels %}
+        <div class="bg-gray-50 border-2 border-dashed border-gray-300 rounded-lg p-12 text-center">
+            <svg class="w-16 h-16 text-gray-400 mx-auto mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z"></path>
+            </svg>
+            <p class="text-gray-500 text-lg mb-4">No channels available yet.</p>
+            {% if can_create %}
+                <a href="{% url 'chat_channels:channel_create' %}" 
+                   class="bg-indigo-600 hover:bg-indigo-700 text-white px-6 py-3 rounded-lg transition inline-block">
+                    Create First Channel
+                </a>
+            {% endif %}
+        </div>
+    {% endif %}
+</div>
+{% endblock %}

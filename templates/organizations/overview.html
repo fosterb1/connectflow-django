@@ -1,0 +1,131 @@
+{% extends 'base.html' %}
+
+{% block title %}Organization Structure - ConnectFlow Pro{% endblock %}
+
+{% block content %}
+<div class="max-w-7xl mx-auto">
+    <!-- Header -->
+    <div class="bg-white shadow-lg rounded-lg p-8 mb-8">
+        <div class="flex items-center justify-between">
+            <div>
+                <h1 class="text-4xl font-bold text-gray-800">{{ organization.name }}</h1>
+                <p class="text-gray-600 mt-2">Organization Structure & Teams</p>
+            </div>
+            {% if user.is_admin %}
+                <a href="{% url 'organizations:department_create' %}" 
+                   class="bg-indigo-600 hover:bg-indigo-700 text-white px-6 py-3 rounded-lg transition">
+                    + New Department
+                </a>
+            {% endif %}
+        </div>
+    </div>
+
+    <!-- Quick Stats -->
+    <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
+        <div class="bg-white shadow-lg rounded-lg p-6">
+            <div class="flex items-center">
+                <div class="bg-indigo-100 p-3 rounded-full">
+                    <svg class="w-8 h-8 text-indigo-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4"></path>
+                    </svg>
+                </div>
+                <div class="ml-4">
+                    <p class="text-gray-600 text-sm">Departments</p>
+                    <p class="text-3xl font-bold text-gray-800">{{ departments.count }}</p>
+                </div>
+            </div>
+        </div>
+
+        <div class="bg-white shadow-lg rounded-lg p-6">
+            <div class="flex items-center">
+                <div class="bg-green-100 p-3 rounded-full">
+                    <svg class="w-8 h-8 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z"></path>
+                    </svg>
+                </div>
+                <div class="ml-4">
+                    <p class="text-gray-600 text-sm">Total Teams</p>
+                    <p class="text-3xl font-bold text-gray-800">{% for dept in departments %}{{ dept.teams.count }}{% if not forloop.last %}+{% endif %}{% endfor %}</p>
+                </div>
+            </div>
+        </div>
+
+        <div class="bg-white shadow-lg rounded-lg p-6">
+            <div class="flex items-center">
+                <div class="bg-purple-100 p-3 rounded-full">
+                    <svg class="w-8 h-8 text-purple-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z"></path>
+                    </svg>
+                </div>
+                <div class="ml-4">
+                    <p class="text-gray-600 text-sm">Total Members</p>
+                    <p class="text-3xl font-bold text-gray-800">{{ organization.members.count }}</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Departments List -->
+    <div class="space-y-6">
+        {% for department in departments %}
+            <div class="bg-white shadow-lg rounded-lg p-6">
+                <div class="flex items-center justify-between mb-4">
+                    <div>
+                        <h2 class="text-2xl font-bold text-gray-800">{{ department.name }}</h2>
+                        {% if department.head %}
+                            <p class="text-gray-600 mt-1">
+                                Head: <span class="font-medium">{{ department.head.get_full_name }}</span>
+                            </p>
+                        {% else %}
+                            <p class="text-gray-500 mt-1">No department head assigned</p>
+                        {% endif %}
+                    </div>
+                    <div class="flex space-x-2">
+                        <a href="{% url 'organizations:team_list_by_dept' department.pk %}" 
+                           class="bg-indigo-100 hover:bg-indigo-200 text-indigo-700 px-4 py-2 rounded-lg transition">
+                            View Teams
+                        </a>
+                        {% if user.is_admin or user.is_manager %}
+                            <a href="{% url 'organizations:team_create' department.pk %}" 
+                               class="bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded-lg transition">
+                                + Add Team
+                            </a>
+                        {% endif %}
+                    </div>
+                </div>
+
+                {% if department.description %}
+                    <p class="text-gray-600 mb-4">{{ department.description }}</p>
+                {% endif %}
+
+                <!-- Teams in Department -->
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                    {% for team in department.teams.all %}
+                        <div class="border border-gray-200 rounded-lg p-4 hover:shadow-md transition">
+                            <h3 class="font-semibold text-gray-800">{{ team.name }}</h3>
+                            <p class="text-sm text-gray-600 mt-1">
+                                Manager: {{ team.manager.username|default:"None" }}
+                            </p>
+                            <p class="text-sm text-gray-500 mt-1">
+                                {{ team.members.count }} member{{ team.members.count|pluralize }}
+                            </p>
+                        </div>
+                    {% empty %}
+                        <p class="text-gray-500 col-span-3">No teams in this department yet.</p>
+                    {% endfor %}
+                </div>
+            </div>
+        {% empty %}
+            <div class="bg-gray-50 border-2 border-dashed border-gray-300 rounded-lg p-12 text-center">
+                <p class="text-gray-500 text-lg mb-4">No departments created yet.</p>
+                {% if user.is_admin %}
+                    <a href="{% url 'organizations:department_create' %}" 
+                       class="bg-indigo-600 hover:bg-indigo-700 text-white px-6 py-3 rounded-lg transition inline-block">
+                        Create First Department
+                    </a>
+                {% endif %}
+            </div>
+        {% endfor %}
+    </div>
+</div>
+{% endblock %}
