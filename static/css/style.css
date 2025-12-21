@@ -62,6 +62,36 @@ input:focus, textarea:focus, select:focus {
     }
 }
 
+/* Mobile Menu Animations */
+#mobile-menu {
+    max-height: 0;
+    overflow: hidden;
+    transition: max-height 0.3s ease-in-out;
+}
+
+#mobile-menu:not(.hidden) {
+    max-height: 600px;
+}
+
+#mobile-menu a {
+    opacity: 0;
+    transform: translateX(-20px);
+    transition: opacity 0.3s ease, transform 0.3s ease;
+}
+
+#mobile-menu:not(.hidden) a {
+    opacity: 1;
+    transform: translateX(0);
+}
+
+#mobile-menu:not(.hidden) a:nth-child(1) { transition-delay: 0.05s; }
+#mobile-menu:not(.hidden) a:nth-child(2) { transition-delay: 0.1s; }
+#mobile-menu:not(.hidden) a:nth-child(3) { transition-delay: 0.15s; }
+#mobile-menu:not(.hidden) a:nth-child(4) { transition-delay: 0.2s; }
+#mobile-menu:not(.hidden) a:nth-child(5) { transition-delay: 0.25s; }
+#mobile-menu:not(.hidden) a:nth-child(6) { transition-delay: 0.3s; }
+#mobile-menu:not(.hidden) a:nth-child(7) { transition-delay: 0.35s; }
+
 /* Mobile Optimizations */
 @media (max-width: 768px) {
     /* Better touch targets */
@@ -99,12 +129,58 @@ input:focus, textarea:focus, select:focus {
     .mobile-compact {
         padding: 0.5rem !important;
     }
+    
+    /* Better container padding */
+    .container {
+        padding-left: 1rem;
+        padding-right: 1rem;
+    }
+    
+    /* Smaller text sizes */
+    h1 {
+        font-size: 1.875rem !important; /* 30px */
+    }
+    
+    h2 {
+        font-size: 1.5rem !important; /* 24px */
+    }
+    
+    h3 {
+        font-size: 1.25rem !important; /* 20px */
+    }
+    
+    /* Card spacing */
+    .card {
+        margin-bottom: 1rem;
+    }
+    
+    /* Reduce nav padding */
+    nav {
+        padding-top: 0.75rem !important;
+        padding-bottom: 0.75rem !important;
+    }
 }
 
 /* Tablet Optimizations */
 @media (min-width: 768px) and (max-width: 1024px) {
     .hide-tablet {
         display: none !important;
+    }
+    
+    /* Better spacing for tablets */
+    .container {
+        max-width: 100%;
+        padding-left: 1.5rem;
+        padding-right: 1.5rem;
+    }
+    
+    /* Tablet-friendly font sizes */
+    h1 {
+        font-size: 2.25rem; /* 36px */
+    }
+    
+    h2 {
+        font-size: 1.875rem; /* 30px */
     }
 }
 
