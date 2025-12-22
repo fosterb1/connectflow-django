@@ -2,6 +2,18 @@
 
 A unified communication platform for organizational collaboration with hierarchical channels, breakout rooms, and real-time messaging.
 
+## 📚 Documentation
+
+**→ [View Complete Documentation Index](docs/INDEX.md)**
+
+### Quick Links
+- 🚀 [Cloudinary Setup Guide](docs/deployment/CLOUDINARY_COMPLETE_SETUP.md) - Essential for image storage
+- 🔧 [Database vs File Storage](docs/deployment/DATABASE_VS_FILE_STORAGE.md) - Understanding the architecture
+- 🐛 [Avatar Troubleshooting](AVATAR_TROUBLESHOOTING.md) - Fix image issues
+- 📱 [Deployment Guide](docs/deployment/RENDER_DEPLOYMENT.md) - Deploy to Render.com
+
+---
+
 ## 🎯 Project Overview
 
 **ConnectFlow Pro** is a Django-based organizational communication system that enables structured communication across teams and departments with role-based access control.
