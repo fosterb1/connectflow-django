@@ -785,14 +785,28 @@ function showPicker(btn, target) {
     emojiPopup.classList.remove('hidden');
     const rect = btn.getBoundingClientRect();
     const pickerHeight = emojiPopup.offsetHeight || 350;
+    const pickerWidth = emojiPopup.offsetWidth || 350;
     
+    // Vertical positioning
     let top = rect.top + window.scrollY - pickerHeight - 10;
     if (top < window.scrollY + 70) { // Sticky header offset
         top = rect.bottom + window.scrollY + 10;
     }
     
+    // Horizontal positioning with boundary check
+    let left = rect.left + window.scrollX;
+    
+    // Check if picker goes off the right edge
+    if (left + pickerWidth > window.innerWidth) {
+        // Align to the right edge of the screen with some padding
+        left = window.innerWidth - pickerWidth - 10;
+        
+        // Ensure it doesn't go off the left edge
+        if (left < 10) left = 10;
+    }
+    
     emojiPopup.style.top = `${top}px`;
-    emojiPopup.style.left = `${rect.left + window.scrollX}px`;
+    emojiPopup.style.left = `${left}px`;
 }
 
 picker.addEventListener('emoji-click', e => {
