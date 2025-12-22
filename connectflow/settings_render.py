@@ -6,11 +6,32 @@ from .settings import *
 import os
 import dj_database_url
 
-# Add Cloudinary to installed apps for media storage
-INSTALLED_APPS = INSTALLED_APPS + ['cloudinary_storage', 'cloudinary']
-
-# SECURITY WARNING: don't run with debug turned on in production!
-DEBUG = False
+# Media files - Use Cloudinary for persistent storage on Render
+if os.environ.get('CLOUDINARY_CLOUD_NAME'):
+    # Cloudinary is configured - use it for media storage
+    INSTALLED_APPS = list(INSTALLED_APPS) + ['cloudinary_storage', 'cloudinary']
+    
+    import cloudinary
+    import cloudinary.uploader
+    import cloudinary.api
+    
+    # Configure Cloudinary (get from environment variables)
+    cloudinary.config(
+        cloud_name=os.environ.get('CLOUDINARY_CLOUD_NAME'),
+        api_key=os.environ.get('CLOUDINARY_API_KEY'),
+        api_secret=os.environ.get('CLOUDINARY_API_SECRET'),
+        secure=True
+    )
+    
+    # Use Cloudinary for media files
+    DEFAULT_FILE_STORAGE = 'cloudinary_storage.storage.MediaCloudinaryStorage'
+    
+    MEDIA_URL = '/media/'
+    MEDIA_ROOT = os.path.join(BASE_DIR, 'media')
+else:
+    # Fallback to local storage (development/testing)
+    MEDIA_URL = '/media/'
+    MEDIA_ROOT = os.path.join(BASE_DIR, 'media')
 
 # Allowed hosts
 ALLOWED_HOSTS = [
@@ -48,25 +69,6 @@ MIDDLEWARE.insert(1, 'whitenoise.middleware.WhiteNoiseMiddleware')
 STATIC_URL = '/static/'
 STATIC_ROOT = os.path.join(BASE_DIR, 'staticfiles')
 STATICFILES_STORAGE = 'whitenoise.storage.CompressedManifestStaticFilesStorage'
-
-# Media files - Use Cloudinary for persistent storage on Render
-import cloudinary
-import cloudinary.uploader
-import cloudinary.api
-
-# Configure Cloudinary (get from environment variables)
-cloudinary.config(
-    cloud_name=os.environ.get('CLOUDINARY_CLOUD_NAME', ''),
-    api_key=os.environ.get('CLOUDINARY_API_KEY', ''),
-    api_secret=os.environ.get('CLOUDINARY_API_SECRET', ''),
-    secure=True
-)
-
-# Use Cloudinary for media files
-DEFAULT_FILE_STORAGE = 'cloudinary_storage.storage.MediaCloudinaryStorage'
-
-MEDIA_URL = '/media/'
-MEDIA_ROOT = os.path.join(BASE_DIR, 'media')
 
 # Security settings
 SECRET_KEY = os.environ.get('SECRET_KEY', SECRET_KEY)

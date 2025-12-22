@@ -148,9 +148,18 @@ class ProfileSettingsView(View):
     def post(self, request):
         form = ProfileSettingsForm(request.POST, request.FILES, instance=request.user)
         if form.is_valid():
-            form.save()
+            user = form.save()
+            # Debug logging
+            if user.avatar:
+                print(f"[DEBUG] Avatar saved: {user.avatar}")
+                print(f"[DEBUG] Avatar URL: {user.avatar.url}")
             messages.success(request, 'Your profile has been updated successfully!')
             return redirect('accounts:profile_settings')
+        else:
+            # Show form errors
+            for field, errors in form.errors.items():
+                for error in errors:
+                    messages.error(request, f'{field}: {error}')
         return render(request, 'accounts/profile_settings.html', {'form': form})
 
 

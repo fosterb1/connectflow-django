@@ -15,7 +15,10 @@
             <div class="flex items-center space-x-6">
                 <div class="relative group">
                     {% if user.avatar %}
-                        <img id="avatar-preview" src="{{ user.avatar.url }}" alt="Your avatar" class="w-24 h-24 rounded-full object-cover border-4 border-indigo-100 dark:border-gray-700 shadow-md">
+                        <img id="avatar-preview" src="{{ user.avatar.url }}?t={{ user.updated_at.timestamp }}" alt="Your avatar" class="w-24 h-24 rounded-full object-cover border-4 border-indigo-100 dark:border-gray-700 shadow-md" onerror="this.style.display='none'; document.getElementById('avatar-placeholder').classList.remove('hidden');">
+                        <div id="avatar-placeholder" class="w-24 h-24 bg-gradient-to-br from-indigo-500 to-purple-600 rounded-full flex items-center justify-center text-white text-3xl font-bold border-4 border-indigo-100 dark:border-gray-700 shadow-md hidden">
+                            {{ user.first_name.0|default:user.username.0|upper }}
+                        </div>
                     {% else %}
                         <div id="avatar-placeholder" class="w-24 h-24 bg-gradient-to-br from-indigo-500 to-purple-600 rounded-full flex items-center justify-center text-white text-3xl font-bold border-4 border-indigo-100 dark:border-gray-700 shadow-md">
                             {{ user.first_name.0|default:user.username.0|upper }}
