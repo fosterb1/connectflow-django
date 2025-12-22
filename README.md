@@ -4,13 +4,6 @@ A unified communication platform for organizational collaboration with hierarchi
 
 ## 📚 Documentation
 
-**→ [View Complete Documentation Index](docs/INDEX.md)**
-
-### Quick Links
-- 🚀 [Cloudinary Setup Guide](docs/deployment/CLOUDINARY_COMPLETE_SETUP.md) - Essential for image storage
-- 🔧 [Database vs File Storage](docs/deployment/DATABASE_VS_FILE_STORAGE.md) - Understanding the architecture
-- 🐛 [Avatar Troubleshooting](AVATAR_TROUBLESHOOTING.md) - Fix image issues
-- 📱 [Deployment Guide](docs/deployment/RENDER_DEPLOYMENT.md) - Deploy to Render.com
 
 ---
 
