@@ -23,37 +23,35 @@ if CLOUDINARY_CLOUD_NAME and CLOUDINARY_API_KEY and CLOUDINARY_API_SECRET:
     import cloudinary.uploader
     import cloudinary.api
     
-    # Configure Cloudinary (get from environment variables)
+    # Configure Cloudinary FIRST
     cloudinary.config(
         cloud_name=CLOUDINARY_CLOUD_NAME,
         api_key=CLOUDINARY_API_KEY,
         api_secret=CLOUDINARY_API_SECRET,
-        secure=True
+        secure=True,
+        api_proxy='http://proxy.example.com:8080'  # Optional
     )
     
-    # Add Cloudinary apps FIRST
-    INSTALLED_APPS = list(INSTALLED_APPS)
-    # cloudinary_storage must be before django.contrib.staticfiles
-    try:
-        staticfiles_index = INSTALLED_APPS.index('django.contrib.staticfiles')
-        INSTALLED_APPS.insert(staticfiles_index, 'cloudinary_storage')
-        INSTALLED_APPS.insert(staticfiles_index, 'cloudinary')
-    except ValueError:
-        INSTALLED_APPS = ['cloudinary_storage', 'cloudinary'] + INSTALLED_APPS
-    
-    # Use Cloudinary for media files
-    DEFAULT_FILE_STORAGE = 'cloudinary_storage.storage.MediaCloudinaryStorage'
-    
-    # Cloudinary storage settings
+    # CRITICAL: Set this BEFORE adding to INSTALLED_APPS
     CLOUDINARY_STORAGE = {
         'CLOUD_NAME': CLOUDINARY_CLOUD_NAME,
         'API_KEY': CLOUDINARY_API_KEY,
-        'API_SECRET': CLOUDINARY_API_SECRET
+        'API_SECRET': CLOUDINARY_API_SECRET,
     }
     
-    print(f"[CLOUDINARY DEBUG] ✅ DEFAULT_FILE_STORAGE set to: {DEFAULT_FILE_STORAGE}")
-    print(f"[CLOUDINARY DEBUG] ✅ CLOUDINARY_STORAGE configured")
-    print(f"[CLOUDINARY DEBUG] ✅ INSTALLED_APPS updated with cloudinary")
+    # Add Cloudinary to installed apps
+    INSTALLED_APPS = list(INSTALLED_APPS)
+    if 'cloudinary_storage' not in INSTALLED_APPS:
+        INSTALLED_APPS = ['cloudinary_storage'] + INSTALLED_APPS
+    if 'cloudinary' not in INSTALLED_APPS:
+        INSTALLED_APPS.append('cloudinary')
+    
+    # This is THE critical line
+    DEFAULT_FILE_STORAGE = 'cloudinary_storage.storage.MediaCloudinaryStorage'
+    
+    print(f"[CLOUDINARY DEBUG] ✅ DEFAULT_FILE_STORAGE: {DEFAULT_FILE_STORAGE}")
+    print(f"[CLOUDINARY DEBUG] ✅ Cloudinary SDK configured")
+    print(f"[CLOUDINARY DEBUG] ✅ Apps: {[a for a in INSTALLED_APPS if 'cloudinary' in a]}")
 else:
     print("[CLOUDINARY DEBUG] ❌ Cloudinary NOT configured - using local storage")
     print(f"[CLOUDINARY DEBUG]    Cloud Name: {CLOUDINARY_CLOUD_NAME}")
