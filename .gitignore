@@ -67,3 +67,6 @@ yarn-error.log
 
 # Redis
 dump.rdb
+
+# Secrets
+serviceAccountKey.json
