@@ -31,6 +31,13 @@
                 <input type="email" id="email" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent dark:bg-gray-700" placeholder="email@example.com">
             </div>
 
+            <!-- Organization Code -->
+            <div>
+                <label for="org-code" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Organization Code</label>
+                <input type="text" id="org-code" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent dark:bg-gray-700" placeholder="Enter your company code">
+                <p class="text-gray-500 dark:text-gray-400 text-xs mt-1 italic">Ask your administrator for the organization code.</p>
+            </div>
+
             <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
                 <div>
                     <label for="password" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Password</label>
@@ -95,6 +102,7 @@
     const firstNameInput = document.getElementById('first-name');
     const lastNameInput = document.getElementById('last-name');
     const emailInput = document.getElementById('email');
+    const orgCodeInput = document.getElementById('org-code');
     const passwordInput = document.getElementById('password');
     const confirmPasswordInput = document.getElementById('confirm-password');
     const registerButton = document.getElementById('register-button');
@@ -107,21 +115,24 @@
         div.classList.remove('hidden');
     }
 
-    async function sendTokenToBackend(idToken) {
+    async function sendRegistrationToBackend(idToken, orgCode) {
         const csrfToken = document.querySelector('[name=csrfmiddlewaretoken]').value;
         try {
-            const response = await fetch("{% url 'accounts:login' %}", {
+            const response = await fetch("{% url 'accounts:register_api' %}", {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json', 'X-CSRFToken': csrfToken },
-                body: JSON.stringify({ id_token: idToken })
+                body: JSON.stringify({ 
+                    id_token: idToken,
+                    org_code: orgCode 
+                })
             });
 
             if (response.ok) {
-                showMessage(successMessageDiv, "Registration successful! Redirecting to dashboard...");
+                showMessage(successMessageDiv, "Account verified and joined organization! Redirecting...");
                 setTimeout(() => window.location.href = "{% url 'accounts:dashboard' %}", 2000);
             } else {
                 const errorData = await response.json();
-                showMessage(errorMessageDiv, errorData.error || 'Registration failed on backend.');
+                showMessage(errorMessageDiv, errorData.error || 'Registration failed.');
             }
         } catch (error) {
             showMessage(errorMessageDiv, 'An unexpected error occurred.');
@@ -131,6 +142,11 @@
     registerButton.addEventListener('click', async () => {
         errorMessageDiv.classList.add('hidden');
         successMessageDiv.classList.add('hidden');
+
+        if (!orgCodeInput.value) {
+            showMessage(errorMessageDiv, "Organization Code is required.");
+            return;
+        }
 
         if (passwordInput.value !== confirmPasswordInput.value) {
             showMessage(errorMessageDiv, "Passwords do not match.");
@@ -144,7 +160,8 @@
             });
             await sendEmailVerification(userCredential.user);
             
-            showMessage(successMessageDiv, "Account created! Please check your email to verify your account. Once verified, you can log in.");
+            const idToken = await userCredential.user.getIdToken();
+            await sendRegistrationToBackend(idToken, orgCodeInput.value);
             
         } catch (error) {
             showMessage(errorMessageDiv, error.message);
@@ -153,10 +170,14 @@
 
     googleRegisterButton.addEventListener('click', async () => {
         errorMessageDiv.classList.add('hidden');
+        if (!orgCodeInput.value) {
+            showMessage(errorMessageDiv, "Please enter your Organization Code before signing up with Google.");
+            return;
+        }
         try {
             const result = await signInWithPopup(auth, provider);
             const idToken = await result.user.getIdToken();
-            await sendTokenToBackend(idToken);
+            await sendRegistrationToBackend(idToken, orgCodeInput.value);
         } catch (error) {
             showMessage(errorMessageDiv, error.message);
         }

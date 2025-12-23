@@ -50,13 +50,48 @@ class LoginView(View):
 class RegisterView(View):
     """
     Renders the registration page.
-    The actual registration logic is handled by Firebase on the frontend,
-    which then sends the ID token to LoginView.
     """
     def get(self, request):
         if request.user.is_authenticated:
             return redirect('accounts:dashboard')
         return render(request, 'accounts/register.html')
+
+
+class RegisterAPIView(View):
+    """
+    API endpoint to register a user and join an organization using a code.
+    """
+    @method_decorator(csrf_exempt)
+    def post(self, request):
+        try:
+            data = json.loads(request.body)
+            id_token = data.get('id_token')
+            org_code = data.get('org_code')
+        except json.JSONDecodeError:
+            return JsonResponse({'error': 'Invalid JSON'}, status=400)
+
+        if not id_token or not org_code:
+            return JsonResponse({'error': 'ID token and Organization Code are required.'}, status=400)
+
+        # 1. Verify Organization Code
+        try:
+            organization = Organization.objects.get(code=org_code, is_active=True)
+        except Organization.DoesNotExist:
+            return JsonResponse({'error': 'Invalid or inactive organization code.'}, status=400)
+
+        # 2. Authenticate User (creates them via FirebaseBackend if new)
+        user = authenticate(request, id_token=id_token)
+        if not user:
+            return JsonResponse({'error': 'Authentication failed.'}, status=403)
+
+        # 3. Associate with Organization
+        user.organization = organization
+        user.role = 'TEAM_MEMBER' # Default for joining via code
+        user.save()
+
+        login(request, user)
+        messages.success(request, f'Successfully joined {organization.name}!')
+        return JsonResponse({'status': 'ok'})
 
 
 class OrganizationSignupView(View):
