@@ -74,6 +74,32 @@ class ChannelForm(forms.ModelForm):
         self.fields['members'].required = False
         self.fields['shared_project'].required = False
 
+    def save(self, commit=True):
+        channel = super().save(commit=False)
+        if commit:
+            channel.save()
+            
+            # 1. Handle "Appending" members instead of replacing
+            new_members = self.cleaned_data.get('members', [])
+            if self.instance.pk:
+                # If editing, add new ones to existing
+                channel.members.add(*new_members)
+            else:
+                # If creating, set initial ones
+                channel.members.set(new_members)
+
+            # 2. Auto-add team members if team is selected
+            if channel.team:
+                channel.members.add(*channel.team.members.all())
+            
+            # 3. Auto-add department members if department is selected
+            if channel.department:
+                for team in channel.department.teams.all():
+                    channel.members.add(*team.members.all())
+                    
+            self.save_m2m()
+        return channel
+
 
 class MessageForm(forms.ModelForm):
     """Form for sending messages in channels."""

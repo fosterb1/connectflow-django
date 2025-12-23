@@ -89,6 +89,21 @@ class SharedProjectForm(forms.ModelForm):
             # More can be added later as guest orgs join
             self.fields['members'].queryset = User.objects.filter(organization=organization)
 
+    def save(self, commit=True):
+        project = super().save(commit=False)
+        if commit:
+            project.save()
+            
+            # Handle "Appending" members instead of replacing
+            new_members = self.cleaned_data.get('members', [])
+            if self.instance.pk:
+                project.members.add(*new_members)
+            else:
+                project.members.set(new_members)
+                
+            self.save_m2m()
+        return project
+
 
 class JoinProjectForm(forms.Form):
     """Form for joining a shared project via code."""
@@ -128,17 +143,28 @@ class DepartmentForm(forms.ModelForm):
     def __init__(self, *args, organization=None, **kwargs):
         super().__init__(*args, **kwargs)
         
-        # Filter department heads to only show users from the same organization with DEPT_HEAD role
+        # Filter department heads to show all users from the same organization
         if organization:
             self.fields['head'].queryset = User.objects.filter(
-                organization=organization,
-                role=User.Role.DEPT_HEAD
+                organization=organization
             )
         else:
-            self.fields['head'].queryset = User.objects.filter(role=User.Role.DEPT_HEAD)
+            self.fields['head'].queryset = User.objects.all()
         
         # Make head field optional
         self.fields['head'].required = False
+
+    def save(self, commit=True):
+        department = super().save(commit=False)
+        if department.head:
+            # Promote the selected user to DEPT_HEAD if they aren't already an admin
+            if department.head.role not in [User.Role.SUPER_ADMIN, User.Role.DEPT_HEAD]:
+                department.head.role = User.Role.DEPT_HEAD
+                department.head.save()
+        
+        if commit:
+            department.save()
+        return department
 
 
 class TeamForm(forms.ModelForm):
@@ -176,10 +202,9 @@ class TeamForm(forms.ModelForm):
         if department:
             organization = department.organization
             
-            # Managers can be TEAM_MANAGER or DEPT_HEAD from same organization
+            # Managers can be any user from same organization
             self.fields['manager'].queryset = User.objects.filter(
-                organization=organization,
-                role__in=[User.Role.TEAM_MANAGER, User.Role.DEPT_HEAD]
+                organization=organization
             )
             
             # Members can be any user from the same organization
@@ -187,14 +212,35 @@ class TeamForm(forms.ModelForm):
                 organization=organization
             )
         else:
-            self.fields['manager'].queryset = User.objects.filter(
-                role__in=[User.Role.TEAM_MANAGER, User.Role.DEPT_HEAD]
-            )
+            self.fields['manager'].queryset = User.objects.all()
             self.fields['members'].queryset = User.objects.all()
         
         # Make fields optional
         self.fields['manager'].required = False
         self.fields['members'].required = False
+
+    def save(self, commit=True):
+        team = super().save(commit=False)
+        if team.manager:
+            # Promote the selected user to TEAM_MANAGER if they are just a TEAM_MEMBER
+            if team.manager.role == User.Role.TEAM_MEMBER:
+                team.manager.role = User.Role.TEAM_MANAGER
+                team.manager.save()
+        
+        if commit:
+            team.save()
+            
+            # Handle "Appending" members instead of replacing
+            new_members = self.cleaned_data.get('members', [])
+            if self.instance.pk:
+                # If editing, add new ones to existing
+                team.members.add(*new_members)
+            else:
+                # If creating, set initial ones
+                team.members.set(new_members)
+                
+            self.save_m2m()
+        return team
 
 
 class InviteMemberForm(forms.Form):

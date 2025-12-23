@@ -138,6 +138,8 @@ class Notification(models.Model):
         MESSAGE = 'MESSAGE', _('New Message')
         MENTION = 'MENTION', _('Mention')
         PROJECT = 'PROJECT', _('Project Update')
+        CHANNEL = 'CHANNEL', _('Channel Activity')
+        MEMBERSHIP = 'MEMBERSHIP', _('Membership Update')
         SYSTEM = 'SYSTEM', _('System Alert')
 
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)

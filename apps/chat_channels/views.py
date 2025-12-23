@@ -189,13 +189,14 @@ def channel_create(request):
     if request.method == 'POST':
         form = ChannelForm(request.POST, organization=user.organization)
         if form.is_valid():
+            # The form.save() now handles members and team/dept auto-add
             channel = form.save(commit=False)
             channel.organization = user.organization
             channel.created_by = user
             channel.save()
-            form.save_m2m()
+            form.save_m2m() # This will trigger the logic in form.save() correctly if called or we just call save()
             
-            # Add creator as member
+            # Ensure creator is a member
             channel.members.add(user)
             
             messages.success(request, f'Channel "#{channel.name}" created successfully!')

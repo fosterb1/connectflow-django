@@ -46,6 +46,39 @@ def toggle_milestone(request, pk):
     milestone.is_completed = not milestone.is_completed
     milestone.completed_at = timezone.now() if milestone.is_completed else None
     milestone.save()
+
+    if milestone.is_completed:
+        from apps.accounts.models import Notification
+        from asgiref.sync import async_to_sync
+        from channels.layers import get_channel_layer
+        channel_layer = get_channel_layer()
+        
+        # Notify all project members except the person who toggled it? 
+        # Actually, let's notify everyone in the project.
+        for member in milestone.project.members.all():
+            if member == request.user:
+                continue
+                
+            notification = Notification.notify(
+                recipient=member,
+                sender=request.user,
+                title=f"Milestone Achieved: {milestone.title}",
+                content=f"{request.user.get_full_name()} completed a milestone in {milestone.project.name}.",
+                notification_type='PROJECT',
+                link=reverse('organizations:shared_project_detail', kwargs={'pk': milestone.project.pk})
+            )
+            
+            async_to_sync(channel_layer.group_send)(
+                f"notifications_{member.id}",
+                {
+                    'type': 'send_notification',
+                    'id': str(notification.id),
+                    'title': notification.title,
+                    'content': notification.content,
+                    'notification_type': notification.notification_type,
+                    'link': notification.link,
+                }
+            )
     
     return JsonResponse({
         'success': True, 
@@ -67,6 +100,36 @@ def project_files(request, pk):
             project_file.project = project
             project_file.uploader = request.user
             project_file.save()
+
+            # Notification logic
+            from apps.accounts.models import Notification
+            from asgiref.sync import async_to_sync
+            from channels.layers import get_channel_layer
+            channel_layer = get_channel_layer()
+            
+            for member in project.members.all():
+                if member == request.user:
+                    continue
+                notification = Notification.notify(
+                    recipient=member,
+                    sender=request.user,
+                    title=f"New File in {project.name}",
+                    content=f"{request.user.get_full_name()} uploaded {project_file.name}",
+                    notification_type='PROJECT',
+                    link=reverse('organizations:project_files', kwargs={'pk': project.pk})
+                )
+                async_to_sync(channel_layer.group_send)(
+                    f"notifications_{member.id}",
+                    {
+                        'type': 'send_notification',
+                        'id': str(notification.id),
+                        'title': notification.title,
+                        'content': notification.content,
+                        'notification_type': notification.notification_type,
+                        'link': notification.link,
+                    }
+                )
+
             messages.success(request, 'File uploaded successfully.')
             return redirect('organizations:project_files', pk=pk)
     else:
@@ -92,6 +155,36 @@ def project_meetings(request, pk):
             meeting.project = project
             meeting.organizer = request.user
             meeting.save()
+
+            # Notification logic
+            from apps.accounts.models import Notification
+            from asgiref.sync import async_to_sync
+            from channels.layers import get_channel_layer
+            channel_layer = get_channel_layer()
+            
+            for member in project.members.all():
+                if member == request.user:
+                    continue
+                notification = Notification.notify(
+                    recipient=member,
+                    sender=request.user,
+                    title=f"Meeting Scheduled: {meeting.title}",
+                    content=f"New meeting for project {project.name} on {meeting.start_time.strftime('%Y-%m-%d %H:%M')}",
+                    notification_type='PROJECT',
+                    link=reverse('organizations:project_meetings', kwargs={'pk': project.pk})
+                )
+                async_to_sync(channel_layer.group_send)(
+                    f"notifications_{member.id}",
+                    {
+                        'type': 'send_notification',
+                        'id': str(notification.id),
+                        'title': notification.title,
+                        'content': notification.content,
+                        'notification_type': notification.notification_type,
+                        'link': notification.link,
+                    }
+                )
+
             messages.success(request, 'Meeting scheduled.')
             return redirect('organizations:project_meetings', pk=pk)
     else:
@@ -117,6 +210,34 @@ def project_tasks(request, pk):
             task.project = project
             task.creator = request.user
             task.save()
+
+            # Notification logic (Notify assigned user)
+            if task.assigned_to and task.assigned_to != request.user:
+                from apps.accounts.models import Notification
+                from asgiref.sync import async_to_sync
+                from channels.layers import get_channel_layer
+                channel_layer = get_channel_layer()
+                
+                notification = Notification.notify(
+                    recipient=task.assigned_to,
+                    sender=request.user,
+                    title=f"New Task Assigned: {task.title}",
+                    content=f"You have been assigned a task in {project.name}: {task.title}",
+                    notification_type='PROJECT',
+                    link=reverse('organizations:project_tasks', kwargs={'pk': project.pk})
+                )
+                async_to_sync(channel_layer.group_send)(
+                    f"notifications_{task.assigned_to.id}",
+                    {
+                        'type': 'send_notification',
+                        'id': str(notification.id),
+                        'title': notification.title,
+                        'content': notification.content,
+                        'notification_type': notification.notification_type,
+                        'link': notification.link,
+                    }
+                )
+
             messages.success(request, 'Task created.')
             return redirect('organizations:project_tasks', pk=pk)
     else:

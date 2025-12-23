@@ -98,8 +98,7 @@ class Department(models.Model):
         null=True,
         blank=True,
         related_name='headed_departments',
-        limit_choices_to={'role': 'DEPT_HEAD'},
-        help_text=_("Department head (must have DEPT_HEAD role)")
+        help_text=_("Department head")
     )
     
     is_active = models.BooleanField(
@@ -161,7 +160,6 @@ class Team(models.Model):
         null=True,
         blank=True,
         related_name='managed_teams',
-        limit_choices_to={'role__in': ['TEAM_MANAGER', 'DEPT_HEAD']},
         help_text=_("Team manager")
     )
     
@@ -343,3 +341,45 @@ class ProjectMilestone(models.Model):
 
     def __str__(self):
         return f"{self.title} - {self.project.name}"
+
+
+from django.db.models.signals import m2m_changed
+from django.dispatch import receiver
+from django.urls import reverse
+
+@receiver(m2m_changed, sender=SharedProject.members.through)
+def notify_members_added_to_project(sender, instance, action, pk_set, **kwargs):
+    if action == "post_add":
+        from apps.accounts.models import Notification, User
+        from asgiref.sync import async_to_sync
+        from channels.layers import get_channel_layer
+        
+        channel_layer = get_channel_layer()
+        
+        for user_id in pk_set:
+            try:
+                user = User.objects.get(pk=user_id)
+                # We don't have a clear "creator" but we can use project name
+                link = reverse('organizations:shared_project_detail', kwargs={'pk': instance.pk})
+                notification = Notification.notify(
+                    recipient=user,
+                    title=f"Joined Project: {instance.name}",
+                    content=f"You have been added to the shared project {instance.name}.",
+                    notification_type='PROJECT',
+                    link=link
+                )
+                
+                # Broadcast via WebSocket
+                async_to_sync(channel_layer.group_send)(
+                    f"notifications_{user.id}",
+                    {
+                        'type': 'send_notification',
+                        'id': str(notification.id),
+                        'title': notification.title,
+                        'content': notification.content,
+                        'notification_type': notification.notification_type,
+                        'link': notification.link,
+                    }
+                )
+            except Exception as e:
+                print(f"Error sending notification: {e}")
