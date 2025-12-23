@@ -665,4 +665,12 @@ def member_directory(request):
     members = user.organization.members.all().order_by('first_name', 'last_name')
     q = request.GET.get('q')
     if q: members = members.filter(Q(first_name__icontains=q) | Q(last_name__icontains=q) | Q(username__icontains=q) | Q(role__icontains=q))
-    return render(request, 'organizations/member_directory.html', {'members': members, 'search_query': q})
+    
+    # Ensure is_admin is accurately passed
+    is_admin = user.role == user.Role.SUPER_ADMIN or user.is_staff or user.is_superuser
+    
+    return render(request, 'organizations/member_directory.html', {
+        'members': members, 
+        'search_query': q, 
+        'is_admin': is_admin
+    })

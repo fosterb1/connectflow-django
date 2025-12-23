@@ -23,7 +23,7 @@ urlpatterns = [
     # Members
     path('invite/', views.invite_member, name='invite_member'),
     path('members/', views.member_directory, name='member_directory'),
-    path('members/<int:pk>/remove/', views.member_remove, name='member_remove'),
+    path('members/<str:pk>/remove/', views.member_remove, name='member_remove'),
     
     # Shared Projects
     path('projects/', views.shared_project_list, name='shared_project_list'),
