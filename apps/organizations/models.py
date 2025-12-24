@@ -343,10 +343,27 @@ class ProjectMilestone(models.Model):
         return f"{self.title} - {self.project.name}"
 
 
-from django.db.models.signals import m2m_changed, post_delete
+from django.db.models.signals import m2m_changed, post_delete, pre_save
 from django.dispatch import receiver
 from django.urls import reverse
 import cloudinary.uploader
+
+@receiver(pre_save, sender=Organization)
+def delete_old_org_logo_on_change(sender, instance, **kwargs):
+    if not instance.pk:
+        return False
+
+    try:
+        old_logo = Organization.objects.get(pk=instance.pk).logo
+    except Organization.DoesNotExist:
+        return False
+
+    new_logo = instance.logo
+    if old_logo and old_logo != new_logo:
+        try:
+            cloudinary.uploader.destroy(old_logo.name)
+        except Exception as e:
+            print(f"Cloudinary cleanup error: {e}")
 
 @receiver(post_delete, sender=Organization)
 def delete_org_logo_from_cloudinary(sender, instance, **kwargs):

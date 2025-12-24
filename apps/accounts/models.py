@@ -148,9 +148,29 @@ class User(AbstractUser):
         return self.role in [self.Role.DEPT_HEAD, self.Role.TEAM_MANAGER]
 
 
-from django.db.models.signals import post_delete
+from django.db.models.signals import post_delete, pre_save
 from django.dispatch import receiver
 import cloudinary.uploader
+
+@receiver(pre_save, sender=User)
+def delete_old_avatar_on_change(sender, instance, **kwargs):
+    if not instance.pk:
+        return False
+
+    try:
+        old_avatar = User.objects.get(pk=instance.pk).avatar
+    except User.DoesNotExist:
+        return False
+
+    new_avatar = instance.avatar
+    if old_avatar and old_avatar != new_avatar:
+        try:
+            cloudinary.uploader.destroy(old_avatar.public_id)
+        except Exception:
+            try:
+                cloudinary.uploader.destroy(old_avatar.name)
+            except Exception as e:
+                print(f"Cloudinary cleanup error: {e}")
 
 @receiver(post_delete, sender=User)
 def delete_avatar_from_cloudinary(sender, instance, **kwargs):
