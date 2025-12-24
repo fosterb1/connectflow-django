@@ -81,6 +81,7 @@ class User(AbstractUser):
     timezone = models.CharField(
         max_length=50,
         default='UTC',
+        blank=True,
         help_text=_("User's timezone")
     )
 

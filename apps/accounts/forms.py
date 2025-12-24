@@ -217,9 +217,10 @@ class UserLoginForm(forms.Form):
     )
 
 
-class ProfileSettingsForm(forms.ModelForm):
-    """Form for updating user profile settings."""
-    class Meta:
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.fields['timezone'].required = False
+
         model = User
         fields = [
             'first_name', 'last_name', 'email', 'avatar', 
