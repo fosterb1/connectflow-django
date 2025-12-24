@@ -299,7 +299,8 @@ def channel_detail(request, pk):
                     'sender_avatar': user.avatar.url if user.avatar else None,
                     'timestamp': message.created_at.strftime('%b %d, %I:%M %p'),
                     'voice_message_url': message.voice_message.url if message.voice_message else None,
-                    'voice_duration': message.voice_duration
+                    'voice_duration': message.voice_duration,
+                    'attachments': [{'url': a.file.url, 'name': a.file.name.split('/')[-1]} for a in message.attachments.all()]
                 })
             
             return redirect('chat_channels:channel_detail', pk=pk)

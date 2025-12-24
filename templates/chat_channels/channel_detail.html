@@ -113,6 +113,18 @@
                                         <audio id="voice-audio-{{ message.pk }}" src="{{ message.voice_message.url }}" class="hidden"></audio>
                                     </div>
                                 </div>
+                            {% elif message.attachments.all %}
+                                <div class="space-y-2">
+                                    {% for att in message.attachments.all %}
+                                        <a href="{{ att.file.url }}" target="_blank" class="flex items-center p-2 rounded-lg bg-gray-50 dark:bg-gray-700 border border-gray-100 dark:border-gray-600 hover:bg-white dark:hover:bg-gray-600 transition shadow-sm">
+                                            <svg class="w-4 h-4 mr-2 text-indigo-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path></svg>
+                                            <span class="text-[10px] font-black uppercase truncate max-w-[120px]">{{ att.file.name|basename }}</span>
+                                        </a>
+                                    {% endfor %}
+                                    {% if message.content %}
+                                        <div class="{% if message.sender == user %}bg-indigo-600 text-white shadow-lg{% else %}bg-gray-100 dark:bg-gray-700 text-gray-800 dark:text-gray-100 shadow-sm{% endif %} rounded-2xl px-4 py-3 mt-2"><p class="whitespace-pre-wrap break-words message-content text-sm leading-relaxed">{{ message.content }}</p></div>
+                                    {% endif %}
+                                </div>
                             {% elif message.content|is_emoji_only %}
                                 <div class="message-content {% if message.sender == user %}text-right{% endif %}"><span class="text-5xl leading-none inline-block hover:scale-110 transition-transform cursor-default">{{ message.content }}</span></div>
                             {% elif message.content %}
@@ -228,9 +240,31 @@ document.addEventListener("DOMContentLoaded", function () {
         div.className = `flex space-x-3 ${isMe ? 'flex-row-reverse space-x-reverse' : ''}`;
         div.id = `message-${data.message_id}`;
         const avatar = data.sender_avatar ? `<img src="${data.sender_avatar}" class="w-9 h-9 rounded-xl object-cover shadow-sm">` : `<div class="w-9 h-9 bg-indigo-500 rounded-xl flex items-center justify-center text-white font-bold text-xs">${data.sender_name[0].toUpperCase()}</div>`;
-        let content = data.voice_message_url ? `<div class="${isMe ? 'bg-indigo-600 text-white' : 'bg-gray-100 dark:bg-gray-700 text-gray-800 dark:text-gray-100'} rounded-2xl px-4 py-3"><div class="flex items-center space-x-3 py-1 min-w-[220px]"><button type="button" onclick="playVoiceMessage('${data.message_id}')" class="text-current hover:scale-110 transition"><svg class="w-10 h-10" fill="currentColor" viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></svg></button><div class="flex-1 bg-current opacity-20 h-1.5 rounded-full overflow-hidden"><div class="bg-current h-full w-0 transition-all duration-100" id="voice-progress-${data.message_id}"></div></div><audio id="voice-audio-${data.message_id}" src="${data.voice_message_url}" class="hidden"></audio></div></div>` : `<div class="${isMe ? 'bg-indigo-600 text-white shadow-lg' : 'bg-gray-100 dark:bg-gray-700 text-gray-800 dark:text-gray-100'} rounded-2xl px-4 py-3"><p class="whitespace-pre-wrap break-words message-content text-sm leading-relaxed">${data.message}</p></div>`;
-        let actions = `<div class="opacity-0 group-hover:opacity-100 transition-opacity absolute top-0 ${isMe ? 'right-full mr-2' : 'left-full ml-2'} flex items-center space-x-1 bg-white dark:bg-gray-800 shadow-xl border border-gray-100 dark:border-gray-700 rounded-lg p-1 z-20"><button type="button" class="emoji-reaction-btn p-1 hover:bg-gray-100 dark:hover:bg-gray-700 rounded text-gray-400" data-message-id="${data.message_id}"><svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path d="M14.828 14.828a4 4 0 01-5.656 0M9 10h.01M15 10h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg></button>${isMe ? `<button type="button" class="edit-message-btn p-1 hover:bg-gray-100 dark:hover:bg-gray-700 rounded text-gray-400" data-message-id="${data.message_id}"><svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"></path></svg></button>` : ''}</div>`;
-        div.innerHTML = `<div class="flex-shrink-0">${avatar}</div><div class="flex-1 max-w-2xl group"><div class="flex items-center space-x-2 mb-1 ${isMe ? 'justify-end' : ''}"><span class="font-bold text-xs text-gray-700 dark:text-gray-200">${data.sender_name}</span><span class="text-[9px] text-gray-400 font-medium">Just now</span></div><div class="relative">${content}${actions}</div></div>`;
+        
+        let content = '';
+        if (data.voice_message_url) {
+            content = `<div class="${isMe ? 'bg-indigo-600 text-white' : 'bg-gray-100 dark:bg-gray-700 text-gray-800 dark:text-gray-100'} rounded-2xl px-4 py-3"><div class="flex items-center space-x-3 py-1 min-w-[220px]"><button type="button" onclick="playVoiceMessage('${data.message_id}')" class="text-current hover:scale-110 transition"><svg class="w-10 h-10" fill="currentColor" viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></svg></button><div class="flex-1 bg-current opacity-20 h-1 rounded-full overflow-hidden"><div class="bg-current h-full w-0 transition-all duration-100" id="voice-progress-${data.message_id}"></div></div><audio id="voice-audio-${data.message_id}" src="${data.voice_message_url}" class="hidden"></audio></div></div>`;
+        } else if (data.attachments && data.attachments.length > 0) {
+            content = `<div class="space-y-2">`;
+            data.attachments.forEach(att => {
+                content += `<a href="${att.url}" target="_blank" class="flex items-center p-2 rounded-lg bg-gray-50 dark:bg-gray-700 border border-gray-100 dark:border-gray-600 hover:bg-white dark:hover:bg-gray-600 transition shadow-sm"><svg class="w-4 h-4 mr-2 text-indigo-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path></svg><span class="text-[10px] font-black uppercase truncate max-w-[120px]">${att.name}</span></a>`;
+            });
+            if (data.message) {
+                content += `<div class="${isMe ? 'bg-indigo-600 text-white shadow-lg' : 'bg-gray-100 dark:bg-gray-700 text-gray-800 dark:text-gray-100'} rounded-2xl px-4 py-3 mt-2"><p class="whitespace-pre-wrap break-words message-content text-sm leading-relaxed">${data.message}</p></div>`;
+            }
+            content += `</div>`;
+        } else {
+            content = `<div class="${isMe ? 'bg-indigo-600 text-white shadow-lg' : 'bg-gray-100 dark:bg-gray-700 text-gray-800 dark:text-gray-100'} rounded-2xl px-4 py-3"><p class="whitespace-pre-wrap break-words message-content text-sm leading-relaxed">${data.message}</p></div>`;
+        }
+
+        let actionHtml = `
+            <div class="opacity-0 group-hover:opacity-100 transition-opacity absolute top-0 ${isMe ? 'right-full mr-2' : 'left-full ml-2'} flex items-center space-x-1 bg-white dark:bg-gray-800 shadow-xl border border-gray-100 dark:border-gray-700 rounded-lg p-1 z-20">
+                <button type="button" class="emoji-reaction-btn p-1 hover:bg-gray-100 dark:hover:bg-gray-700 rounded text-gray-400" data-message-id="${data.message_id}"><svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path d="M14.828 14.828a4 4 0 01-5.656 0M9 10h.01M15 10h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg></button>
+                ${isMe ? `<button type="button" class="edit-message-btn p-1 hover:bg-gray-100 dark:hover:bg-gray-700 rounded text-gray-400" data-message-id="${data.message_id}"><svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"></path></svg></button>` : ''}
+            </div>
+        `;
+
+        div.innerHTML = `<div class="flex-shrink-0">${avatar}</div><div class="flex-1 max-w-2xl group"><div class="flex items-center space-x-2 mb-1 ${isMe ? 'justify-end' : ''}"><span class="font-bold text-xs text-gray-700 dark:text-gray-200">${data.sender_name}</span><span class="text-[9px] text-gray-400 font-medium">Just now</span></div><div class="relative">${content}${actionHtml}</div></div>`;
         messagesContainer.appendChild(div);
         bindActions(div);
     }
@@ -270,9 +304,18 @@ document.addEventListener("DOMContentLoaded", function () {
             const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
             mediaRecorder = new MediaRecorder(stream); audioChunks = [];
             mediaRecorder.ondataavailable = e => audioChunks.push(e.data);
-            mediaRecorder.onstop = () => { recordedBlob = new Blob(audioChunks, { type: 'audio/webm' }); document.getElementById('voice-preview').classList.add('hidden'); updateSendButtonState(); };
-            mediaRecorder.start(); document.getElementById('voice-preview').classList.remove('hidden');
-        } else { mediaRecorder.stop(); }
+            mediaRecorder.onstop = () => {
+                recordedBlob = new Blob(audioChunks, { type: 'audio/webm' });
+                document.getElementById('voice-preview').classList.add('hidden');
+                stream.getTracks().forEach(t => t.stop());
+                updateSendButtonState();
+                alert("Voice note ready to send!");
+            };
+            mediaRecorder.start();
+            document.getElementById('voice-preview').classList.remove('hidden');
+        } else {
+            mediaRecorder.stop();
+        }
     };
 
     window.stopVoiceRecording = () => { if (mediaRecorder && mediaRecorder.state === 'recording') mediaRecorder.stop(); };
@@ -292,10 +335,10 @@ document.addEventListener("DOMContentLoaded", function () {
         } else {
             const fd = new FormData(chatForm);
             if (recordedBlob) fd.set('voice_message', new File([recordedBlob], 'voice.webm'));
-            if (recordedBlob || fd.get('attachments')) {
+            if (recordedBlob || document.getElementById('file-upload').files.length) {
                 const res = await fetch(chatForm.action, { method: 'POST', body: fd, headers: { 'X-Requested-With': 'XMLHttpRequest', 'X-CSRFToken': '{{ csrf_token }}' }});
                 const data = await res.json();
-                if (data.success) { recordedBlob = null; messageInput.value = ''; clearFileUpload(); chatSocket.send(JSON.stringify({ type: 'chat_message', message_id: data.message_id, sender_id: userId, sender_name: userName, sender_avatar: data.sender_avatar, message: data.content, voice_message_url: data.voice_message_url, timestamp: data.timestamp })); }
+                if (data.success) { recordedBlob = null; messageInput.value = ''; clearFileUpload(); chatSocket.send(JSON.stringify({ type: 'chat_message', message_id: data.message_id, sender_id: userId, sender_name: userName, sender_avatar: data.sender_avatar, message: data.content, voice_message_url: data.voice_message_url, timestamp: data.timestamp, attachments: data.attachments })); }
             } else { chatSocket.send(JSON.stringify({ 'message': msg })); messageInput.value = ''; }
         }
         updateSendButtonState();

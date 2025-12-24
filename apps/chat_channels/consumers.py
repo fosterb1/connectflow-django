@@ -72,6 +72,7 @@ class ChatConsumer(AsyncWebsocketConsumer):
             message_id = data.get('message_id')
             content = data.get('message', '')
             voice_url = data.get('voice_message_url')
+            attachments = data.get('attachments', [])
             
             # Prepare common broadcast data
             broadcast_data = {
@@ -82,7 +83,8 @@ class ChatConsumer(AsyncWebsocketConsumer):
                 'sender_avatar': self.user.avatar.url if self.user.avatar else None,
                 'timestamp': data.get('timestamp', timezone.now().strftime('%b %d, %I:%M %p')),
                 'voice_message_url': voice_url,
-                'voice_duration': data.get('voice_duration')
+                'voice_duration': data.get('voice_duration'),
+                'attachments': attachments
             }
 
             if message_id:
@@ -140,7 +142,8 @@ class ChatConsumer(AsyncWebsocketConsumer):
             'message_id': event['message_id'],
             'timestamp': event['timestamp'],
             'voice_message_url': event.get('voice_message_url'),
-            'voice_duration': event.get('voice_duration')
+            'voice_duration': event.get('voice_duration'),
+            'attachments': event.get('attachments', [])
         }))
 
     async def user_typing(self, event):
