@@ -250,11 +250,19 @@ def channel_detail(request, pk):
     )
     
     # Get sidebar conversation list
-    user_channels = Channel.objects.filter(
+    user_channels_query = Channel.objects.filter(
         organization=user.organization,
         is_archived=False,
         members=user
-    ).exclude(channel_type__in=[Channel.ChannelType.DIRECT, Channel.ChannelType.BREAKOUT]).distinct()
+    ).exclude(channel_type=Channel.ChannelType.DIRECT).distinct()
+
+    # If the current channel is not a DM and not in user_channels (e.g. admin viewing it), add it to the list
+    if channel.channel_type != Channel.ChannelType.DIRECT and channel not in user_channels_query:
+        # Convert to list to allow appending
+        user_channels = list(user_channels_query)
+        user_channels.append(channel)
+    else:
+        user_channels = user_channels_query
 
     direct_messages = Channel.objects.filter(
         organization=user.organization,
@@ -367,13 +375,13 @@ def channel_delete(request, pk):
 @login_required
 @require_POST
 def message_edit(request, pk):
-    """Edit an existing message."""
+    """Edit an existing message. Only sender can edit."""
     user = request.user
     message = get_object_or_404(Message, pk=pk)
     
-    # Only sender can edit
+    # Strictly only the sender can edit. Admins can delete but NOT edit.
     if message.sender != user:
-        return JsonResponse({'success': False, 'error': 'You can only edit your own messages.'}, status=403)
+        return JsonResponse({'success': False, 'error': 'Unauthorized: Only the author can edit this message.'}, status=403)
     
     new_content = request.POST.get('content')
     if not new_content:
