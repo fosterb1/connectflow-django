@@ -189,8 +189,22 @@ document.addEventListener("DOMContentLoaded", function () {
         div.className = `flex space-x-3 ${isMe ? 'flex-row-reverse space-x-reverse' : ''}`;
         div.id = `message-${data.message_id}`;
         const avatar = data.sender_avatar ? `<img src="${data.sender_avatar}" class="w-9 h-9 rounded-xl object-cover shadow-sm">` : `<div class="w-9 h-9 bg-indigo-500 rounded-xl flex items-center justify-center text-white font-bold text-xs">${data.sender_name[0].toUpperCase()}</div>`;
-        let content = data.voice_message_url ? `<div class="${isMe ? 'bg-indigo-600 text-white' : 'bg-gray-100 dark:bg-gray-700 text-gray-800 dark:text-gray-100'} rounded-2xl px-4 py-3"><div class="flex items-center space-x-3 py-1 min-w-[200px]"><button type="button" onclick="playVoiceMessage('${data.message_id}')" class="text-current hover:scale-110 transition"><svg class="w-8 h-8" fill="currentColor" viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></svg></button><div class="flex-1 bg-current opacity-20 h-1.5 rounded-full overflow-hidden"><div class="bg-current h-full w-0 transition-all duration-100" id="voice-progress-${data.message_id}"></div></div><audio id="voice-audio-${data.message_id}" src="${data.voice_message_url}" class="hidden"></audio></div></div>` : `<div class="${isMe ? 'bg-indigo-600 text-white shadow-lg' : 'bg-gray-100 dark:bg-gray-700 text-gray-800 dark:text-gray-100'} rounded-2xl px-4 py-3"><p class="text-sm leading-relaxed message-content">${data.message}</p></div>`;
-        div.innerHTML = `<div class="flex-shrink-0">${avatar}</div><div class="flex-1 max-w-2xl group"><div class="flex items-center space-x-2 mb-1 ${isMe ? 'justify-end' : ''}"><span class="font-bold text-xs text-gray-700 dark:text-gray-200">${data.sender_name}</span><span class="text-[9px] text-gray-400 font-medium">Just now</span></div><div class="relative">${content}</div></div>`;
+        
+        let content = '';
+        if (data.voice_message_url) {
+            content = `<div class="${isMe ? 'bg-indigo-600 text-white' : 'bg-gray-100 dark:bg-gray-700 text-gray-800 dark:text-gray-100'} rounded-2xl px-4 py-3"><div class="flex items-center space-x-3 py-1 min-w-[220px]"><button type="button" onclick="playVoiceMessage('${data.message_id}')" class="text-current hover:scale-110 transition"><svg class="w-10 h-10" fill="currentColor" viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></svg></button><div class="flex-1 bg-current opacity-20 h-1.5 rounded-full overflow-hidden"><div class="bg-current h-full w-0 transition-all duration-100" id="voice-progress-${data.message_id}"></div></div><audio id="voice-audio-${data.message_id}" src="${data.voice_message_url}" class="hidden"></audio></div></div>`;
+        } else {
+            content = `<div class="${isMe ? 'bg-indigo-600 text-white shadow-lg' : 'bg-gray-100 dark:bg-gray-700 text-gray-800 dark:text-gray-100'} rounded-2xl px-4 py-3"><p class="whitespace-pre-wrap break-words message-content text-sm leading-relaxed">${data.message}</p></div>`;
+        }
+
+        let actionHtml = `
+            <div class="opacity-0 group-hover:opacity-100 transition-opacity absolute top-0 ${isMe ? 'right-full mr-2' : 'left-full ml-2'} flex items-center space-x-1 bg-white dark:bg-gray-800 shadow-xl border border-gray-100 dark:border-gray-700 rounded-lg p-1 z-20">
+                <button type="button" class="emoji-reaction-btn p-1 hover:bg-gray-100 dark:hover:bg-gray-700 rounded text-gray-400" data-message-id="${data.message_id}"><svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path d="M14.828 14.828a4 4 0 01-5.656 0M9 10h.01M15 10h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg></button>
+                ${isMe ? `<button type="button" class="edit-message-btn p-1 hover:bg-gray-100 dark:hover:bg-gray-700 rounded text-gray-400" data-message-id="${data.message_id}"><svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"></path></svg></button>` : ''}
+            </div>
+        `;
+
+        div.innerHTML = `<div class="flex-shrink-0">${avatar}</div><div class="flex-1 max-w-2xl group"><div class="flex items-center space-x-2 mb-1 ${isMe ? 'justify-end' : ''}"><span class="font-bold text-xs text-gray-700 dark:text-gray-200">${data.sender_name}</span><span class="text-[9px] text-gray-400 font-medium">Just now</span></div><div class="relative">${content}${actionHtml}</div></div>`;
         messagesContainer.appendChild(div);
         bindMessageActions(div);
     }
@@ -215,21 +229,62 @@ document.addEventListener("DOMContentLoaded", function () {
     }
 
     async function startEditing(messageId) {
-        const contentElement = document.querySelector(`#message-${messageId} .message-content`);
-        if (!contentElement) return;
+        const messageDiv = document.getElementById(`message-${messageId}`);
+        const contentElement = messageDiv.querySelector('.message-content');
+        if (!contentElement || messageDiv.querySelector('.edit-textarea')) return;
+
         const originalText = contentElement.textContent;
-        const newText = prompt("Edit message:", originalText);
-        if (newText && newText !== originalText) {
-            const res = await fetch(`/channels/message/${messageId}/edit//`, {
+        const parent = contentElement.parentElement;
+        
+        // Hide original
+        contentElement.classList.add('hidden');
+        
+        // Create inline editor
+        const editContainer = document.createElement('div');
+        editContainer.className = 'edit-container w-full mt-1';
+        editContainer.innerHTML = `
+            <textarea class="edit-textarea w-full px-3 py-2 border border-indigo-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent bg-white dark:bg-gray-700 text-sm resize-none" rows="3">${originalText}</textarea>
+            <div class="flex justify-end space-x-2 mt-2">
+                <button type="button" class="cancel-btn px-3 py-1 text-[10px] font-black uppercase tracking-widest text-gray-500 hover:text-gray-700">Cancel</button>
+                <button type="button" class="save-btn px-3 py-1 bg-indigo-600 text-white text-[10px] font-black uppercase tracking-widest rounded-lg shadow-sm hover:bg-indigo-700">Save</button>
+            </div>
+        `;
+        
+        parent.appendChild(editContainer);
+        const textarea = editContainer.querySelector('textarea');
+        textarea.focus();
+        textarea.setSelectionRange(textarea.value.length, textarea.value.length);
+
+        // Cancel
+        editContainer.querySelector('.cancel-btn').onclick = () => {
+            editContainer.remove();
+            contentElement.classList.remove('hidden');
+        };
+
+        // Save
+        editContainer.querySelector('.save-btn').onclick = async () => {
+            const newText = textarea.value.trim();
+            if (!newText || newText === originalText) {
+                editContainer.remove();
+                contentElement.classList.remove('hidden');
+                return;
+            }
+
+            const res = await fetch(`/channels/message/${messageId}/edit/`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/x-www-form-urlencoded', 'X-CSRFToken': '{{ csrf_token }}', 'X-Requested-With': 'XMLHttpRequest' },
                 body: `content=${encodeURIComponent(newText)}`
             });
-            if (res.ok) { 
+
+            if (res.ok) {
                 contentElement.textContent = newText;
                 chatSocket.send(JSON.stringify({ type: 'message_edit', message_id: messageId, message: newText }));
+                editContainer.remove();
+                contentElement.classList.remove('hidden');
+            } else {
+                alert("Failed to save changes.");
             }
-        }
+        };
     }
 
     const emojiPopup = document.getElementById('emoji-picker-popup');
