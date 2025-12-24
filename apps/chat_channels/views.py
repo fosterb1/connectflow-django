@@ -404,15 +404,13 @@ def message_edit(request, pk):
 @login_required
 @require_POST
 def message_delete(request, pk):
-    """Delete a message (soft delete)."""
+    """Delete a message permanently. Triggers Cloudinary cleanup via signals."""
     user = request.user
     message = get_object_or_404(Message, pk=pk)
     
     # Only sender or admin can delete
     if message.sender == user or user.is_admin:
-        message.is_deleted = True
-        message.content = "[Message deleted]"
-        message.save()
+        message.delete() # Permanent delete triggers signals
     
     return redirect('chat_channels:channel_detail', pk=message.channel.pk)
 

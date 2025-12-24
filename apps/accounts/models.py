@@ -148,6 +148,24 @@ class User(AbstractUser):
         return self.role in [self.Role.DEPT_HEAD, self.Role.TEAM_MANAGER]
 
 
+from django.db.models.signals import post_delete
+from django.dispatch import receiver
+import cloudinary.uploader
+
+@receiver(post_delete, sender=User)
+def delete_avatar_from_cloudinary(sender, instance, **kwargs):
+    if instance.avatar:
+        try:
+            # For CloudinaryField, we usually use the public_id or the name
+            cloudinary.uploader.destroy(instance.avatar.public_id)
+        except Exception as e:
+            # Native CloudinaryField might store it differently
+            try:
+                cloudinary.uploader.destroy(instance.avatar.name)
+            except:
+                print(f"Cloudinary deletion error: {e}")
+
+
 class Notification(models.Model):
     """
     Notification model - tracks user alerts.

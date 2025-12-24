@@ -182,9 +182,26 @@ class Channel(models.Model):
         return user in self.members.all()
 
 
-from django.db.models.signals import m2m_changed
+from django.db.models.signals import m2m_changed, post_delete
 from django.dispatch import receiver
 from django.urls import reverse
+import cloudinary.uploader
+
+@receiver(post_delete, sender=Message)
+def delete_message_voice_from_cloudinary(sender, instance, **kwargs):
+    if instance.voice_message:
+        try:
+            cloudinary.uploader.destroy(instance.voice_message.name)
+        except Exception as e:
+            print(f"Cloudinary deletion error: {e}")
+
+@receiver(post_delete, sender=Attachment)
+def delete_attachment_from_cloudinary(sender, instance, **kwargs):
+    if instance.file:
+        try:
+            cloudinary.uploader.destroy(instance.file.name)
+        except Exception as e:
+            print(f"Cloudinary deletion error: {e}")
 
 @receiver(m2m_changed, sender=Channel.members.through)
 def notify_members_added_to_channel(sender, instance, action, pk_set, **kwargs):

@@ -343,9 +343,26 @@ class ProjectMilestone(models.Model):
         return f"{self.title} - {self.project.name}"
 
 
-from django.db.models.signals import m2m_changed
+from django.db.models.signals import m2m_changed, post_delete
 from django.dispatch import receiver
 from django.urls import reverse
+import cloudinary.uploader
+
+@receiver(post_delete, sender=Organization)
+def delete_org_logo_from_cloudinary(sender, instance, **kwargs):
+    if instance.logo:
+        try:
+            cloudinary.uploader.destroy(instance.logo.name)
+        except Exception as e:
+            print(f"Cloudinary deletion error: {e}")
+
+@receiver(post_delete, sender=ProjectFile)
+def delete_project_file_from_cloudinary(sender, instance, **kwargs):
+    if instance.file:
+        try:
+            cloudinary.uploader.destroy(instance.file.name)
+        except Exception as e:
+            print(f"Cloudinary deletion error: {e}")
 
 @receiver(m2m_changed, sender=SharedProject.members.through)
 def notify_members_added_to_project(sender, instance, action, pk_set, **kwargs):
