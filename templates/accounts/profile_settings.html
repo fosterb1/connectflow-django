@@ -92,6 +92,43 @@
                     <p class="text-red-500 text-xs mt-1">{{ form.email.errors.0 }}</p>
                 {% endif %}
             </div>
+
+            <!-- Professional Role -->
+            <div>
+                <label for="id_professional_role" class="block text-sm font-medium text-gray-700 dark:text-gray-300">Professional Role</label>
+                {{ form.professional_role }}
+                <p class="text-[10px] text-gray-500 mt-1 uppercase font-bold tracking-tighter">e.g., Lead Developer, HR Manager</p>
+                {% if form.professional_role.errors %}
+                    <p class="text-red-500 text-xs mt-1">{{ form.professional_role.errors.0 }}</p>
+                {% endif %}
+            </div>
+
+            <!-- Bio -->
+            <div>
+                <label for="id_bio" class="block text-sm font-medium text-gray-700 dark:text-gray-300">Bio</label>
+                {{ form.bio }}
+                {% if form.bio.errors %}
+                    <p class="text-red-500 text-xs mt-1">{{ form.bio.errors.0 }}</p>
+                {% endif %}
+            </div>
+
+            <!-- Qualifications -->
+            <div>
+                <label for="id_qualifications" class="block text-sm font-medium text-gray-700 dark:text-gray-300">Qualifications & Certifications</label>
+                {{ form.qualifications }}
+                {% if form.qualifications.errors %}
+                    <p class="text-red-500 text-xs mt-1">{{ form.qualifications.errors.0 }}</p>
+                {% endif %}
+            </div>
+
+            <!-- Skills -->
+            <div>
+                <label for="id_skills" class="block text-sm font-medium text-gray-700 dark:text-gray-300">Skills (comma-separated)</label>
+                {{ form.skills }}
+                {% if form.skills.errors %}
+                    <p class="text-red-500 text-xs mt-1">{{ form.skills.errors.0 }}</p>
+                {% endif %}
+            </div>
         </div>
 
         <div class="mt-8">
