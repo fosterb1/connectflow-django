@@ -486,7 +486,7 @@ def team_create(request, department_pk):
     user = request.user
     department = get_object_or_404(Department, pk=department_pk, organization=user.organization)
     if not (user.is_admin or user.is_manager):
-        return redirect('organizations:team_list', department_pk=department_pk)
+        return redirect('organizations:team_list_by_dept', department_pk=department_pk)
     
     if request.method == 'POST':
         form = TeamForm(request.POST, department=department)
@@ -497,7 +497,7 @@ def team_create(request, department_pk):
                 team.department = department
                 team.save()
                 form.save_m2m()
-                return redirect('organizations:team_list', department_pk=department_pk)
+                return redirect('organizations:team_list_by_dept', department_pk=department_pk)
             except IntegrityError:
                 form.add_error('name', f'A team with this name already exists in this department.')
     else:
@@ -510,7 +510,7 @@ def team_edit(request, pk):
     user = request.user
     team = get_object_or_404(Team, pk=pk, department__organization=user.organization)
     if not (user.is_admin or team.department.head == user or team.manager == user):
-        return redirect('organizations:team_list')
+        return redirect('organizations:team_list_by_dept', department_pk=team.department.pk)
     
     if request.method == 'POST':
         form = TeamForm(request.POST, instance=team, department=team.department)
@@ -518,7 +518,7 @@ def team_edit(request, pk):
             try:
                 from django.db import IntegrityError
                 form.save()
-                return redirect('organizations:team_list', department_pk=team.department.pk)
+                return redirect('organizations:team_list_by_dept', department_pk=team.department.pk)
             except IntegrityError:
                 form.add_error('name', f'A team with this name already exists in this department.')
     else:
@@ -531,12 +531,12 @@ def team_delete(request, pk):
     user = request.user
     team = get_object_or_404(Team, pk=pk, department__organization=user.organization)
     if not (user.is_admin or team.department.head == user):
-        return redirect('organizations:team_list')
+        return redirect('organizations:team_list_by_dept', department_pk=team.department.pk)
     
     if request.method == 'POST':
         dept_pk = team.department.pk
         team.delete()
-        return redirect('organizations:team_list', department_pk=dept_pk)
+        return redirect('organizations:team_list_by_dept', department_pk=dept_pk)
     return render(request, 'organizations/team_confirm_delete.html', {'team': team})
 
 
