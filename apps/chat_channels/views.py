@@ -310,7 +310,7 @@ def channel_detail(request, pk):
                     att = Attachment.objects.create(message=message, file=attachment_file)
                     processed_attachments.append({
                         'url': att.file.url, 
-                        'name': att.file.name.split('/')[-1],
+                        'name': str(att.file).split('/')[-1],
                         'is_image': att.is_image,
                         'is_video': att.is_video
                     })
