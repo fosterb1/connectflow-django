@@ -426,7 +426,7 @@ def message_delete(request, pk):
     
     # Only sender or admin can delete
     if message.sender == user or user.is_admin:
-        message.delete() # Uses soft delete
+        message.delete(user=user) # Uses soft delete
         
         # Broadcast via WebSocket
         from channels.layers import get_channel_layer
@@ -437,12 +437,18 @@ def message_delete(request, pk):
             f'chat_{channel_id}',
             {
                 'type': 'message_deleted',
-                'message_id': str(pk)
+                'message_id': str(pk),
+                'deleted_at': message.deleted_at.isoformat() if message.deleted_at else None,
+                'deleted_by': user.id
             }
         )
         
         if request.headers.get('X-Requested-With') == 'XMLHttpRequest':
-            return JsonResponse({'success': True})
+            return JsonResponse({
+                'success': True,
+                'deleted_at': message.deleted_at.isoformat() if message.deleted_at else None,
+                'deleted_by': user.id
+            })
     
     return redirect('chat_channels:channel_detail', pk=message.channel.pk)
 

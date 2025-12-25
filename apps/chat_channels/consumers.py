@@ -122,13 +122,15 @@ class ChatConsumer(AsyncWebsocketConsumer):
         elif message_type == 'message_delete':
             message_id = data.get('message_id')
             if message_id:
-                success = await self.delete_message(message_id)
+                success, deleted_at = await self.delete_message(message_id)
                 if success:
                     await self.channel_layer.group_send(
                         self.room_group_name,
                         {
                             'type': 'message_deleted',
-                            'message_id': message_id
+                            'message_id': message_id,
+                            'deleted_at': deleted_at.isoformat() if deleted_at else None,
+                            'deleted_by': self.user.id
                         }
                     )
         elif message_type == 'typing':
@@ -180,7 +182,9 @@ class ChatConsumer(AsyncWebsocketConsumer):
         # Send message deletion to WebSocket
         await self.send(text_data=json.dumps({
             'type': 'message_delete',
-            'message_id': event['message_id']
+            'message_id': event['message_id'],
+            'deleted_at': event.get('deleted_at'),
+            'deleted_by': event.get('deleted_by')
         }))
 
     async def user_status_change(self, event):
@@ -290,12 +294,12 @@ class ChatConsumer(AsyncWebsocketConsumer):
             # Allow sender or admin to delete
             message = Message.objects.get(id=message_id)
             if message.sender == self.user or self.user.is_admin:
-                message.delete() # Uses the soft delete implemented in models.py
-                return True
-            return False
+                message.delete(user=self.user) # Uses the soft delete implemented in models.py
+                return True, message.deleted_at
+            return False, None
         except Message.DoesNotExist:
-            return False
+            return False, None
 
-    @database_sync_to_async
-    def update_user_status(self, status):
+    async def update_user_status(self, status):
+        User.objects.filter(id=self.user.id).update(status=status, last_seen=timezone.now())
         User.objects.filter(id=self.user.id).update(status=status, last_seen=timezone.now())

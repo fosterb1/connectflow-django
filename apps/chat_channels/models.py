@@ -263,6 +263,15 @@ class Message(models.Model):
         blank=True,
         help_text=_("When the message was deleted")
     )
+
+    deleted_by = models.ForeignKey(
+        User,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name='deleted_messages',
+        help_text=_("User who deleted this message")
+    )
     
     # Timestamps
     created_at = models.DateTimeField(auto_now_add=True)
@@ -281,7 +290,7 @@ class Message(models.Model):
     def __str__(self):
         return f"{self.sender.username} in #{self.channel.name}: {self.content[:50]}"
     
-    def delete(self, force=False, *args, **kwargs):
+    def delete(self, user=None, force=False, *args, **kwargs):
         """Soft delete by default, unless force=True."""
         if force:
             super().delete(*args, **kwargs)
@@ -289,6 +298,8 @@ class Message(models.Model):
             from django.utils import timezone
             self.is_deleted = True
             self.deleted_at = timezone.now()
+            if user:
+                self.deleted_by = user
             self.save()
     
     @property
