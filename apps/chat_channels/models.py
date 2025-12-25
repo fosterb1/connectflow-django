@@ -349,14 +349,27 @@ class Attachment(models.Model):
     @property
     def is_image(self):
         """Check if file is an image based on extension."""
+        extensions = ('.png', '.jpg', '.jpeg', '.gif', '.webp', '.bmp', '.svg')
         name = self.file.name.lower()
-        return name.endswith(('.png', '.jpg', '.jpeg', '.gif', '.webp', '.bmp', '.svg'))
+        if name.endswith(extensions):
+            return True
+        try:
+            # Check URL as well (common for Cloudinary)
+            return self.file.url.lower().split('?')[0].endswith(extensions)
+        except:
+            return False
     
     @property
     def is_video(self):
         """Check if file is a video based on extension."""
+        extensions = ('.mp4', '.mov', '.webm', '.avi', '.mkv')
         name = self.file.name.lower()
-        return name.endswith(('.mp4', '.mov', '.webm', '.avi', '.mkv'))
+        if name.endswith(extensions):
+            return True
+        try:
+            return self.file.url.lower().split('?')[0].endswith(extensions)
+        except:
+            return False
 
 
 
