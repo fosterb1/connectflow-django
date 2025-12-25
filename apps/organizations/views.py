@@ -324,6 +324,7 @@ def shared_project_create(request):
         if form.is_valid():
             project = form.save(commit=False)
             project.host_organization = user.organization
+            project.created_by = user
             project.save()
             form.save_m2m()
             project.members.add(user)
@@ -419,21 +420,25 @@ def shared_project_detail(request, pk):
         'completion_percentage': completion_percentage,
         'milestone_form': milestone_form,
         'is_admin': user.is_admin,
-        'can_manage': user.is_admin or (user in project.members.all() and user.is_manager),
+        'can_manage': user.is_admin or user == project.created_by or (user in project.members.all() and user.is_manager),
         'is_member': user in project.members.all(),
         'is_host': is_host,
+        'is_creator': user == project.created_by,
     }
     return render(request, 'organizations/shared_project_detail.html', context)
 
 
 @login_required
 def shared_project_delete(request, pk):
-    """Delete a shared project. Only host organization admins can do this."""
+    """Delete a shared project. Only host organization admins or the creator can do this."""
     user = request.user
     project = get_object_or_404(SharedProject, pk=pk)
     
-    # Permission check: Only admin of the host organization
-    if not (user.is_admin and project.host_organization == user.organization):
+    # Permission check: Host admin OR project creator
+    is_host_admin = user.is_admin and project.host_organization == user.organization
+    is_creator = project.created_by == user
+    
+    if not (is_host_admin or is_creator):
         messages.error(request, "You do not have permission to delete this project.")
         return redirect('organizations:shared_project_detail', pk=pk)
     

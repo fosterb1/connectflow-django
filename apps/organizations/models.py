@@ -237,6 +237,14 @@ class SharedProject(models.Model):
         help_text=_("Organizations invited to collaborate")
     )
     
+    created_by = models.ForeignKey(
+        'accounts.User',
+        on_delete=models.SET_NULL,
+        null=True,
+        related_name='created_projects',
+        help_text=_("User who created this project")
+    )
+    
     members = models.ManyToManyField(
         'accounts.User',
         related_name='shared_projects',
