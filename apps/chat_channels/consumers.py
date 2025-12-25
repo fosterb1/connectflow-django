@@ -250,7 +250,6 @@ class ChatConsumer(AsyncWebsocketConsumer):
             other_members = await database_sync_to_async(
                 lambda: list(channel.members.exclude(id=self.user.id))
             )()
-            )()
             
             for recipient in other_members:
                 if recipient.id not in recipient_ids:
