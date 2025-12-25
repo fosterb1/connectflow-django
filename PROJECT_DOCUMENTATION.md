@@ -21,6 +21,34 @@ ConnectFlow Pro is a full-featured organizational communication platform built w
 
 ---
 
+## 🚀 Development Journey & Progress
+
+The evolution of ConnectFlow Pro has moved from a basic functional prototype to a hardened, enterprise-ready communication platform. The journey has focused on three core pillars: **Stability**, **User Experience**, and **Extensibility**.
+
+### **Recent Major Overhaul (December 2025)**
+
+In our most recent development cycle, we transitioned from a standard web application to a robust multi-platform ecosystem.
+
+#### **1. System Hardening & Stability**
+*   **Media Robustness:** Resolved critical 500 errors by migrating to `CloudinaryField` with `resource_type='auto'`. The system now gracefully handles images, videos, and voice recordings without validation conflicts.
+*   **Error Safety Rails:** Implemented defensive programming in views and models to prevent database `IntegrityErrors` (e.g., duplicate team names) and WebSocket connection crashes.
+*   **Upload Optimization:** Increased server-side upload limits to 10MB and added real-time client-side image previews to improve the drafting experience.
+
+#### **2. Data Integrity & "Soft Delete"**
+*   **The Deletion Receipt:** Instead of permanent data loss, we implemented a "Soft Delete" system. Messages are now archived with a `deleted_at` timestamp and `deleted_by` user ID.
+*   **Real-time Broadcasts:** When a message is deleted, a "Delete Receipt" event is broadcast via WebSockets, ensuring all clients stay synced without page refreshes.
+
+#### **3. Real-time Notification Overhaul**
+*   **Instant Connectivity:** Fixed the real-time notification listener to ensure alerts appear instantly in the UI.
+*   **Deep Context:** Notifications now include sender info and intelligent links, directing users exactly where action is needed (e.g., a specific project or a new reply in a thread).
+*   **Role Promotions:** Added automated notifications for leadership changes, keeping the team informed of organizational updates.
+
+#### **4. API Foundation & Mobile Readiness**
+*   **Headless Backend:** Successfully implemented **REST API v1** using Django REST Framework. This serves as the "Side Door" for future expansion into iOS and Android apps.
+*   **Centralized Logic:** Both the current website and the future mobile app now share the exact same models, security logic, and real-time engine.
+
+---
+
 ## ✨ Key Features Implemented
 
 ### **1. User Authentication & Authorization**
