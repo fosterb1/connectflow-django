@@ -175,6 +175,33 @@ class DepartmentForm(forms.ModelForm):
             if department.head.role not in [User.Role.SUPER_ADMIN, User.Role.DEPT_HEAD]:
                 department.head.role = User.Role.DEPT_HEAD
                 department.head.save()
+                
+                # Notify the user of their promotion
+                from apps.accounts.models import Notification
+                from asgiref.sync import async_to_sync
+                from channels.layers import get_channel_layer
+                from django.urls import reverse
+                
+                channel_layer = get_channel_layer()
+                notification = Notification.notify(
+                    recipient=department.head,
+                    title="Role Promotion",
+                    content=f"You have been promoted to Department Head for {department.name}.",
+                    notification_type='MEMBERSHIP',
+                    link=reverse('organizations:department_list')
+                )
+                
+                async_to_sync(channel_layer.group_send)(
+                    f"notifications_{department.head.id}",
+                    {
+                        'type': 'send_notification',
+                        'id': str(notification.id),
+                        'title': notification.title,
+                        'content': notification.content,
+                        'notification_type': notification.notification_type,
+                        'link': notification.link,
+                    }
+                )
         
         if commit:
             department.save()
@@ -255,6 +282,33 @@ class TeamForm(forms.ModelForm):
             if team.manager.role == User.Role.TEAM_MEMBER:
                 team.manager.role = User.Role.TEAM_MANAGER
                 team.manager.save()
+                
+                # Notify the user of their promotion
+                from apps.accounts.models import Notification
+                from asgiref.sync import async_to_sync
+                from channels.layers import get_channel_layer
+                from django.urls import reverse
+                
+                channel_layer = get_channel_layer()
+                notification = Notification.notify(
+                    recipient=team.manager,
+                    title="Role Promotion",
+                    content=f"You have been promoted to Team Manager for {team.name}.",
+                    notification_type='MEMBERSHIP',
+                    link=reverse('organizations:overview')
+                )
+                
+                async_to_sync(channel_layer.group_send)(
+                    f"notifications_{team.manager.id}",
+                    {
+                        'type': 'send_notification',
+                        'id': str(notification.id),
+                        'title': notification.title,
+                        'content': notification.content,
+                        'notification_type': notification.notification_type,
+                        'link': notification.link,
+                    }
+                )
         
         if commit:
             team.save()

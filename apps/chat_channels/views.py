@@ -289,7 +289,13 @@ def channel_detail(request, pk):
             message.channel = channel
             message.sender = user
             
-            # If voice message with no content, set placeholder
+            # Handle parent message for threading
+            parent_id = request.POST.get('parent_message')
+            if parent_id:
+                try:
+                    message.parent_message = Message.objects.get(id=parent_id)
+                except Message.DoesNotExist:
+                    pass
             if message.voice_message and not message.content.strip():
                 message.content = ''  # Empty string for voice-only messages
             

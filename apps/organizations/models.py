@@ -406,6 +406,45 @@ def delete_project_file_from_cloudinary(sender, instance, **kwargs):
             except:
                 print(f"Cloudinary deletion error: {e}")
 
+@receiver(m2m_changed, sender=Team.members.through)
+def notify_members_added_to_team(sender, instance, action, pk_set, **kwargs):
+    if action == "post_add":
+        from apps.accounts.models import Notification, User
+        from asgiref.sync import async_to_sync
+        from channels.layers import get_channel_layer
+        
+        channel_layer = get_channel_layer()
+        
+        for user_id in pk_set:
+            try:
+                user = User.objects.get(pk=user_id)
+                # Team managers often add users, but we'll use instance manager if set
+                sender_user = instance.manager
+                
+                notification = Notification.notify(
+                    recipient=user,
+                    sender=sender_user,
+                    title=f"Joined Team: {instance.name}",
+                    content=f"You have been added to the team {instance.name}.",
+                    notification_type='MEMBERSHIP',
+                    link=reverse('organizations:overview') # Link to org overview where teams are listed
+                )
+                
+                # Broadcast via WebSocket
+                async_to_sync(channel_layer.group_send)(
+                    f"notifications_{user.id}",
+                    {
+                        'type': 'send_notification',
+                        'id': str(notification.id),
+                        'title': notification.title,
+                        'content': notification.content,
+                        'notification_type': notification.notification_type,
+                        'link': notification.link,
+                    }
+                )
+            except Exception as e:
+                print(f"Error sending notification: {e}")
+
 @receiver(m2m_changed, sender=SharedProject.members.through)
 def notify_members_added_to_project(sender, instance, action, pk_set, **kwargs):
     if action == "post_add":
@@ -422,6 +461,7 @@ def notify_members_added_to_project(sender, instance, action, pk_set, **kwargs):
                 link = reverse('organizations:shared_project_detail', kwargs={'pk': instance.pk})
                 notification = Notification.notify(
                     recipient=user,
+                    sender=instance.created_by if hasattr(instance, 'created_by') else None,
                     title=f"Joined Project: {instance.name}",
                     content=f"You have been added to the shared project {instance.name}.",
                     notification_type='PROJECT',

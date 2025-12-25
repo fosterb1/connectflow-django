@@ -49,6 +49,35 @@ def project_milestones(request, pk):
             milestone = form.save(commit=False)
             milestone.project = project
             milestone.save()
+            
+            # Notify members
+            from apps.accounts.models import Notification
+            from asgiref.sync import async_to_sync
+            from channels.layers import get_channel_layer
+            channel_layer = get_channel_layer()
+            
+            for member in project.members.all():
+                if member == request.user: continue
+                notification = Notification.notify(
+                    recipient=member,
+                    sender=request.user,
+                    title=f"New Milestone: {milestone.title}",
+                    content=f"A new milestone has been set for {project.name}: {milestone.title}",
+                    notification_type='PROJECT',
+                    link=reverse('organizations:shared_project_detail', kwargs={'pk': project.pk})
+                )
+                async_to_sync(channel_layer.group_send)(
+                    f"notifications_{member.id}",
+                    {
+                        'type': 'send_notification',
+                        'id': str(notification.id),
+                        'title': notification.title,
+                        'content': notification.content,
+                        'notification_type': notification.notification_type,
+                        'link': notification.link,
+                    }
+                )
+            
             messages.success(request, 'Milestone added.')
             return redirect('organizations:project_milestones', pk=pk)
     else:
@@ -73,38 +102,38 @@ def toggle_milestone(request, pk):
     milestone.completed_at = timezone.now() if milestone.is_completed else None
     milestone.save()
 
-    if milestone.is_completed:
-        from apps.accounts.models import Notification
-        from asgiref.sync import async_to_sync
-        from channels.layers import get_channel_layer
-        channel_layer = get_channel_layer()
-        
-        # Notify all project members except the person who toggled it? 
-        # Actually, let's notify everyone in the project.
-        for member in milestone.project.members.all():
-            if member == request.user:
-                continue
-                
-            notification = Notification.notify(
-                recipient=member,
-                sender=request.user,
-                title=f"Milestone Achieved: {milestone.title}",
-                content=f"{request.user.get_full_name()} completed a milestone in {milestone.project.name}.",
-                notification_type='PROJECT',
-                link=reverse('organizations:shared_project_detail', kwargs={'pk': milestone.project.pk})
-            )
+    from apps.accounts.models import Notification
+    from asgiref.sync import async_to_sync
+    from channels.layers import get_channel_layer
+    channel_layer = get_channel_layer()
+    
+    title = f"Milestone Achieved: {milestone.title}" if milestone.is_completed else f"Milestone Re-opened: {milestone.title}"
+    status_text = "completed" if milestone.is_completed else "re-opened"
+    
+    for member in milestone.project.members.all():
+        if member == request.user:
+            continue
             
-            async_to_sync(channel_layer.group_send)(
-                f"notifications_{member.id}",
-                {
-                    'type': 'send_notification',
-                    'id': str(notification.id),
-                    'title': notification.title,
-                    'content': notification.content,
-                    'notification_type': notification.notification_type,
-                    'link': notification.link,
-                }
-            )
+        notification = Notification.notify(
+            recipient=member,
+            sender=request.user,
+            title=title,
+            content=f"{request.user.get_full_name()} {status_text} a milestone in {milestone.project.name}.",
+            notification_type='PROJECT',
+            link=reverse('organizations:shared_project_detail', kwargs={'pk': milestone.project.pk})
+        )
+        
+        async_to_sync(channel_layer.group_send)(
+            f"notifications_{member.id}",
+            {
+                'type': 'send_notification',
+                'id': str(notification.id),
+                'title': notification.title,
+                'content': notification.content,
+                'notification_type': notification.notification_type,
+                'link': notification.link,
+            }
+        )
     
     return JsonResponse({
         'success': True, 

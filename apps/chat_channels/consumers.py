@@ -73,6 +73,7 @@ class ChatConsumer(AsyncWebsocketConsumer):
             content = data.get('message', '')
             voice_url = data.get('voice_message_url')
             attachments = data.get('attachments', [])
+            parent_id = data.get('parent_message_id')
             
             # Prepare common broadcast data
             broadcast_data = {
@@ -84,7 +85,8 @@ class ChatConsumer(AsyncWebsocketConsumer):
                 'timestamp': data.get('timestamp', timezone.now().strftime('%b %d, %I:%M %p')),
                 'voice_message_url': voice_url,
                 'voice_duration': data.get('voice_duration'),
-                'attachments': attachments
+                'attachments': attachments,
+                'parent_message_id': parent_id
             }
 
             if message_id:
@@ -93,7 +95,7 @@ class ChatConsumer(AsyncWebsocketConsumer):
                 await self.channel_layer.group_send(self.room_group_name, broadcast_data)
             elif content or voice_url:
                 # New message to save
-                saved_message = await self.save_message(content)
+                saved_message = await self.save_message(content, parent_id)
                 broadcast_data['message_id'] = str(saved_message.id)
                 broadcast_data['timestamp'] = saved_message.created_at.strftime('%b %d, %I:%M %p')
                 
@@ -222,13 +224,28 @@ class ChatConsumer(AsyncWebsocketConsumer):
                             notification_type='MENTION',
                             link=channel_url
                         )
-                        await self.broadcast_notification(recipient.id, notification)
-                        recipient_ids.add(recipient.id)
-                except Exception:
-                    continue
-        
-        # 2. Handle Direct Messages (Notify the other person if not already notified by mention)
-        if channel_type == 'DIRECT':
+                                            await self.broadcast_notification(recipient.id, notification)
+                                            recipient_ids.add(recipient.id)
+                                        except Exception:
+                                            continue
+                                
+                                # 2. Handle Replies (Notify original sender)
+                                parent = await database_sync_to_async(lambda: message.parent_message)()
+                                if parent:
+                                    parent_sender = await database_sync_to_async(lambda: parent.sender)()
+                                    if parent_sender.id != self.user.id and parent_sender.id not in recipient_ids:
+                                        notification = await database_sync_to_async(Notification.notify)(
+                                            recipient=parent_sender,
+                                            sender=self.user,
+                                            title=f"New reply in #{channel.name}",
+                                            content=f"{self.user.get_full_name()} replied to your message: {message.content[:50]}...",
+                                            notification_type='MESSAGE',
+                                            link=channel_url
+                                        )
+                                        await self.broadcast_notification(parent_sender.id, notification)
+                                        recipient_ids.add(parent_sender.id)
+                        
+                                # 3. Handle Direct Messages (Notify the other person if not already notified)        if channel_type == 'DIRECT':
             other_members = await database_sync_to_async(
                 lambda: list(channel.members.exclude(id=self.user.id))
             )()
@@ -269,12 +286,20 @@ class ChatConsumer(AsyncWebsocketConsumer):
             return False
 
     @database_sync_to_async
-    def save_message(self, content):
+    def save_message(self, content, parent_id=None):
         channel = Channel.objects.get(id=self.channel_id)
+        parent = None
+        if parent_id:
+            try:
+                parent = Message.objects.get(id=parent_id)
+            except Message.DoesNotExist:
+                pass
+                
         return Message.objects.create(
             channel=channel,
             sender=self.user,
-            content=content
+            content=content,
+            parent_message=parent
         )
 
     @database_sync_to_async
