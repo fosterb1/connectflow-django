@@ -191,6 +191,26 @@ document.addEventListener("DOMContentLoaded", function () {
 
     function formatTime(s) { const mins = Math.floor(s / 60); const secs = Math.floor(s % 60); return `${mins}:${secs.toString().padStart(2, '0')}`; }
 
+    async function sendMessage(data) {
+        if (!chatSocket) return;
+        
+        if (chatSocket.readyState === WebSocket.OPEN) {
+            chatSocket.send(JSON.stringify(data));
+        } else {
+            console.log('WebSocket not open. Waiting...');
+            let attempts = 0;
+            while (chatSocket.readyState !== WebSocket.OPEN && attempts < 20) {
+                await new Promise(r => setTimeout(r, 250));
+                attempts++;
+            }
+            if (chatSocket.readyState === WebSocket.OPEN) {
+                chatSocket.send(JSON.stringify(data));
+            } else {
+                alert('Connection lost. Please refresh the page to reconnect.');
+            }
+        }
+    }
+
     function initWaveform(id, url, isMe) {
         if (waveforms[id]) return;
         const container = document.getElementById(`waveform-${id}`);
@@ -326,7 +346,7 @@ document.addEventListener("DOMContentLoaded", function () {
             submitBtn.disabled = true;
             if (isEditing) {
                 const res = await fetch(`/channels/message/${editingMessageId}/edit/`, { method: 'POST', headers: { 'Content-Type': 'application/x-www-form-urlencoded', 'X-CSRFToken': '{{ csrf_token }}', 'X-Requested-With': 'XMLHttpRequest' }, body: `content=${encodeURIComponent(msg)}` });
-                if (res.ok) { chatSocket.send(JSON.stringify({ type: 'message_edit', message_id: editingMessageId, message: msg })); cancelEditing(); }
+                if (res.ok) { sendMessage({ type: 'message_edit', message_id: editingMessageId, message: msg }); cancelEditing(); }
                 else { alert('Failed to edit message. Please try again.'); }
             } else {
                 const fd = new FormData(chatForm);
@@ -357,7 +377,7 @@ document.addEventListener("DOMContentLoaded", function () {
                     
                     if (data.success) { 
                         clearVoiceRecording(); clearFileUpload(); messageInput.value = ''; 
-                        chatSocket.send(JSON.stringify({ 
+                        sendMessage({ 
                             type: 'chat_message', 
                             message_id: data.message_id, 
                             sender_id: userId, 
@@ -367,12 +387,12 @@ document.addEventListener("DOMContentLoaded", function () {
                             voice_message_url: data.voice_message_url, 
                             timestamp: data.timestamp, 
                             attachments: data.attachments 
-                        })); 
+                        }); 
                     } else {
                         alert('Upload failed: ' + (data.error || 'Unknown error'));
                     }
                 } else { 
-                    chatSocket.send(JSON.stringify({ 'message': msg })); messageInput.value = ''; 
+                    sendMessage({ 'message': msg }); messageInput.value = ''; 
                 }
             }
         } catch (err) {
