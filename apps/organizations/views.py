@@ -7,8 +7,34 @@ from django.views.decorators.http import require_POST
 from .models import Organization, Department, Team, SharedProject, ProjectFile, ProjectMeeting, ProjectTask, ProjectMilestone
 from .forms import (
     DepartmentForm, TeamForm, InviteMemberForm, SharedProjectForm, JoinProjectForm,
-    ProjectFileForm, ProjectMeetingForm, ProjectTaskForm, ProjectMilestoneForm
+    ProjectFileForm, ProjectMeetingForm, ProjectTaskForm, ProjectMilestoneForm, OrganizationForm
 )
+
+
+@login_required
+def organization_settings(request):
+    """Allow admins to edit organization details, like logo and name."""
+    user = request.user
+    if not user.is_admin or not user.organization:
+        messages.error(request, "Only organization admins can access settings.")
+        return redirect('organizations:overview')
+    
+    organization = user.organization
+    
+    if request.method == 'POST':
+        form = OrganizationForm(request.POST, request.FILES, instance=organization)
+        if form.is_valid():
+            form.save()
+            messages.success(request, "Organization details updated successfully!")
+            return redirect('organizations:organization_settings')
+    else:
+        form = OrganizationForm(instance=organization)
+    
+    return render(request, 'organizations/organization_form.html', {
+        'form': form,
+        'organization': organization,
+        'action': 'Update Settings'
+    })
 
 
 @login_required

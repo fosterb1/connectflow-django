@@ -6,6 +6,7 @@ app_name = 'organizations'
 urlpatterns = [
     # Overview
     path('', views.organization_overview, name='overview'),
+    path('settings/', views.organization_settings, name='organization_settings'),
     
     # Departments
     path('departments/', views.department_list, name='department_list'),

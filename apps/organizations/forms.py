@@ -8,6 +8,29 @@ from .models import (
 User = get_user_model()
 
 
+class OrganizationForm(forms.ModelForm):
+    """Form for editing organization details."""
+    
+    class Meta:
+        model = Organization
+        fields = ['name', 'logo', 'description', 'timezone']
+        widgets = {
+            'name': forms.TextInput(attrs={
+                'class': 'w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent',
+            }),
+            'logo': forms.FileInput(attrs={
+                'class': 'w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent',
+            }),
+            'description': forms.Textarea(attrs={
+                'class': 'w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent',
+                'rows': 3
+            }),
+            'timezone': forms.TextInput(attrs={
+                'class': 'w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent',
+            }),
+        }
+
+
 class ProjectMilestoneForm(forms.ModelForm):
     class Meta:
         model = ProjectMilestone
