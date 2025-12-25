@@ -1,6 +1,7 @@
 from django.db import models
 from django.utils.translation import gettext_lazy as _
 import uuid
+from cloudinary.models import CloudinaryField
 
 
 class Organization(models.Model):
@@ -27,8 +28,10 @@ class Organization(models.Model):
         help_text=_("Unique organization code for signup")
     )
     
-    logo = models.ImageField(
-        upload_to='organizations/logos/',
+    logo = CloudinaryField(
+        'logo',
+        folder='organizations/logos',
+        resource_type='auto',
         null=True,
         blank=True,
         help_text=_("Organization logo")
@@ -277,7 +280,12 @@ class ProjectFile(models.Model):
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
     project = models.ForeignKey(SharedProject, on_delete=models.CASCADE, related_name='files')
     uploader = models.ForeignKey('accounts.User', on_delete=models.CASCADE)
-    file = models.FileField(upload_to='projects/files/%Y/%m/%d/')
+    file = CloudinaryField(
+        'file',
+        folder='projects/files',
+        resource_type='auto',
+        help_text=_("Shared file")
+    )
     name = models.CharField(max_length=255)
     description = models.TextField(blank=True)
     created_at = models.DateTimeField(auto_now_add=True)
@@ -361,25 +369,34 @@ def delete_old_org_logo_on_change(sender, instance, **kwargs):
     new_logo = instance.logo
     if old_logo and old_logo != new_logo:
         try:
-            cloudinary.uploader.destroy(old_logo.name)
-        except Exception as e:
-            print(f"Cloudinary cleanup error: {e}")
+            cloudinary.uploader.destroy(old_logo.public_id)
+        except Exception:
+            try:
+                cloudinary.uploader.destroy(old_logo.name)
+            except Exception as e:
+                print(f"Cloudinary cleanup error: {e}")
 
 @receiver(post_delete, sender=Organization)
 def delete_org_logo_from_cloudinary(sender, instance, **kwargs):
     if instance.logo:
         try:
-            cloudinary.uploader.destroy(instance.logo.name)
+            cloudinary.uploader.destroy(instance.logo.public_id)
         except Exception as e:
-            print(f"Cloudinary deletion error: {e}")
+            try:
+                cloudinary.uploader.destroy(instance.logo.name)
+            except:
+                print(f"Cloudinary deletion error: {e}")
 
 @receiver(post_delete, sender=ProjectFile)
 def delete_project_file_from_cloudinary(sender, instance, **kwargs):
     if instance.file:
         try:
-            cloudinary.uploader.destroy(instance.file.name)
+            cloudinary.uploader.destroy(instance.file.public_id)
         except Exception as e:
-            print(f"Cloudinary deletion error: {e}")
+            try:
+                cloudinary.uploader.destroy(instance.file.name)
+            except:
+                print(f"Cloudinary deletion error: {e}")
 
 @receiver(m2m_changed, sender=SharedProject.members.through)
 def notify_members_added_to_project(sender, instance, action, pk_set, **kwargs):

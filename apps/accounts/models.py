@@ -44,6 +44,7 @@ class User(AbstractUser):
     avatar = CloudinaryField(
         'avatar',
         folder='avatars',
+        resource_type='auto',
         null=True,
         blank=True,
         help_text=_("User profile picture")

@@ -333,6 +333,7 @@ class Attachment(models.Model):
     file = CloudinaryField(
         'file',
         folder='messages/attachments',
+        resource_type='auto',
         help_text=_("Attached file")
     )
     uploaded_at = models.DateTimeField(
