@@ -2,6 +2,7 @@ from django.db import models
 from django.utils.translation import gettext_lazy as _
 from django.contrib.auth import get_user_model
 import uuid
+from cloudinary.models import CloudinaryField
 
 User = get_user_model()
 
@@ -329,8 +330,9 @@ class Attachment(models.Model):
         on_delete=models.CASCADE,
         help_text=_("Message this attachment belongs to")
     )
-    file = models.FileField(
-        upload_to='messages/attachments/%Y/%m/%d/',
+    file = CloudinaryField(
+        'file',
+        folder='messages/attachments',
         help_text=_("Attached file")
     )
     uploaded_at = models.DateTimeField(
@@ -348,22 +350,27 @@ class Attachment(models.Model):
         
     @property
     def is_image(self):
-        """Check if file is an image based on extension."""
+        """Check if file is an image."""
+        if hasattr(self.file, 'resource_type'):
+            return self.file.resource_type == 'image'
+        
         extensions = ('.png', '.jpg', '.jpeg', '.gif', '.webp', '.bmp', '.svg')
-        name = self.file.name.lower()
+        name = str(self.file).lower()
         if name.endswith(extensions):
             return True
         try:
-            # Check URL as well (common for Cloudinary)
             return self.file.url.lower().split('?')[0].endswith(extensions)
         except:
             return False
     
     @property
     def is_video(self):
-        """Check if file is a video based on extension."""
+        """Check if file is a video."""
+        if hasattr(self.file, 'resource_type'):
+            return self.file.resource_type == 'video'
+
         extensions = ('.mp4', '.mov', '.webm', '.avi', '.mkv')
-        name = self.file.name.lower()
+        name = str(self.file).lower()
         if name.endswith(extensions):
             return True
         try:
@@ -472,7 +479,7 @@ def delete_message_voice_from_cloudinary(sender, instance, **kwargs):
 def delete_attachment_from_cloudinary(sender, instance, **kwargs):
     if instance.file:
         try:
-            cloudinary.uploader.destroy(instance.file.name)
+            cloudinary.uploader.destroy(instance.file.public_id)
         except Exception as e:
             print(f"Cloudinary deletion error: {e}")
 

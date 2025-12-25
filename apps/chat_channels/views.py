@@ -302,8 +302,8 @@ def channel_detail(request, pk):
                 for attachment_file in attachments:
                     Attachment.objects.create(message=message, file=attachment_file)
             except Exception as e:
-                # If attachment upload fails, delete the message and return error
-                message.delete() 
+                # If attachment upload fails, permanently delete the orphan message
+                message.delete(force=True) 
                 if request.headers.get('X-Requested-With') == 'XMLHttpRequest':
                     return JsonResponse({'success': False, 'error': f'Upload failed: {str(e)}'}, status=500)
                 messages.error(request, f'Failed to upload attachments: {e}')
