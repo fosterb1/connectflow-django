@@ -119,6 +119,18 @@ class ChatConsumer(AsyncWebsocketConsumer):
                             'message': content
                         }
                     )
+        elif message_type == 'message_delete':
+            message_id = data.get('message_id')
+            if message_id:
+                success = await self.delete_message(message_id)
+                if success:
+                    await self.channel_layer.group_send(
+                        self.room_group_name,
+                        {
+                            'type': 'message_deleted',
+                            'message_id': message_id
+                        }
+                    )
         elif message_type == 'typing':
             # Send typing indicator to room group (excluding the sender)
             await self.channel_layer.group_send(
@@ -162,6 +174,13 @@ class ChatConsumer(AsyncWebsocketConsumer):
             'type': 'message_update',
             'message_id': event['message_id'],
             'message': event['message']
+        }))
+
+    async def message_deleted(self, event):
+        # Send message deletion to WebSocket
+        await self.send(text_data=json.dumps({
+            'type': 'message_delete',
+            'message_id': event['message_id']
         }))
 
     async def user_status_change(self, event):
@@ -262,6 +281,18 @@ class ChatConsumer(AsyncWebsocketConsumer):
             message.is_edited = True
             message.save()
             return True
+        except Message.DoesNotExist:
+            return False
+
+    @database_sync_to_async
+    def delete_message(self, message_id):
+        try:
+            # Allow sender or admin to delete
+            message = Message.objects.get(id=message_id)
+            if message.sender == self.user or self.user.is_admin:
+                message.delete() # Uses the soft delete implemented in models.py
+                return True
+            return False
         except Message.DoesNotExist:
             return False
 

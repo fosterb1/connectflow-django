@@ -182,11 +182,20 @@ class Channel(models.Model):
         return user in self.members.all()
 
 
+class MessageManager(models.Manager):
+    def get_queryset(self):
+        return super().get_queryset().filter(is_deleted=False)
+
+
 class Message(models.Model):
     """
     Message model - represents messages in channels.
     Supports text, files, mentions, reactions, and threading.
     """
+    
+    # Managers
+    objects = MessageManager()
+    all_objects = models.Manager() # Default manager to access everything
     
     id = models.UUIDField(
         primary_key=True,
@@ -248,6 +257,12 @@ class Message(models.Model):
         default=False,
         help_text=_("Is this message deleted?")
     )
+
+    deleted_at = models.DateTimeField(
+        null=True,
+        blank=True,
+        help_text=_("When the message was deleted")
+    )
     
     # Timestamps
     created_at = models.DateTimeField(auto_now_add=True)
@@ -265,6 +280,16 @@ class Message(models.Model):
     
     def __str__(self):
         return f"{self.sender.username} in #{self.channel.name}: {self.content[:50]}"
+    
+    def delete(self, force=False, *args, **kwargs):
+        """Soft delete by default, unless force=True."""
+        if force:
+            super().delete(*args, **kwargs)
+        else:
+            from django.utils import timezone
+            self.is_deleted = True
+            self.deleted_at = timezone.now()
+            self.save()
     
     @property
     def reply_count(self):

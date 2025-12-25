@@ -224,11 +224,16 @@ def channel_detail(request, pk):
         return redirect('chat_channels:channel_list')
     
     # Get messages (excluding deleted and replies - they'll be shown with parent)
+    from django.db.models import Prefetch
     messages_query = Message.objects.filter(
         channel=channel,
         is_deleted=False,
         parent_message__isnull=True
-    ).select_related('sender').prefetch_related('reactions', 'replies', 'attachments')
+    ).select_related('sender').prefetch_related(
+        'reactions',
+        Prefetch('replies', queryset=Message.objects.filter(is_deleted=False).select_related('sender')),
+        'attachments'
+    )
     
     # Handle search
     search_query = request.GET.get('q')
@@ -414,13 +419,30 @@ def message_edit(request, pk):
 @login_required
 @require_POST
 def message_delete(request, pk):
-    """Delete a message permanently. Triggers Cloudinary cleanup via signals."""
+    """Soft delete a message and broadcast to the channel."""
     user = request.user
     message = get_object_or_404(Message, pk=pk)
+    channel_id = str(message.channel.id)
     
     # Only sender or admin can delete
     if message.sender == user or user.is_admin:
-        message.delete() # Permanent delete triggers signals
+        message.delete() # Uses soft delete
+        
+        # Broadcast via WebSocket
+        from channels.layers import get_channel_layer
+        from asgiref.sync import async_to_sync
+        
+        channel_layer = get_channel_layer()
+        async_to_sync(channel_layer.group_send)(
+            f'chat_{channel_id}',
+            {
+                'type': 'message_deleted',
+                'message_id': str(pk)
+            }
+        )
+        
+        if request.headers.get('X-Requested-With') == 'XMLHttpRequest':
+            return JsonResponse({'success': True})
     
     return redirect('chat_channels:channel_detail', pk=message.channel.pk)
 

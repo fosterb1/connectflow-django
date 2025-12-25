@@ -36,9 +36,17 @@ users_with_avatars = User.objects.filter(avatar__isnull=False).exclude(avatar=''
 if users_with_avatars.exists():
     for user in users_with_avatars:
         print(f"\n👤 User: {user.username}")
-        print(f"   Avatar field: {user.avatar}")
-        print(f"   Avatar URL: {user.avatar.url}")
-        print(f"   File exists: {user.avatar.storage.exists(user.avatar.name)}")
+        try:
+            if user.avatar:
+                print(f"   Avatar field: {user.avatar}")
+                try:
+                    print(f"   Avatar URL: {user.avatar.url}")
+                except Exception as e:
+                    print(f"   Avatar URL: Error - {e}")
+            else:
+                print("   Avatar: None")
+        except Exception as e:
+            print(f"   Error accessing avatar: {e}")
 else:
     print("\n⚠️  No users with avatars found in database.")
 
