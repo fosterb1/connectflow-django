@@ -296,10 +296,18 @@ def channel_detail(request, pk):
             # Save the message first
             message.save()
             
-            # Handle multiple attachments
-            attachments = request.FILES.getlist('attachments')
-            for attachment_file in attachments:
-                Attachment.objects.create(message=message, file=attachment_file)
+            try:
+                # Handle multiple attachments
+                attachments = request.FILES.getlist('attachments')
+                for attachment_file in attachments:
+                    Attachment.objects.create(message=message, file=attachment_file)
+            except Exception as e:
+                # If attachment upload fails, delete the message and return error
+                message.delete() 
+                if request.headers.get('X-Requested-With') == 'XMLHttpRequest':
+                    return JsonResponse({'success': False, 'error': f'Upload failed: {str(e)}'}, status=500)
+                messages.error(request, f'Failed to upload attachments: {e}')
+                return redirect('chat_channels:channel_detail', pk=pk)
             
             if request.headers.get('X-Requested-With') == 'XMLHttpRequest':
                 return JsonResponse({
@@ -317,7 +325,8 @@ def channel_detail(request, pk):
             return redirect('chat_channels:channel_detail', pk=pk)
         elif request.headers.get('X-Requested-With') == 'XMLHttpRequest':
             # Return form errors as JSON
-            return JsonResponse({'success': False, 'error': form.errors.as_json()}, status=400)
+            errors = form.errors.as_json()
+            return JsonResponse({'success': False, 'error': 'Form validation failed', 'details': errors}, status=400)
     else:
         form = MessageForm()
     

@@ -340,9 +340,21 @@ document.addEventListener("DOMContentLoaded", function () {
                     
                     const res = await fetch(chatForm.action, { method: 'POST', body: fd, headers: { 'X-Requested-With': 'XMLHttpRequest', 'X-CSRFToken': '{{ csrf_token }}' }});
                     
-                    if (!res.ok) throw new Error('Network response was not ok');
+                    let data;
+                    const contentType = res.headers.get("content-type");
+                    if (contentType && contentType.indexOf("application/json") !== -1) {
+                        data = await res.json();
+                    } else {
+                        // Handle non-JSON response (e.g. 413 Payload Too Large, 500 HTML)
+                        const text = await res.text();
+                        console.error("Non-JSON response:", text);
+                        throw new Error(`Server returned status ${res.status}. Check console for details.`);
+                    }
+
+                    if (!res.ok) {
+                        throw new Error(data.error || 'Server error');
+                    }
                     
-                    const data = await res.json();
                     if (data.success) { 
                         clearVoiceRecording(); clearFileUpload(); messageInput.value = ''; 
                         chatSocket.send(JSON.stringify({ 
@@ -365,7 +377,7 @@ document.addEventListener("DOMContentLoaded", function () {
             }
         } catch (err) {
             console.error(err);
-            alert('An error occurred while sending the message. Please check your connection and try again.');
+            alert(`Error: ${err.message}`);
         } finally {
             submitBtn.disabled = false;
             submitBtn.innerHTML = '<svg id="send-icon" class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8"></path></svg><svg id="update-icon" class="hidden w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path></svg>';
