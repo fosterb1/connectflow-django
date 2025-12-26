@@ -7,42 +7,42 @@
 
 /* Global Dark Mode Overrides */
 .dark body {
-    background-color: #111827; /* gray-900 */
-    color: #f9fafb; /* gray-50 */
+    background-color: #0f172a; /* slate-950/900 depth */
+    color: #cbd5e1; /* slate-300 - softer than white */
 }
 
 .dark .bg-white {
-    background-color: #1f2937 !important; /* gray-800 */
+    background-color: #1e293b !important; /* slate-800 - softer card background */
 }
 
 .dark .bg-gray-50 {
-    background-color: #111827 !important; /* gray-900 */
+    background-color: #0f172a !important; /* matches body */
 }
 
-/* Text visibility overrides */
-.dark .text-gray-900 { color: #f9fafb !important; }
-.dark .text-gray-800 { color: #f3f4f6 !important; }
-.dark .text-gray-700 { color: #e5e7eb !important; }
-.dark .text-gray-600 { color: #d1d5db !important; }
-.dark .text-gray-500 { color: #9ca3af !important; }
-.dark .text-gray-400 { color: #9ca3af !important; }
+/* Text visibility overrides - softening the contrast */
+.dark .text-gray-900 { color: #e2e8f0 !important; } /* slate-200 */
+.dark .text-gray-800 { color: #cbd5e1 !important; } /* slate-300 */
+.dark .text-gray-700 { color: #94a3b8 !important; } /* slate-400 */
+.dark .text-gray-600 { color: #64748b !important; } /* slate-500 */
+.dark .text-gray-500 { color: #475569 !important; } /* slate-600 */
+.dark .text-gray-400 { color: #475569 !important; } /* slate-600 */
 
-/* Border visibility */
+/* Border visibility - much softer in dark mode */
 .dark .border-gray-100, 
 .dark .border-gray-200,
 .dark .border-gray-300 {
-    border-color: #374151 !important; /* gray-700 */
+    border-color: #1e293b !important; /* slate-800 */
 }
 
 /* Input/Form visibility in dark mode */
 .dark input, .dark textarea, .dark select {
-    background-color: #374151 !important;
-    color: #ffffff !important;
-    border-color: #4b5563 !important;
+    background-color: #1e293b !important;
+    color: #e2e8f0 !important;
+    border-color: #334155 !important; /* slate-700 */
 }
 
 .dark label {
-    color: #d1d5db !important;
+    color: #94a3b8 !important;
 }
 
 /* Custom scrollbar */
