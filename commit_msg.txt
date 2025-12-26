@@ -1,7 +1,5 @@
-feat: implement granular module permission toggles for internal staff
+fix: load project_tags in templates to resolve Invalid Filter error
 
-- Added module_permissions JSONField to the User model.
-- Created UI in Platform Admin to toggle access to specific modules (Chat, Projects, Analytics, etc.).
-- Implemented has_module_access template filter for conditional navigation rendering.
-- Updated base.html (desktop and mobile) to respect individual user permissions.
-- Ensured SUPER_ADMINs retain global access regardless of toggles.
+- Added {% load project_tags %} to base.html and user_permissions.html.
+- This ensures custom filters like has_module_access and get_item are correctly recognized by the Django template engine.
+- Fixed 500 error on login and platform management pages.
