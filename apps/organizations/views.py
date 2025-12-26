@@ -368,13 +368,60 @@ def project_analytics(request, pk):
     if request.user not in project.members.all():
         return redirect('organizations:shared_project_list')
     
+    # --- Task Stats ---
     task_stats = project.tasks.values('status').annotate(count=Count('id'))
+    
+    # --- Organization Activity (Collaboration Map Data) ---
+    # We want to know how much each organization is contributing
+    
+    # Get all involved organizations (Host + Guests)
+    involved_orgs = list(project.guest_organizations.all())
+    involved_orgs.append(project.host_organization)
+    
+    org_activity = []
+    
+    for org in involved_orgs:
+        # Members from this org in the project
+        org_members = project.members.filter(organization=org)
+        member_count = org_members.count()
+        
+        # Tasks assigned to members of this org
+        tasks_assigned = project.tasks.filter(assigned_to__organization=org).count()
+        tasks_completed = project.tasks.filter(assigned_to__organization=org, status='COMPLETED').count()
+        
+        # Files uploaded by members of this org
+        files_uploaded = project.files.filter(uploader__organization=org).count()
+        
+        org_activity.append({
+            'name': org.name,
+            'member_count': member_count,
+            'tasks_assigned': tasks_assigned,
+            'tasks_completed': tasks_completed,
+            'files_uploaded': files_uploaded,
+            'score': tasks_assigned + files_uploaded + (member_count * 2) # A simple activity score for visualization sizing
+        })
+        
+    # Sort by activity score
+    org_activity.sort(key=lambda x: x['score'], reverse=True)
+
+    # --- Top Contributors ---
+    # We need to filter annotations to be specific to THIS project
+    top_contributors = project.members.filter(
+        # Ensure we only look at members of this project
+        id__in=project.members.values('id')
+    ).annotate(
+        completed_task_count=Count('assigned_tasks', filter=Q(assigned_tasks__project=project, assigned_tasks__status='COMPLETED')),
+        file_count=Count('projectfile', filter=Q(projectfile__project=project))
+    ).order_by('-completed_task_count', '-file_count')[:5]
+
     context = {
         'project': project,
         'task_stats': task_stats,
         'channel_count': project.channels.count(),
         'member_count': project.members.count(),
         'org_count': project.guest_organizations.count() + 1,
+        'org_activity': org_activity,
+        'top_contributors': top_contributors,
     }
     return render(request, 'organizations/project_analytics.html', context)
 

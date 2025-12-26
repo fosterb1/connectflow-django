@@ -37,6 +37,51 @@
     {% block extra_css %}{% endblock %}
 </head>
 <body class="bg-gray-50 dark:bg-gray-900 text-gray-900 dark:text-gray-100 min-h-screen transition-colors duration-200">
+    <!-- App Loading Screen -->
+    <div id="app-loader" class="fixed inset-0 z-[9999] bg-gradient-to-br from-indigo-600 to-purple-700 flex flex-col items-center justify-center transition-opacity duration-500">
+        <div class="relative">
+            <!-- Logo/Icon Animation -->
+            <div class="w-20 h-20 bg-white rounded-2xl shadow-xl flex items-center justify-center mb-6 animate-bounce mx-auto">
+                <svg class="w-12 h-12 text-indigo-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"></path>
+                </svg>
+            </div>
+            <!-- Pulse Effect Ring -->
+            <div class="absolute top-0 left-0 w-20 h-20 bg-white rounded-2xl animate-ping opacity-20"></div>
+        </div>
+        
+        <h1 class="text-4xl font-black text-white tracking-tighter italic mb-2 animate-pulse">
+            ConnectFlow<span class="text-indigo-200">Pro</span>
+        </h1>
+        <p class="text-indigo-200 text-sm font-medium tracking-widest uppercase">Loading Workspace...</p>
+    </div>
+
+    <script>
+        // Remove loader when page is fully loaded
+        window.addEventListener('load', function() {
+            const loader = document.getElementById('app-loader');
+            // Small delay to ensure the branding is seen
+            setTimeout(() => {
+                loader.style.opacity = '0';
+                // Remove from DOM after transition
+                setTimeout(() => {
+                    loader.style.display = 'none';
+                }, 500);
+            }, 800);
+        });
+        
+        // Fallback: If load event takes too long (e.g. slow network), remove loader anyway after 5s
+        setTimeout(() => {
+            const loader = document.getElementById('app-loader');
+            if (loader && loader.style.display !== 'none') {
+                loader.style.opacity = '0';
+                setTimeout(() => {
+                    loader.style.display = 'none';
+                }, 500);
+            }
+        }, 5000);
+    </script>
+
     <!-- Offline Indicator -->
     <div id="offline-indicator" class="offline-indicator">
         <span>⚠️ You are offline. Some features may not work.</span>
