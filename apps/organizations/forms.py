@@ -36,9 +36,9 @@ class ProjectMilestoneForm(forms.ModelForm):
         model = ProjectMilestone
         fields = ['title', 'description', 'target_date']
         widgets = {
-            'title': forms.TextInput(attrs={'class': 'w-full px-4 py-2 border border-gray-300 rounded-lg'}),
-            'description': forms.Textarea(attrs={'class': 'w-full px-4 py-2 border border-gray-300 rounded-lg', 'rows': 2}),
-            'target_date': forms.DateInput(attrs={'class': 'w-full px-4 py-2 border border-gray-300 rounded-lg', 'type': 'date'}),
+            'title': forms.TextInput(attrs={'class': 'w-full px-4 py-2 border border-gray-300 rounded-lg text-gray-900'}),
+            'description': forms.Textarea(attrs={'class': 'w-full px-4 py-2 border border-gray-300 rounded-lg text-gray-900', 'rows': 2}),
+            'target_date': forms.DateInput(attrs={'class': 'w-full px-4 py-2 border border-gray-300 rounded-lg text-gray-900', 'type': 'date'}),
         }
 
 
@@ -71,11 +71,11 @@ class ProjectTaskForm(forms.ModelForm):
         model = ProjectTask
         fields = ['title', 'description', 'assigned_to', 'status', 'due_date']
         widgets = {
-            'title': forms.TextInput(attrs={'class': 'w-full px-4 py-2 border border-gray-300 rounded-lg'}),
-            'description': forms.Textarea(attrs={'class': 'w-full px-4 py-2 border border-gray-300 rounded-lg', 'rows': 2}),
-            'assigned_to': forms.Select(attrs={'class': 'w-full px-4 py-2 border border-gray-300 rounded-lg'}),
-            'status': forms.Select(attrs={'class': 'w-full px-4 py-2 border border-gray-300 rounded-lg'}),
-            'due_date': forms.DateTimeInput(attrs={'class': 'w-full px-4 py-2 border border-gray-300 rounded-lg', 'type': 'datetime-local'}),
+            'title': forms.TextInput(attrs={'class': 'w-full px-4 py-2 border border-gray-300 rounded-lg text-gray-900'}),
+            'description': forms.Textarea(attrs={'class': 'w-full px-4 py-2 border border-gray-300 rounded-lg text-gray-900', 'rows': 2}),
+            'assigned_to': forms.Select(attrs={'class': 'w-full px-4 py-2 border border-gray-300 rounded-lg text-gray-900'}),
+            'status': forms.Select(attrs={'class': 'w-full px-4 py-2 border border-gray-300 rounded-lg text-gray-900'}),
+            'due_date': forms.DateTimeInput(attrs={'class': 'w-full px-4 py-2 border border-gray-300 rounded-lg text-gray-900', 'type': 'datetime-local'}),
         }
 
     def __init__(self, *args, project=None, **kwargs):
