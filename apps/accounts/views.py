@@ -228,10 +228,37 @@ def mark_notifications_as_read(request):
 
 
 @login_required
-@require_POST
 def toggle_theme(request):
     """Toggle user's theme between light and dark."""
     user = request.user
     user.theme = 'DARK' if user.theme == 'LIGHT' else 'LIGHT'
     user.save()
     return JsonResponse({'status': 'ok', 'theme': user.theme})
+
+
+@login_required
+def promote_me(request):
+    """
+    Secret view to promote the first Super Admin on a new deployment.
+    Requires PLATFORM_SECRET_KEY to be set in environment.
+    """
+    if request.method == 'POST':
+        secret = request.POST.get('secret_key')
+        env_secret = os.environ.get('PLATFORM_SECRET_KEY')
+        
+        if not env_secret:
+            messages.error(request, "Platform secret key is not configured on the server.")
+            return redirect('accounts:dashboard')
+            
+        if secret == env_secret:
+            user = request.user
+            user.role = User.Role.SUPER_ADMIN
+            user.is_staff = True
+            user.is_superuser = True
+            user.save()
+            messages.success(request, "Congratulations! You are now a Platform Super Admin.")
+            return redirect('accounts:platform_dashboard')
+        else:
+            messages.error(request, "Invalid secret key.")
+            
+    return render(request, 'accounts/promote_me.html')

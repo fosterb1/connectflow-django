@@ -1,7 +1,6 @@
-feat: implement Platform Management Suite for Super Admins
+feat: add secure Super Admin initialization portal
 
-- Created platform_admin_views.py with Dashboard, Org Management, and User Directory views.
-- Added custom super_admin_check decorator for security.
-- Designed a comprehensive Platform Admin UI with a dedicated sidebar and KPI cards.
-- Integrated Platform Admin links into the main navigation for authorized users.
-- Implemented organization activation/deactivation functionality.
+- Created 'promote_me' view and template to allow internal team members to upgrade their accounts.
+- Secured the portal using a PLATFORM_SECRET_KEY environment variable.
+- Added URL routing for the initialization portal at /accounts/setup/promote/.
+- This enables Super Admin access on restricted environments like Render without shell access.

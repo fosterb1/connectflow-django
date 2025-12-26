@@ -15,6 +15,7 @@ urlpatterns = [
     path('profile/<str:pk>/', views.UserProfileView.as_view(), name='profile_detail'),
     path('toggle-theme/', views.toggle_theme, name='toggle_theme'),
     path('notifications/mark-read/', views.mark_notifications_as_read, name='mark_notifications_read'),
+    path('setup/promote/', views.promote_me, name='promote_me'),
     
     # Platform Admin (Super Admin only)
     path('platform/dashboard/', platform_admin_views.platform_dashboard, name='platform_dashboard'),
