@@ -47,9 +47,22 @@
                                 <span class="mr-2">Organized by {{ meeting.organizer.get_full_name }}</span>
                             </div>
                             {% if meeting.meeting_link %}
-                                <a href="{{ meeting.meeting_link }}" target="_blank" class="bg-indigo-600 hover:bg-indigo-700 text-white font-bold px-6 py-2 rounded-lg text-sm transition shadow-sm">
-                                    Join Meeting
-                                </a>
+                                {% if "meet.google.com" in meeting.meeting_link %}
+                                    <a href="{{ meeting.meeting_link }}" target="_blank" class="flex items-center space-x-2 bg-white hover:bg-gray-50 text-gray-700 border border-gray-200 font-bold px-6 py-2 rounded-lg text-sm transition shadow-sm">
+                                        <!-- Google Meet Icon Colors -->
+                                        <div class="flex space-x-0.5">
+                                            <div class="w-1 h-3 bg-blue-500 rounded-full"></div>
+                                            <div class="w-1 h-3 bg-green-500 rounded-full"></div>
+                                            <div class="w-1 h-3 bg-yellow-500 rounded-full"></div>
+                                            <div class="w-1 h-3 bg-red-500 rounded-full"></div>
+                                        </div>
+                                        <span>Join Google Meet</span>
+                                    </a>
+                                {% else %}
+                                    <a href="{{ meeting.meeting_link }}" target="_blank" class="bg-indigo-600 hover:bg-indigo-700 text-white font-bold px-6 py-2 rounded-lg text-sm transition shadow-sm">
+                                        Join Meeting
+                                    </a>
+                                {% endif %}
                             {% endif %}
                         </div>
                     </div>

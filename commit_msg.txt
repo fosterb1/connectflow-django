@@ -1,7 +1,5 @@
-feat: add delete functionality for project files
+feat: configure email backends for dev and prod
 
-- Implemented project_file_delete view with permission validation.
-- Added URL routing for file deletion.
-- Created project_file_confirm_delete.html template.
-- Updated project_files.html UI with a conditional delete button for authorized users.
-- Ensured automatic Cloudinary cleanup on file deletion.
+- Added Console Email Backend in settings.py for development testing (emails print to terminal).
+- Configured SMTP Email Backend in settings_render.py for production delivery via environment variables.
+- Set DEBUG to False in settings_render.py for security.
