@@ -84,18 +84,29 @@ def platform_user_permissions(request, pk):
     ]
     
     if request.method == 'POST':
+        # 1. Update Global Role
+        new_role = request.POST.get('role')
+        if new_role in [r[0] for r in User.Role.choices]:
+            target_user.role = new_role
+            # If promoted to Super Admin, ensure they have staff/superuser flags for Django Admin
+            if new_role == User.Role.SUPER_ADMIN:
+                target_user.is_staff = True
+                target_user.is_superuser = True
+        
+        # 2. Update Module Toggles
         new_perms = {}
         for mod_id, _ in modules:
             new_perms[mod_id] = request.POST.get(mod_id) == 'on'
         
         target_user.module_permissions = new_perms
         target_user.save()
-        messages.success(request, f"Permissions updated for {target_user.username}.")
+        messages.success(request, f"Access and Role updated for {target_user.username}.")
         return redirect('accounts:platform_user_list')
         
     return render(request, 'accounts/platform/user_permissions.html', {
         'target_user': target_user,
-        'modules': modules
+        'modules': modules,
+        'roles': User.Role.choices
     })
 
 @login_required

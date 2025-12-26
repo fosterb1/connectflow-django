@@ -15,6 +15,22 @@
     <form method="post" class="space-y-6">
         {% csrf_token %}
         
+        <!-- Global Role Selection -->
+        <div class="bg-indigo-900 rounded-2xl shadow-xl p-6 text-white mb-8 border border-indigo-800">
+            <h3 class="text-xs font-black uppercase tracking-widest text-indigo-300 mb-4">Platform Access Level</h3>
+            <div class="flex flex-col md:flex-row md:items-center justify-between gap-4">
+                <div class="flex-1">
+                    <p class="text-lg font-bold">Assign Global Role</p>
+                    <p class="text-xs text-indigo-200">Selecting 'Super Admin' grants this user full access to this platform management suite.</p>
+                </div>
+                <select name="role" class="bg-indigo-800 border border-indigo-700 text-white text-sm font-bold rounded-xl px-4 py-3 focus:ring-2 focus:ring-white outline-none">
+                    {% for val, label in roles %}
+                        <option value="{{ val }}" {% if target_user.role == val %}selected{% endif %}>{{ label }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+        </div>
+
         <div class="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
             <div class="p-6 bg-gray-50 border-b border-gray-100">
                 <h3 class="text-xs font-black text-gray-400 uppercase tracking-widest">Platform Feature Access</h3>
