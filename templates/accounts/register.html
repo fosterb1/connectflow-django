@@ -17,35 +17,35 @@
 
             <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
                 <div>
-                    <label for="first-name" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">First Name</label>
-                    <input type="text" id="first-name" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent dark:bg-gray-700" placeholder="John">
+                    <label for="first-name" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">First Name <span class="text-red-500">*</span></label>
+                    <input type="text" id="first-name" required class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent dark:bg-gray-700" placeholder="John">
                 </div>
                 <div>
-                    <label for="last-name" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Last Name</label>
-                    <input type="text" id="last-name" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent dark:bg-gray-700" placeholder="Doe">
+                    <label for="last-name" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Last Name <span class="text-red-500">*</span></label>
+                    <input type="text" id="last-name" required class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent dark:bg-gray-700" placeholder="Doe">
                 </div>
             </div>
 
             <div>
-                <label for="email" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Email</label>
-                <input type="email" id="email" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent dark:bg-gray-700" placeholder="email@example.com">
+                <label for="email" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Email <span class="text-red-500">*</span></label>
+                <input type="email" id="email" required class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent dark:bg-gray-700" placeholder="email@example.com">
             </div>
 
             <!-- Organization Code -->
             <div>
-                <label for="org-code" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Organization Code</label>
-                <input type="text" id="org-code" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent dark:bg-gray-700" placeholder="Enter your company code">
+                <label for="org-code" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Organization Code <span class="text-red-500">*</span></label>
+                <input type="text" id="org-code" required class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent dark:bg-gray-700" placeholder="Enter your company code">
                 <p class="text-gray-500 dark:text-gray-400 text-xs mt-1 italic">Ask your administrator for the organization code.</p>
             </div>
 
             <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
                 <div>
-                    <label for="password" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Password</label>
-                    <input type="password" id="password" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent dark:bg-gray-700" placeholder="Create a password">
+                    <label for="password" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Password <span class="text-red-500">*</span></label>
+                    <input type="password" id="password" required class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent dark:bg-gray-700" placeholder="Create a password">
                 </div>
                 <div>
-                    <label for="confirm-password" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Confirm Password</label>
-                    <input type="password" id="confirm-password" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent dark:bg-gray-700" placeholder="Confirm password">
+                    <label for="confirm-password" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Confirm Password <span class="text-red-500">*</span></label>
+                    <input type="password" id="confirm-password" required class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent dark:bg-gray-700" placeholder="Confirm password">
                 </div>
             </div>
 
@@ -143,11 +143,23 @@
         errorMessageDiv.classList.add('hidden');
         successMessageDiv.classList.add('hidden');
 
-        if (!orgCodeInput.value) {
+        // Validation
+        if (!firstNameInput.value.trim() || !lastNameInput.value.trim()) {
+            showMessage(errorMessageDiv, "Please enter your First and Last Name.");
+            return;
+        }
+        if (!emailInput.value.trim()) {
+            showMessage(errorMessageDiv, "Email is required.");
+            return;
+        }
+        if (!orgCodeInput.value.trim()) {
             showMessage(errorMessageDiv, "Organization Code is required.");
             return;
         }
-
+        if (!passwordInput.value) {
+            showMessage(errorMessageDiv, "Password is required.");
+            return;
+        }
         if (passwordInput.value !== confirmPasswordInput.value) {
             showMessage(errorMessageDiv, "Passwords do not match.");
             return;
