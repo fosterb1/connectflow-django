@@ -90,6 +90,9 @@
     const auth = getAuth(app);
     const provider = new GoogleAuthProvider();
 
+    // Expose auth globally for presentation purposes (getting token)
+    window.fbAuth = auth;
+
     const emailInput = document.getElementById('email');
     const passwordInput = document.getElementById('password');
     const loginButton = document.getElementById('login-button');

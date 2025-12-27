@@ -1,4 +1,0 @@
-fix: restore commented out department_list URL
-
-- Added missing newline after '# Departments' comment in urls.py.
-- This resolves the NoReverseMatch error on the dashboard.
