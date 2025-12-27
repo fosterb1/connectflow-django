@@ -51,15 +51,46 @@ def platform_plan_delete(request, pk):
 @user_passes_test(super_admin_check)
 def platform_dashboard(request):
     """Global overview for platform operators."""
+    # --- Health Checks ---
+    health_status = "HEALTHY"
+    health_issues = []
+
+    # 1. Database Check
+    try:
+        total_orgs = Organization.objects.count()
+    except Exception as e:
+        health_status = "DEGRADED"
+        health_issues.append("Database connection failure")
+        total_orgs = 0
+
+    # 2. Redis/Channels Check
+    try:
+        from channels.layers import get_channel_layer
+        channel_layer = get_channel_layer()
+        if channel_layer is None:
+            health_status = "DEGRADED"
+            health_issues.append("WebSocket layer (Redis) not configured")
+    except Exception:
+        health_status = "DEGRADED"
+        health_issues.append("WebSocket layer connectivity error")
+
+    # 3. Cloudinary Check
+    import os
+    if not os.environ.get('CLOUDINARY_URL'):
+        health_status = "DEGRADED"
+        health_issues.append("Cloudinary storage not configured")
+
     stats = {
-        'total_orgs': Organization.objects.count(),
-        'active_orgs': Organization.objects.filter(is_active=True).count(),
-        'total_users': User.objects.count(),
-        'total_projects': SharedProject.objects.count(),
+        'total_orgs': total_orgs,
+        'active_orgs': Organization.objects.filter(is_active=True).count() if total_orgs else 0,
+        'total_users': User.objects.count() if total_orgs else 0,
+        'total_projects': SharedProject.objects.count() if total_orgs else 0,
+        'health_status': health_status,
+        'health_issues': health_issues
     }
     
-    recent_orgs = Organization.objects.order_by('-created_at')[:5]
-    recent_users = User.objects.select_related('organization').order_by('-created_at')[:5]
+    recent_orgs = Organization.objects.order_by('-created_at')[:5] if total_orgs else []
+    recent_users = User.objects.select_related('organization').order_by('-created_at')[:5] if total_orgs else []
     
     return render(request, 'accounts/platform/dashboard.html', {
         'stats': stats,

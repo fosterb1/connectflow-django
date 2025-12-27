@@ -23,10 +23,22 @@
         </div>
         <div class="bg-white p-6 rounded-2xl shadow-sm border border-gray-100">
             <p class="text-[10px] font-black text-gray-400 uppercase tracking-widest mb-1">Platform Status</p>
-            <span class="flex items-center text-xs font-bold text-green-500">
-                <span class="w-2 h-2 bg-green-500 rounded-full mr-2 animate-pulse"></span>
-                HEALTHY
-            </span>
+            {% if stats.health_status == "HEALTHY" %}
+                <span class="flex items-center text-xs font-bold text-green-500">
+                    <span class="w-2 h-2 bg-green-500 rounded-full mr-2 animate-pulse"></span>
+                    HEALTHY
+                </span>
+            {% else %}
+                <span class="flex items-center text-xs font-bold text-amber-500">
+                    <span class="w-2 h-2 bg-amber-500 rounded-full mr-2 animate-pulse"></span>
+                    {{ stats.health_status }}
+                </span>
+                <div class="mt-2">
+                    {% for issue in stats.health_issues %}
+                        <p class="text-[9px] text-red-400 font-bold uppercase tracking-tighter">! {{ issue }}</p>
+                    {% endfor %}
+                </div>
+            {% endif %}
         </div>
     </div>
 
