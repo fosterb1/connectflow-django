@@ -98,7 +98,22 @@
         if (auth.currentUser) {
             await auth.currentUser.reload();
             if (auth.currentUser.emailVerified) {
-                window.location.href = "{% url 'accounts:dashboard' %}";
+                // Get fresh ID token to send to backend
+                const idToken = await auth.currentUser.getIdToken(true);
+                
+                // Tell Django to update the user's verified status
+                const response = await fetch("{% url 'accounts:sync_email_verification' %}", {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-CSRFToken': '{{ csrf_token }}'
+                    },
+                    body: JSON.stringify({ id_token: idToken })
+                });
+
+                if (response.ok) {
+                    window.location.href = "{% url 'accounts:dashboard' %}";
+                }
             }
         }
     }, 5000);

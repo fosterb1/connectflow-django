@@ -15,6 +15,7 @@ class EmailVerificationMiddleware:
             reverse('accounts:register'),
             reverse('accounts:logout'),
             reverse('accounts:verify_email'),
+            reverse('accounts:sync_email_verification'),
             reverse('accounts:register_api'),
             reverse('accounts:create_organization_api'),
             reverse('accounts:organization_signup'),

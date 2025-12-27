@@ -25,6 +25,32 @@ class VerifyEmailView(View):
             return redirect('accounts:dashboard')
         return render(request, 'accounts/verify_email.html')
 
+@method_decorator(csrf_exempt, name='dispatch')
+class SyncEmailVerificationView(View):
+    """
+    API endpoint to sync email verification status from Firebase ID token.
+    """
+    def post(self, request):
+        if not request.user.is_authenticated:
+            return JsonResponse({'error': 'Authentication required'}, status=401)
+            
+        try:
+            data = json.loads(request.body)
+            id_token = data.get('id_token')
+        except json.JSONDecodeError:
+            return JsonResponse({'error': 'Invalid JSON'}, status=400)
+
+        if not id_token:
+            return JsonResponse({'error': 'ID token is required.'}, status=400)
+
+        # Authenticate with the token to sync status
+        user = authenticate(request, id_token=id_token)
+        
+        if user and user == request.user:
+            return JsonResponse({'status': 'ok', 'email_verified': user.email_verified})
+        else:
+            return JsonResponse({'error': 'Failed to sync or user mismatch.'}, status=400)
+
 
 class LoginView(View):
     """
