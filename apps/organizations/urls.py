@@ -10,6 +10,7 @@ urlpatterns = [
     
     # Billing
     path('billing/plans/', billing_views.billing_select_plan, name='billing_select_plan'),
+    path('billing/free/<uuid:plan_id>/', billing_views.select_free_plan, name='select_free_plan'),
     path('billing/paystack/<uuid:plan_id>/', billing_views.paystack_checkout, name='paystack_checkout'),
     path('billing/success/', billing_views.billing_success, name='billing_success'),
     path('webhooks/paystack/', billing_views.paystack_webhook, name='paystack_webhook'),

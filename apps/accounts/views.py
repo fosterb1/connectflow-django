@@ -165,10 +165,16 @@ class CreateOrganizationView(View):
 
         try:
             with transaction.atomic():
+                # Try to find a default free plan
+                from apps.organizations.models import SubscriptionPlan
+                free_plan = SubscriptionPlan.objects.filter(price_monthly=0, is_active=True).first()
+
                 organization = Organization.objects.create(
                     name=org_name,
                     code=code,
-                    is_active=True
+                    is_active=True,
+                    subscription_plan=free_plan,
+                    subscription_status='active' if free_plan else 'inactive'
                 )
                 
                 # Update user role and organization

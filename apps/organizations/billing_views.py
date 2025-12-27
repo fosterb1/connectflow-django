@@ -89,3 +89,20 @@ def paystack_webhook(request):
 def billing_success(request):
     messages.success(request, "Your subscription has been updated successfully!")
     return redirect('organizations:overview')
+
+@login_required
+def select_free_plan(request, plan_id):
+    """Directly assign a free plan to an organization."""
+    plan = get_object_or_404(SubscriptionPlan, id=plan_id, price_monthly=0)
+    org = request.user.organization
+    
+    if not (request.user.is_admin or request.user.role == 'SUPER_ADMIN'):
+        messages.error(request, "Only organization admins can change plans.")
+        return redirect('organizations:overview')
+
+    org.subscription_plan = plan
+    org.subscription_status = 'active'
+    org.save()
+    
+    messages.success(request, f"You have successfully switched to the {plan.name} plan.")
+    return redirect('organizations:overview')

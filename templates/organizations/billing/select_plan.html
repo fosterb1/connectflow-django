@@ -49,9 +49,15 @@
 
             <div class="p-8 space-y-3">
                 {% if current_plan != plan %}
-                    <a href="{% url 'organizations:paystack_checkout' plan.id %}" class="block w-full bg-[#09a5db] hover:bg-[#0894c7] text-white text-center font-black uppercase tracking-widest py-4 rounded-2xl transition shadow-lg shadow-blue-100 active:scale-95">
-                        Activate with Paystack
-                    </a>
+                    {% if plan.price_monthly == 0 %}
+                        <a href="{% url 'organizations:select_free_plan' plan.id %}" class="block w-full bg-indigo-600 hover:bg-indigo-700 text-white text-center font-black uppercase tracking-widest py-4 rounded-2xl transition shadow-lg shadow-indigo-100 active:scale-95">
+                            Get Started for Free
+                        </a>
+                    {% else %}
+                        <a href="{% url 'organizations:paystack_checkout' plan.id %}" class="block w-full bg-[#09a5db] hover:bg-[#0894c7] text-white text-center font-black uppercase tracking-widest py-4 rounded-2xl transition shadow-lg shadow-blue-100 active:scale-95">
+                            Activate with Paystack
+                        </a>
+                    {% endif %}
                 {% else %}
                     <button disabled class="w-full bg-gray-100 text-gray-400 font-black uppercase tracking-widest py-4 rounded-2xl cursor-not-allowed">
                         Already Active
