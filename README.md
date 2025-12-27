@@ -1,305 +1,89 @@
-# ConnectFlow Pro - Django Edition
+# ConnectFlow Pro - Enterprise Collaboration Platform
 
-A unified communication platform for organizational collaboration with hierarchical channels, breakout rooms, and real-time messaging.
+ConnectFlow Pro is a high-performance, multi-tenant collaboration platform designed for modern organizations and joint ventures. It combines real-time messaging, hierarchical organizational management, and cross-company project synchronization into a secure, scalable ecosystem.
 
-## 📚 Documentation
+## 🚀 Key Enterprise Milestones (December 2025)
 
+The platform has evolved into a production-ready SaaS with several critical hardening upgrades:
 
----
-
-## 🎯 Project Overview
-
-**ConnectFlow Pro** is a Django-based organizational communication system that enables structured communication across teams and departments with role-based access control.
-
-## 🚀 Recent Progress & Development Journey
-
-ConnectFlow Pro has recently undergone a massive architectural upgrade, transforming it from a web-only prototype into a multi-platform ready communication hub.
-
-### **The December 2025 Hardening**
-*   **Stability First:** Eliminated critical "500 Error" traps by standardizing Cloudinary media handling and implementing defensive database logic.
-*   **Data Integrity:** Pioneered a "Soft Delete" system with detailed delete receipts, ensuring a reliable audit trail for all communication.
-*   **Mobile Foundation:** Successfully launched **REST API v1**, providing a complete set of endpoints for native mobile app integration (Flutter/React Native).
-*   **Real-time Excellence:** Overhauled the notification engine to provide instant, context-rich alerts for all major organizational events.
+*   **SaaS Gatekeeper Logic:** Implemented a robust server-side enforcement layer that manages subscription plan limits (users, projects, and storage) and premium feature locks across both Web and REST API layers.
+*   **Monetization Engine:** Fully integrated **Paystack** for automated recurring billing, featuring dynamic tier management and secure webhook handling.
+*   **Platform Admin Suite:** A dedicated, icon-driven dashboard for internal team members (Super Admins) to manage global organizations, users, and subscription tiers.
+*   **Multi-Platform REST API v1:** A comprehensive, JWT-secured API foundation ready for React Native/Flutter mobile integrations.
+*   **Universal Media Delivery:** Standardized on Cloudinary with **Raw Storage** and forced **HTTPS** to ensure any file type (PDF, ZIP, Slides) is served securely and reliably.
+*   **Real-time Collaboration:** Smart meeting detection for **Google Meet, Zoom, Teams, and Jitsi**, integrated directly into project timelines.
 
 ---
 
 ## ✨ Core Features
 
-### 1. **Multi-Tiered Organizational Structure**
-
-- Role-based access: Super Admin, Department Head, Team Manager, Team Member
-- Visual organizational chart
-- Department & Team channels with automatic assignment
-- Cross-functional project channels
-
-### 2. **Intelligent Channel System**
-
-- **Official Announcements**: Broadcast-only leadership communications
-- **Department Channels**: Intra-department collaboration
-- **Team Spaces**: Daily team collaboration
-- **Project Rooms**: Time-bound initiative channels
-- **Private Groups**: Sensitive discussions
-
-### 3. **Dynamic Breakout Rooms**
-
-- Create temporary discussion rooms from any channel
-- Timer-based sessions with auto-return
-- Selective participant invitations
-- AI-powered summary generation
-
-### 4. **Real-Time Messaging**
-
-- Instant message delivery via WebSockets (Django Channels)
-- Online presence indicators
-- Typing indicators
-- Read receipts
-- Message reactions and replies
-
-### 5. **File Sharing (Telegram-Style)**
-
-- Multi-file upload (5-10 files at once)
-- Drag & drop support
-- Image preview and compression
-- Progress tracking
-- Inline image display
-- Document handling (PDF, DOC, ZIP)
-
-### 6. **Message Features**
-
-- Copy, edit, delete messages
-- Reply threading
-- Emoji reactions
-- User mentions with @ autocomplete
-- Message search and filtering
-- Voice messages
-
-### 7. **Management & Analytics**
-
-- Manager dashboard with team metrics
-- Approval workflows
-- Emergency broadcast system
-- Compliance tools (message retention, export)
-
-## 🛠️ Technology Stack
-
-### Backend
-
-- **Django 5.0+**: Web framework
-- **Django REST Framework**: RESTful API (for mobile/external integrations)
-- **Django Channels**: WebSocket support for real-time features
-- **PostgreSQL**: Primary database
-- **Redis**: Caching, sessions, and Channels layer
-- **Celery**: Async task processing
-- **django-storages + AWS S3**: File storage
-
-### Frontend
-
-- **Django Templates**: Server-side rendering with Jinja2 template engine
-- **HTML5 + CSS3**: Modern semantic markup and styling
-- **JavaScript (Vanilla/Alpine.js)**: Interactivity and dynamic features
-- **Tailwind CSS**: Utility-first CSS framework for rapid UI development
-- **WebSocket (JavaScript)**: Real-time client for Django Channels
-- **HTMX** (optional): Modern interactions without heavy JavaScript
-
-### Development Tools
-
-- **pip + venv**: Dependency management and virtual environments
-- **Black**: Code formatting
-- **Flake8**: Linting
-- **pytest**: Testing
-- **Docker**: Containerization
-
-## 📋 Requirements
-
-### Functional Requirements
-
-#### Authentication & Authorization
-
-- User registration with organization codes
-- Role-based permissions (RBAC)
-- Session management
-- Multi-device support
-
-#### Communication
-
-- Real-time message delivery
-- Channel-based conversations
-- Direct messages
-- Breakout room management
-- File attachments up to 10MB
-
-#### Organization Management
-
-- Create/manage departments and teams
-- Assign users to roles
-- Channel creation and permissions
-- User directory and org chart
-
-#### Notifications
-
-- In-app notifications
-- Email notifications
-- Push notifications (future)
-
-### Non-Functional Requirements
-
-- **Performance**: Message delivery < 100ms
-- **Scalability**: Support 1000+ concurrent users
-- **Security**: Encrypted connections, secure file storage
-- **Availability**: 99.9% uptime
-- **Compliance**: Message retention policies
-
-## 📁 Project Structure
-
-```
-connectflow-django/
-├── manage.py
-├── requirements.txt
-├── .env.example
-├── .gitignore
-├── README.md
-├── docker-compose.yml
-├── connectflow/              # Main project config
-│   ├── __init__.py
-│   ├── settings.py
-│   ├── urls.py
-│   ├── asgi.py
-│   ├── wsgi.py
-│   └── celery.py
-├── apps/
-│   ├── accounts/             # User authentication & profiles
-│   ├── organizations/        # Org structure & departments
-│   ├── channels/             # Channel management
-│   ├── messaging/            # Messages, files, reactions
-│   ├── breakouts/            # Breakout room functionality
-│   ├── notifications/        # Notification system
-│   └── analytics/            # Analytics & reporting
-├── templates/                # Django HTML templates
-│   ├── base.html
-│   ├── accounts/
-│   ├── channels/
-│   ├── messaging/
-│   └── components/           # Reusable template components
-├── static/                   # Static files (CSS, JS, images)
-│   ├── css/
-│   ├── js/
-│   └── images/
-├── media/                    # Uploaded files
-└── tests/                    # Test suite
-```
-
-## 🗃️ Database Models Overview
-
-### Core Models
-
-- **Organization**: Company/organization entity
-- **User**: Extended Django user with roles
-- **Department**: Organizational departments
-- **Team**: Teams within departments
-- **Channel**: Communication channels
-- **Message**: Chat messages
-- **BreakoutRoom**: Temporary discussion rooms
-- **Attachment**: File uploads
-- **Reaction**: Message reactions
-- **Notification**: User notifications
-
-## 🚀 Development Phases
-
-### Phase 1: Foundation (Weeks 1-2)
-
-- ✅ Project setup and configuration
-- ✅ Django project initialization
-- Database models (User, Organization, Department, Team)
-- Basic authentication with Django templates
-- Admin interface
-- Base templates and layout
-
-### Phase 2: Core Features (Weeks 3-4)
-
-- Channel management with CRUD views
-- Real-time messaging with Channels + WebSocket
-- File upload system with forms
-- Template-based UI for chat interface
-
-### Phase 3: Advanced Features (Weeks 5-6)
-
-- Breakout rooms with dynamic UI
-- Message reactions and threading
-- Search functionality with filters
-- User mentions with autocomplete
-- Django template tags for common components
-
-### Phase 4: Management & Polish (Weeks 7-8)
-
-- Analytics dashboard
-- Approval workflows
-- Testing and optimization
-- Documentation
-
-## 🔧 Installation (Coming Soon)
-
-```bash
-# Clone repository
-git clone <repo-url>
-cd connectflow-django
-
-# Create virtual environment
-python -m venv venv
-source venv/bin/activate  # On Windows: venv\Scripts\activate
-
-# Install dependencies
-pip install -r requirements.txt
-
-# Setup database
-python manage.py migrate
-
-# Create superuser
-python manage.py createsuperuser
-
-# Run development server
-python manage.py runserver
-```
-
-## 📝 Environment Variables
-
-```env
-DEBUG=True
-SECRET_KEY=your-secret-key
-DATABASE_URL=postgresql://user:password@localhost/connectflow
-REDIS_URL=redis://localhost:6379/0
-AWS_ACCESS_KEY_ID=your-aws-key
-AWS_SECRET_ACCESS_KEY=your-aws-secret
-AWS_STORAGE_BUCKET_NAME=your-bucket
-```
-
-## 🧪 Testing
-
-```bash
-# Run tests
-pytest
-
-# Run with coverage
-pytest --cov=apps
-```
-
-## 📚 API Documentation
-
-API documentation will be available at `/api/docs/` using drf-spectacular or Swagger.
-
-## 🤝 Contributing
-
-This is a learning project. Follow Django best practices and PEP 8 style guide.
-
-## 📄 License
-
-[To be determined]
-
-## 👨‍💻 Author
-
-Built as a learning project to understand Django architecture and real-time web applications.
+### 1. **Multi-Tenant Architecture**
+- **Strict Isolation:** Data is siloed at the database level by Organization UUID.
+- **Joint Ventures:** Secure "Shared Project" workspaces where multiple independent organizations can collaborate on common goals.
+- **Granular Permissions:** Super Admins can explicitly toggle module access (Analytics, Chat, Projects) for individual staff members.
+
+### 2. **Professional Communication Hub**
+- **Intelligent Channels:** Automatic assignment to Department and Team channels.
+- **Real-Time Messaging:** Powered by WebSockets (Django Channels) with typing indicators, presence tracking, and emoji reactions.
+- **Soft Delete System:** Full audit trails with real-time delete receipts broadcasted to all participants.
+
+### 3. **Project & Task Management**
+- **Backlog & Milestones:** Track project progress with visual completion metrics.
+- **Advanced Analytics:** Collaboration maps and KPI tracking (locked to premium tiers).
+- **Meeting Portal:** One-click access to external video platforms with automated branding detection.
 
 ---
 
-**Version**: 0.1.0  
-**Status**: Initial Setup  
-**Last Updated**: December 2025
+## 🛠️ Technology Stack
+
+- **Backend:** Django 5.2.9 + Django REST Framework 3.16
+- **Real-time:** WebSockets via Django Channels 4.3 + Redis
+- **Auth:** Firebase Identity Platform (JWT-based session handshake)
+- **Media:** Cloudinary (Automatic Resource Detection + Secure delivery)
+- **Billing:** Paystack API (Localized for African markets)
+- **Frontend:** Tailwind CSS + Vanilla JS (PWA Ready with custom Splash Screen)
+- **Deployment:** Render (Production Environment) + PostgreSQL
+
+---
+
+## 📡 API & Documentation
+
+ConnectFlow Pro is a "Headless-First" platform. All core business logic is accessible via our REST API.
+
+*   **[API Technical Reference](API_DOCUMENTATION.md):** Complete guide to authentication and endpoints.
+*   **[Deployment Checklist](DEPLOYMENT_CHECKLIST.md):** Production readiness guide.
+
+---
+
+## 🔧 Installation & Setup
+
+```bash
+# Clone and Enter
+git clone https://github.com/fosterboadi/connectflow-django.git
+cd connectflow-django
+
+# Setup Environment
+python -m venv venv
+source venv/bin/activate # Windows: venv\Scripts\activate
+pip install -r requirements.txt
+
+# Initial Setup
+python manage.py migrate
+python manage.py runserver
+```
+
+## 📝 Required Environment Variables (Production)
+| Variable | Purpose |
+| :--- | :--- |
+| `STRIPE_SECRET_KEY` | (Legacy Support) |
+| `PAYSTACK_SECRET_KEY` | Primary Billing |
+| `PLATFORM_SECRET_KEY` | Super Admin Initialization |
+| `CLOUDINARY_CLOUD_NAME` | Media Hosting |
+| `FIREBASE_CREDENTIALS_PATH` | Secure Identity |
+
+---
+
+## 👨‍💻 Vision & Leadership
+**Author:** Foster Boadi  
+**Status:** Launch Ready (v1.0.0)  
+**Last Updated:** December 26, 2025
