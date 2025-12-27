@@ -1,162 +1,87 @@
-# ConnectFlow Pro - API v1 Documentation & Multi-Platform Guide
+# 🎓 ConnectFlow Pro: The Master Presentation Script
 
-## 📋 Table of Contents
-- [Project Evolution](#project-evolution)
-- [API Architecture (v1)](#api-architecture-v1)
-- [Authentication & Security](#authentication--security)
-- [Core API Endpoints](#core-api-endpoints)
-- [Real-time WebSocket API](#real-time-websocket-api)
-- [Postman Testing Guide](#postman-testing-guide)
-- [Demonstration Script](#demonstration-script)
+This document is your **live script** for the technical presentation. It is designed to be followed step-by-step to show off the platform's security, business logic, and scalability using **Postman**.
 
 ---
 
-## 🚀 Project Evolution
+## 🛠 PHASE 0: Preparation (The "Master Key")
+*Before the presentation starts, you need to get your identity token.*
 
-ConnectFlow Pro has evolved from a traditional Django website into a **Multi-Platform Communication Hub**. While the web dashboard continues to serve HTML, our new **REST API v1** allows native mobile apps (React Native/Flutter) and external integrations to interact with the exact same data source.
-
-### **The December 2025 Leap**
-*   **API v1 Foundation:** Modularized backend with dedicated serializers and viewsets.
-*   **SaaS Gatekeeper:** Integrated subscription limit enforcement (Users, Projects, Features) at the Serializer level.
-*   **System Hardening:** Standardized media handling via Cloudinary `resource_type='auto'`.
-*   **Data Integrity:** Implemented "Soft Delete" with real-time delete receipts.
-*   **Mobile Readiness:** Built-in CORS and Firebase-ready authentication logic.
-
----
-
-## 🏗️ API Architecture (v1)
-
-### **Base URL**
-`https://connectflow-pro.onrender.com/api/v1/`
-
-### **Technology Stack**
-- **Framework:** Django 5.2.9 + Django REST Framework 3.16
-- **Real-time:** WebSockets via Django Channels + Redis
-- **Billing:** Multi-provider support (Paystack) with automated Webhooks
-- **Media:** Cloudinary (Secure HTTPS + Universal file support)
+1.  **Open Browser:** Log into `https://connectflow-pro.onrender.com`.
+2.  **Open Console:** Press **F12** (or Right-click > Inspect > Console).
+3.  **Get Token:** Paste this code and hit Enter:
+    ```javascript
+    firebase.auth().currentUser.getIdToken().then(console.log)
+    ```
+4.  **Copy Result:** You will see a very long string starting with `eyJhbG...`. Keep this ready.
 
 ---
 
-## 📡 Complete REST API Reference (v1)
+## 🚀 PHASE 1: The "Identity" Handshake
+*Goal: Prove that the API can identify you independently of the web dashboard.*
 
-### **1. Identity & Profile**
-| Method | Endpoint | Description |
-|--------|----------|-------------|
-| `GET` | `/users/me/` | Identify current user, role, and org context. |
-| `GET` | `/users/` | List all members within your organization. |
-| `GET` | `/users/{id}/` | Retrieve a specific member's professional profile. |
-| `POST` | `/users/toggle_theme/` | Toggle between LIGHT and DARK UI modes. |
-
-### **2. Organization Structure**
-| Method | Endpoint | Description |
-|--------|----------|-------------|
-| `GET` | `/organizations/` | View organization metadata (branding, industry, status). |
-| `GET` | `/departments/` | List all departmental units in the organization. |
-| `POST` | `/departments/` | Create a new department (Managers only). |
-| `GET` | `/teams/` | List all internal teams. |
-| `POST` | `/teams/` | Form a new internal team. |
-
-### **3. Shared Projects & Analytics**
-| Method | Endpoint | Description |
-|--------|----------|-------------|
-| `GET` | `/projects/` | List workspaces shared between organizations. |
-| `POST` | `/projects/` | Launch workspace (**Gatekeeper**: Validates plan project limits). |
-| `GET` | `/projects/{id}/` | Retrieve roster, milestones, and status of a project. |
-| `GET` | `/projects/{id}/analytics/`| **Premium**: Returns collaboration maps and KPI data. |
-
-### **4. Real-time Communication**
-| Method | Endpoint | Description |
-|--------|----------|-------------|
-| `GET` | `/channels/` | List all accessible private and project channels. |
-| `GET` | `/channels/{id}/messages/` | Retrieve message history for a specific channel. |
-| `POST` | `/messages/` | Send message (**Universal Support**: text, image, file, voice). |
-| `PATCH` | `/messages/{id}/` | Edit a previously sent message. |
-| `DELETE` | `/messages/{id}/` | **Soft Delete**: Archives message and broadcasts delete receipt. |
-
-### **5. SaaS Management & Billing**
-| Method | Endpoint | Description |
-|--------|----------|-------------|
-| `GET` | `/billing/plans/` | List available subscription tiers and their benefits. |
-| `POST` | `/billing/paystack/{plan_id}/` | Initialize a Paystack transaction for tier upgrade. |
-| `POST` | `/webhooks/paystack/` | System listener for automated plan activation. |
+1.  **In Postman:** Create a new **GET** request.
+2.  **URL:** `https://connectflow-pro.onrender.com/api/v1/users/me/`
+3.  **The "Auth" Tab:** 
+    *   Click the **Auth** tab (under the URL bar).
+    *   Change Type to **Bearer Token**.
+    *   Paste your long token from Phase 0.
+4.  **Action:** Click **Send**.
+5.  **What to Say:** *"I am starting by proving our Headless architecture. Even without a browser, the API identifies me, my organization (ConnectFlow Corp), and my role as a Super Admin. This token-based security is exactly how our future mobile apps will communicate."*
 
 ---
 
-## 🛡️ SaaS Gatekeeper Logic
+## 🔒 PHASE 2: Data Isolation & Multi-Tenancy
+*Goal: Show that users only see what they are authorized to see.*
 
-The API is architected to protect your business model automatically.
-
-### **1. Plan Limit Enforcement**
-When a `POST` request is sent to `/projects/`, the **SharedProjectSerializer** validates the organization's subscription plan. If the limit is exceeded, the API returns:
-*   **Status:** `400 Bad Request`
-*   **Message:** `"Organization has reached the limit of X project(s)..."`
-
-### **2. Feature Locking**
-Endpoints like `/projects/{id}/analytics/` use the **HasSubscriptionFeature** permission class. If the organization's plan has `has_analytics=False`, the API returns:
-*   **Status:** `403 Forbidden`
-*   **Message:** `"Project Analytics is a premium feature."`
+1.  **In Postman:** New tab, **GET** request.
+2.  **URL:** `https://connectflow-pro.onrender.com/api/v1/projects/`
+3.  **Auth:** (Ensure Bearer Token is still there).
+4.  **Action:** Click **Send**.
+5.  **What to Say:** *"Security is baked into our data layer. Even if there are 10,000 projects in the database, the API automatically filters the results. I only see the projects belonging to my organization. This is true secure multi-tenancy."*
 
 ---
 
-## 🧪 Postman Presentation Guide (Pure API Flow)
+## 🛡️ PHASE 3: The SaaS Gatekeeper (The Upgrade Demo)
+*Goal: Show how the app protects your revenue by locking premium features.*
 
-This guide walks you through a professional, **headless authentication flow**—exactly how a mobile app (Flutter/React Native) would interact with ConnectFlow Pro.
+1.  **Pick a Project:** From the result in Phase 2, copy one project `id` (e.g., `550e8400...`).
+2.  **In Postman:** New tab, **GET** request.
+3.  **URL:** `https://connectflow-pro.onrender.com/api/v1/projects/[PASTE_ID_HERE]/analytics/`
+4.  **Action:** Click **Send**.
+5.  **If it fails (403):** *"Here we see our monetization engine. My organization is on a 'Basic' plan, so the API explicitly blocks access to advanced Analytics. To see this data, the client must upgrade via Paystack."*
+6.  **If it succeeds:** *"Because I am a Super Admin, the Gatekeeper grants me full access to premium KPI data and collaboration maps."*
 
-### **Step 1: The Firebase Handshake (Get ID Token)**
-Instead of a browser, we request a secure identity token directly from Google's Identity Toolkit.
+---
 
-1.  **Method:** `POST`
-2.  **URL:** `https://identitytoolkit.googleapis.com/v1/accounts:signInWithPassword?key=AIzaSyAfkKZt1a7oKZDKrPpKIGGtc6inABx5-rw`
-3.  **Body (Raw JSON):**
+## 🏗️ PHASE 4: Headless Creation (The "Action" Test)
+*Goal: Prove you can build a company structure entirely via API.*
+
+1.  **In Postman:** New tab, change method to **POST**.
+2.  **URL:** `https://connectflow-pro.onrender.com/api/v1/departments/`
+3.  **The "Body" Tab:**
+    *   Select **raw**.
+    *   On the far right, change "Text" to **JSON**.
+4.  **Paste this:**
     ```json
-    {
-        "email": "your-staff-email@example.com",
-        "password": "your-password",
-        "returnSecureToken": true
+    { 
+      "name": "Global Innovation Lab", 
+      "description": "Created during the live demo" 
     }
     ```
-4.  **Action:** Click **Send**.
-5.  **Result:** Copy the `"idToken"` from the response. 
-    *   *Talk Track:* "We are starting with a pure API-to-API handshake. We request a secure JWT from Firebase, proving our identity without ever touching a browser."
-
-### **Step 2: Backend Authorization (Session Exchange)**
-Tell the ConnectFlow Django server to trust this Postman session.
-
-1.  **Method:** `POST`
-2.  **URL:** `https://connectflow-pro.onrender.com/accounts/login/`
-3.  **Body (Raw JSON):**
-    ```json
-    { "id_token": "PASTE_THE_TOKEN_FROM_STEP_1" }
-    ```
-4.  **Headers:** Add `Referer` = `https://connectflow-pro.onrender.com` (for CSRF safety).
 5.  **Action:** Click **Send**.
-6.  **Result:** You should receive `{"status": "ok"}`. Postman has now saved your session cookies.
-    *   *Talk Track:* "Now, we pass that token to our Django backend. The server verifies the signature with Google's public keys and establishes a secure, isolated session for this device."
-
-### **Step 3: The Live Data Demo**
-
-| Action | URL | Talk Track |
-|--------|-----|------------|
-| **Identify** | `GET /api/v1/users/me/` | "The API now identifies my role and organization context based on that handshake." |
-| **Isolate** | `GET /api/v1/projects/` | "Demonstrating secure multi-tenancy. I only see projects I am authorized to access." |
-| **Gatekeep**| `GET /projects/{id}/analytics/`| "Showcasing business logic. Lower tiers get a **403 Forbidden**; premium tiers see full data." |
+6.  **Confirmation:** Go to your web dashboard and refresh the **Organization** page. The new department will be there!
+7.  **What to Say:** *"Finally, we are showing that ConnectFlow is a true platform. I just created a new organizational unit via the API, and it appeared instantly on our web dashboard. This proves our backend is ready to power any integration."*
 
 ---
 
-## 🎓 Demonstration Script
+## 💰 PHASE 5: Monetization (Paystack)
+*Goal: Show the path to profit.*
 
-**1. Subscription Gatekeeper (3 mins)**
-Attempt to create a project via the API while on a "Starter" plan. Show the `400 Bad Request`. Upgrade the plan in the Platform Admin, try again, and show the `201 Created` success.
-
-**2. Premium Feature Lock (2 mins)**
-Request `/projects/{id}/analytics/` from a basic account. Show the `403 Forbidden`. This proves the API is aware of the business tiers.
-
-**3. Universal Media Access (2 mins)**
-Upload a non-image file (PDF/ZIP) and show the generated URL. Explain that the API forces **HTTPS** and uses **Raw Storage** to ensure the files are accessible and secure.
-
-**4. Real-time Presence (2 mins)**
-Open two browser windows. Show how changing status in one is reflected via the WebSocket API in the other instantly.
+1.  **URL:** `GET https://connectflow-pro.onrender.com/api/v1/billing/plans/`
+2.  **What to Say:** *"We close with the business model. Our API serves our product catalog directly. Any organization can view these tiers and initiate a secure Paystack checkout to unlock the premium features we saw earlier."*
 
 ---
 
-**This API v1 serves as the production-ready gateway for the ConnectFlow Pro ecosystem.** 🎓
+## 🏁 Final Conclusion
+*"ConnectFlow Pro is more than a tool; it is a secure, scalable, and profitable infrastructure for modern joint-venture collaboration."*
