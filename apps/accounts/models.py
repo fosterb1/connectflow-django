@@ -115,6 +115,11 @@ class User(AbstractUser):
         default=True,
         help_text=_("Receive email notifications")
     )
+
+    email_verified = models.BooleanField(
+        default=False,
+        help_text=_("Has the user verified their email address?")
+    )
     
     mention_notifications = models.BooleanField(
         default=True,

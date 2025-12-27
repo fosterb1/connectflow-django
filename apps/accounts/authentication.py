@@ -54,6 +54,7 @@ class FirebaseAuthentication(authentication.BaseAuthentication):
 
         uid = decoded_token.get('uid')
         email = decoded_token.get('email')
+        email_verified = decoded_token.get('email_verified', False)
         
         if not email:
             raise exceptions.AuthenticationFailed('Firebase token must have an email associated.')
@@ -61,6 +62,10 @@ class FirebaseAuthentication(authentication.BaseAuthentication):
         # Get or create local user
         try:
             user = User.objects.get(email=email)
+            # Sync verification status
+            if user.email_verified != email_verified:
+                user.email_verified = email_verified
+                user.save(update_fields=['email_verified'])
         except User.DoesNotExist:
             # For this project, we might want to auto-create or fail depending on flow
             # We'll fail here because we want them to go through a proper registration flow 
@@ -93,12 +98,17 @@ class FirebaseBackend:
 
         email = decoded_token.get('email')
         uid = decoded_token.get('uid')
+        email_verified = decoded_token.get('email_verified', False)
 
         if not email:
             return None
 
         try:
             user = User.objects.get(email=email)
+            # Sync verification status
+            if user.email_verified != email_verified:
+                user.email_verified = email_verified
+                user.save(update_fields=['email_verified'])
             return user
         except User.DoesNotExist:
             # Logic for new users via Google Sign In
@@ -118,6 +128,7 @@ class FirebaseBackend:
                 first_name=first_name,
                 last_name=last_name,
                 role='TEAM_MEMBER', # Default
+                email_verified=email_verified
             )
             # user.set_unusable_password() # They use Firebase
             user.save()

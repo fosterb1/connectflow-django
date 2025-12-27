@@ -230,7 +230,10 @@ class ChatConsumer(AsyncWebsocketConsumer):
                         )
                         await self.broadcast_notification(recipient.id, notification)
                         recipient_ids.add(recipient.id)
+                except User.DoesNotExist:
+                    continue
                 except Exception:
+                    # Log unexpected errors if needed, but continue to next mention
                     continue
         
         # 2. Handle Replies (Notify original sender)

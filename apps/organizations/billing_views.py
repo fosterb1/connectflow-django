@@ -53,7 +53,7 @@ def paystack_checkout(request, plan_id):
     }
     
     try:
-        response = requests.post(url, headers=headers, json=payload)
+        response = requests.post(url, headers=headers, json=payload, timeout=30)
         res_data = response.json()
         if res_data['status']:
             return redirect(res_data['data']['authorization_url'])

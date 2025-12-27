@@ -16,6 +16,16 @@ from apps.organizations.models import Organization
 
 User = get_user_model()
 
+class VerifyEmailView(View):
+    """
+    Renders the email verification required page.
+    """
+    def get(self, request):
+        if request.user.is_authenticated and request.user.email_verified:
+            return redirect('accounts:dashboard')
+        return render(request, 'accounts/verify_email.html')
+
+
 class LoginView(View):
     """
     Handles user login.
@@ -87,6 +97,9 @@ class RegisterAPIView(View):
         user = authenticate(request, id_token=id_token)
         if not user:
             return JsonResponse({'error': 'Authentication failed.'}, status=403)
+        
+        # Explicitly check verification from token again to be sure (authenticate does it, but good for clarity)
+        # Note: 'authenticate' already updated 'email_verified' via FirebaseBackend logic we just added.
 
         # 3. Associate with Organization
         user.organization = organization

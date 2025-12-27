@@ -9,6 +9,7 @@ urlpatterns = [
     path('signup-organization/', views.OrganizationSignupView.as_view(), name='organization_signup'),
     path('api/create-organization/', views.CreateOrganizationView.as_view(), name='create_organization_api'),
     path('login/', views.LoginView.as_view(), name='login'),
+    path('verify-email/', views.VerifyEmailView.as_view(), name='verify_email'),
     path('logout/', views.LogoutView.as_view(), name='logout'),
     path('dashboard/', views.dashboard, name='dashboard'),
     path('profile/', views.ProfileSettingsView.as_view(), name='profile_settings'),
