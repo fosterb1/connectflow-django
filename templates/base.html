@@ -283,42 +283,51 @@
 
     <div class="{% if user.is_authenticated %}main-content-wrapper{% endif %}">
         <!-- GLOBAL TOP NAV -->
-        <nav class="top-navbar bg-white/80 dark:bg-gray-900/80 backdrop-blur-md border-b border-gray-100 dark:border-gray-800 flex items-center justify-between px-6">
+        <nav class="top-navbar flex items-center justify-between px-6 shadow-lg">
             <div class="flex items-center space-x-4">
                 {% if not user.is_authenticated %}
-                    <a href="/" class="text-xl font-black tracking-tighter italic text-indigo-600">ConnectFlow Pro</a>
+                    <a href="/" class="text-xl font-black tracking-tighter italic text-white">ConnectFlow Pro</a>
                 {% else %}
                     <!-- Mobile Menu Button -->
-                    <button id="mobile-menu-btn" class="lg:hidden p-2 text-gray-500 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-lg transition">
+                    <button id="mobile-menu-btn" class="lg:hidden p-2 text-white hover:bg-white/10 rounded-lg transition">
                         <svg id="hamburger-icon" class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16"></path></svg>
                         <svg id="close-icon" class="hidden w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg>
                     </button>
                     
                     <!-- Desktop Sidebar Toggle -->
-                    <button id="sidebar-toggle" class="hidden lg:flex p-2 text-gray-500 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-lg transition">
+                    <button id="sidebar-toggle" class="hidden lg:flex p-2 text-white hover:bg-white/10 rounded-lg transition">
                         <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16"></path></svg>
                     </button>
                     
-                    <h2 class="hidden lg:block text-xs font-black text-gray-400 uppercase tracking-[0.2em]">
-                        {{ request.resolver_match.url_name|replace_string:"_, "|title }}
-                    </h2>
-                    <a href="/" class="lg:hidden text-xl font-black tracking-tighter italic text-indigo-600">CF<span class="text-gray-900 dark:text-white">P</span></a>
+                    <a href="/" class="lg:hidden text-xl font-black tracking-tighter italic text-white">CFP</a>
                 {% endif %}
             </div>
+
+            <!-- Global Search -->
+            {% if user.is_authenticated %}
+            <div class="hidden md:flex flex-1 max-w-md mx-8">
+                <div class="relative w-full">
+                    <span class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                        <svg class="h-5 w-5 text-white/60" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path></svg>
+                    </span>
+                    <input type="text" class="block w-full pl-10 pr-3 py-2 border-none rounded-xl leading-5 bg-white/20 text-white placeholder-white/60 focus:outline-none focus:bg-white/30 focus:ring-0 sm:text-sm transition" placeholder="Search workspace...">
+                </div>
+            </div>
+            {% endif %}
 
             <div class="flex items-center space-x-2 md:space-x-4">
                 {% if user.is_authenticated %}
                     <!-- Theme Toggle -->
-                    <button id="theme-toggle" type="button" class="p-2 text-gray-400 hover:text-indigo-600 hover:bg-indigo-50 dark:hover:bg-gray-800 rounded-xl transition">
+                    <button id="theme-toggle" type="button" class="p-2 text-white/80 hover:text-white hover:bg-white/10 rounded-xl transition">
                         <svg id="theme-toggle-dark-icon" class="hidden w-5 h-5" fill="currentColor" viewBox="0 0 20 20"><path d="M17.293 13.293A8 8 0 016.707 2.707a8.001 8.001 0 1010.586 10.586z"></path></svg>
                         <svg id="theme-toggle-light-icon" class="hidden w-5 h-5" fill="currentColor" viewBox="0 0 20 20"><path d="M10 2a1 1 0 011 1v1a1 1 0 11-2 0V3a1 1 0 011-1zm4 8a4 4 0 11-8 0 4 4 0 018 0zm-.464 4.95l.707.707a1 1 0 001.414-1.414l-.707-.707a1 1 0 00-1.414 1.414zm2.12-10.607a1 1 0 010 1.414l-.707.707a1 1 0 11-1.414-1.414l.707-.707a1 1 0 011.414 0zM10 16a1 1 0 011 1v1a1 1 0 11-2 0v-1a1 1 0 011-1zM3.05 4.54a1 1 0 00-1.414 1.414l.707.707a1 1 0 101.414-1.414l-.707-.707zM16.95 4.54a1 1 0 010 1.414l-.707.707a1 1 0 11-1.414-1.414l.707-.707a1 1 0 011.414 0zm-12.8 9.9a1 1 0 00-1.414 1.414l.707.707a1 1 0 101.414-1.414l-.707-.707zM4 10a1 1 0 01-1-1H2a1 1 0 110-2h1a1 1 0 011 1z" fill-rule="evenodd" clip-rule="evenodd"></path></svg>
                     </button>
 
                     <!-- Notifications (Desktop) -->
                     <div class="relative hidden lg:block">
-                        <button id="notification-btn" class="p-2 text-gray-400 hover:text-indigo-600 hover:bg-indigo-50 dark:hover:bg-gray-800 rounded-xl transition relative">
+                        <button id="notification-btn" class="p-2 text-white/80 hover:text-white hover:bg-white/10 rounded-xl transition relative">
                             <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9"></path></svg>
-                            <span id="notification-count" class="absolute top-1.5 right-1.5 bg-red-500 text-white text-[8px] font-black w-4 h-4 flex items-center justify-center rounded-full border-2 border-white dark:border-gray-900 {% if not unread_notifications_count %}hidden{% endif %}">{{ unread_notifications_count }}</span>
+                            <span id="notification-count" class="absolute top-1.5 right-1.5 bg-red-500 text-white text-[8px] font-black w-4 h-4 flex items-center justify-center rounded-full border-2 border-indigo-600 {% if not unread_notifications_count %}hidden{% endif %}">{{ unread_notifications_count }}</span>
                         </button>
                         
                         <div id="notification-dropdown" class="hidden absolute right-0 mt-2 w-96 bg-white dark:bg-gray-800 rounded-2xl shadow-2xl border border-gray-100 dark:border-gray-700 z-[100] overflow-hidden max-h-[80vh]">

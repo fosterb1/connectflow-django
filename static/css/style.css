@@ -79,6 +79,29 @@ body, aside, nav, main, div, p, span, h1, h2, h3, a, button {
         top: 0;
         z-index: 30;
         width: 100%;
+        background: linear-gradient(to right, #4f46e5, #7c3aed) !important;
+        border-bottom: none !important;
+    }
+
+    .top-navbar .text-gray-400, 
+    .top-navbar .text-gray-500 {
+        color: rgba(255, 255, 255, 0.7) !important;
+    }
+
+    .top-navbar .text-gray-900,
+    .top-navbar .text-gray-800 {
+        color: white !important;
+    }
+
+    .top-navbar button:hover,
+    .top-navbar a:hover {
+        background-color: rgba(255, 255, 255, 0.1) !important;
+        color: white !important;
+    }
+
+    .top-navbar #sidebar-toggle,
+    .top-navbar #mobile-menu-btn {
+        color: white !important;
     }
 }
 
