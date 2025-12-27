@@ -17,6 +17,7 @@ ConnectFlow Pro has evolved from a traditional Django website into a **Multi-Pla
 
 ### **The December 2025 Leap**
 *   **API v1 Foundation:** Modularized backend with dedicated serializers and viewsets.
+*   **SaaS Gatekeeper:** Integrated subscription limit enforcement (Users, Projects, Features) at the Serializer level.
 *   **System Hardening:** Standardized media handling via Cloudinary `resource_type='auto'`.
 *   **Data Integrity:** Implemented "Soft Delete" with real-time delete receipts.
 *   **Mobile Readiness:** Built-in CORS and Firebase-ready authentication logic.
@@ -31,23 +32,8 @@ ConnectFlow Pro has evolved from a traditional Django website into a **Multi-Pla
 ### **Technology Stack**
 - **Framework:** Django 5.2.9 + Django REST Framework 3.16
 - **Real-time:** WebSockets via Django Channels + Redis
-- **Media:** Cloudinary (Automatic Image/Video/Audio detection)
-- **Database:** PostgreSQL (Render)
-
----
-
-## 🔐 Authentication & Security
-
-The API supports **Session-based Authentication** (for Web/Postman) and is architected for **Firebase/Token Authentication** (for Mobile).
-
-### **Required Headers (for POST/PATCH/DELETE)**
-```http
-Content-Type: application/json
-X-CSRFToken: {{CSRF_TOKEN}}
-```
-
-### **Organization Isolation**
-The API automatically filters all requests. A user can **only** see data (Users, Teams, Channels) belonging to their own Organization.
+- **Billing:** Multi-provider support (Paystack) with automated Webhooks
+- **Media:** Cloudinary (Secure HTTPS + Universal file support)
 
 ---
 
@@ -60,75 +46,81 @@ The API automatically filters all requests. A user can **only** see data (Users,
 | `GET` | `/users/` | List all users in your organization |
 | `POST` | `/users/toggle_theme/` | Switch between LIGHT/DARK theme |
 
-### **2. Organization Structure**
+### **2. Organization & Billing**
 | Method | Endpoint | Description |
 |--------|----------|-------------|
-| `GET` | `/organizations/` | Get current organization details & logo |
+| `GET` | `/organizations/` | Get current organization details & subscription status |
 | `GET` | `/departments/` | List all departmental units |
 | `GET` | `/teams/` | List team spaces you belong to |
 
-### **3. Collaborative Projects**
+### **3. Collaborative Projects & Analytics**
 | Method | Endpoint | Description |
 |--------|----------|-------------|
 | `GET` | `/projects/` | List all active shared projects |
-| `POST` | `/projects/` | Create a new cross-org project (Managers only) |
+| `POST` | `/projects/` | Create workspace (**Gatekeeper protected**: Checks plan project limit) |
 | `GET` | `/projects/{id}/` | Get project milestones and roster |
+| `GET` | `/projects/{id}/analytics/` | **Premium Feature**: Returns statistics (Forbidden on lower tiers) |
 
 ### **4. Channels & Messaging**
 | Method | Endpoint | Description |
 |--------|----------|-------------|
 | `GET` | `/channels/` | List all accessible chat channels |
 | `GET` | `/channels/{id}/messages/` | Retrieve full message history |
-| `POST` | `/messages/` | Send a new text or media message |
+| `POST` | `/messages/` | Send text or media (**Universal file support**) |
 | `DELETE` | `/messages/{id}/` | **Soft Delete** a message (tracks who deleted) |
 
 ---
 
-## ⚡ Real-time WebSocket API
+## 🛡️ SaaS Gatekeeper & Business Logic
 
-### **WebSocket Connection**
-`wss://connectflow-pro.onrender.com/ws/chat/{channel_id}/`
+The API is architected to protect your business model automatically.
 
-### **Real-time Event Types**
-*   `chat_message`: New message received (including images/voice)
-*   `message_update`: Sent when a message is edited
-*   `message_delete`: **Delete Receipt** (Broadcasts `deleted_at` and `deleted_by`)
-*   `presence`: Real-time Online/Offline status updates
-*   `typing`: Real-time "User is typing..." indicator
+### **1. Plan Limit Enforcement**
+When a `POST` request is sent to `/projects/`, the **SharedProjectSerializer** validates the organization's subscription plan. If the limit is exceeded, the API returns:
+*   **Status:** `400 Bad Request`
+*   **Message:** `"Organization has reached the limit of X project(s)..."`
+
+### **2. Feature Locking**
+Endpoints like `/projects/{id}/analytics/` use the **HasSubscriptionFeature** permission class. If the organization's plan has `has_analytics=False`, the API returns:
+*   **Status:** `403 Forbidden`
+*   **Message:** `"Project Analytics is a premium feature."`
 
 ---
 
-## 🧪 Postman Testing Guide
+## 🧪 Postman & Browser Testing Guide
 
-### **Step 1: Setup Environment**
-1. Create a variable `BASE_URL` = `https://connectflow-pro.onrender.com/api/v1`
-2. Create a variable `CSRF_TOKEN`
+### **Method A: The Browser (Easiest)**
+1. Log into the ConnectFlow web dashboard.
+2. In the same browser, navigate to: `https://connectflow-pro.onrender.com/api/v1/`
+3. You will see the **Django REST Framework Browsable API**.
+4. You can click on endpoints and even perform `POST/PUT` actions using the forms at the bottom of the page.
 
-### **Step 2: Authenticate**
-1. Perform a regular Login via the web interface or `/accounts/login/`.
-2. Postman will capture the session cookie automatically.
-3. Use the `GET /api/v1/users/me/` to verify you are logged in.
-
-### **Step 3: Test Soft Delete**
-1. Send a message via `/api/v1/messages/`.
-2. Delete it using `DELETE /api/v1/messages/{id}/`.
-3. Check the database or perform a `GET`; the message will be hidden from regular results but archived in the backend.
+### **Method B: Postman (Professional)**
+1. **Login:** Perform a `POST` to `/accounts/login/` with your Firebase token (or simply log in via the web app first, as Postman will share your browser's cookies if you use the Postman Interceptor).
+2. **CSRF Protection:** For `POST/PATCH/DELETE` requests, you must include the `X-CSRFToken` header.
+   *   Get the token from your browser cookies (`csrftoken`).
+3. **Environment Setup:**
+   *   `BASE_URL`: `https://connectflow-pro.onrender.com/api/v1`
+   *   **Auth:** Set to "No Auth" if using browser cookies, or "Bearer Token" if using Firebase ID tokens.
+4. **Testing Analytics:**
+   *   Navigate to `{{BASE_URL}}/projects/[YOUR_PROJECT_ID]/analytics/`.
+   *   Observe how the response changes when you toggle the `has_analytics` benefit in the **Platform Admin Suite**.
 
 ---
 
 ## 🎓 Demonstration Script
 
-**1. Headless Access (2 mins)**
-Demonstrate fetching the user profile (`/users/me/`) via Postman to show the server identifies the user independently of the web UI.
+**1. Subscription Gatekeeper (3 mins)**
+Attempt to create a project via the API while on a "Starter" plan. Show the `400 Bad Request`. Upgrade the plan in the Platform Admin, try again, and show the `201 Created` success.
 
-**2. Media Robustness (3 mins)**
-Demonstrate sending a voice message or image. Explain how `resource_type='auto'` in the backend prevents the server from crashing on non-image files.
+**2. Premium Feature Lock (2 mins)**
+Request `/projects/{id}/analytics/` from a basic account. Show the `403 Forbidden`. This proves the API is aware of the business tiers.
 
-**3. Data Integrity (3 mins)**
-Demonstrate deleting a message. Show that the API returns a **Delete Receipt** with a timestamp, proving the "Soft Delete" mechanism is working.
+**3. Universal Media Access (2 mins)**
+Upload a non-image file (PDF/ZIP) and show the generated URL. Explain that the API forces **HTTPS** and uses **Raw Storage** to ensure the files are accessible and secure.
 
-**4. Multi-Org Scalability (2 mins)**
-Show the list of Shared Projects (`/projects/`). Explain that the API allows guest organizations to connect their own mobile apps to this same project roster.
+**4. Real-time Presence (2 mins)**
+Open two browser windows. Show how changing status in one is reflected via the WebSocket API in the other instantly.
 
 ---
 
