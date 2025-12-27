@@ -7,7 +7,7 @@ from apps.organizations.models import Organization, SharedProject, SubscriptionP
 from apps.organizations.forms import SubscriptionPlanForm
 
 def super_admin_check(user):
-    return user.is_authenticated and user.role == User.Role.SUPER_ADMIN
+    return user.is_authenticated and user.role == User.Role.SUPER_ADMIN and user.is_staff
 
 @login_required
 @user_passes_test(super_admin_check)

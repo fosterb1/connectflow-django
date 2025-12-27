@@ -205,7 +205,7 @@ class CreateOrganizationView(View):
                 
                 # Update user role and organization
                 user.organization = organization
-                user.role = 'SUPER_ADMIN'
+                user.role = 'ORG_ADMIN'
                 user.save()
                 
                 login(request, user)

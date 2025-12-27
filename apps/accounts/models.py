@@ -12,7 +12,8 @@ class User(AbstractUser):
     """
     
     class Role(models.TextChoices):
-        SUPER_ADMIN = 'SUPER_ADMIN', _('Super Admin')
+        SUPER_ADMIN = 'SUPER_ADMIN', _('Platform Super Admin')
+        ORG_ADMIN = 'ORG_ADMIN', _('Organization Admin')
         DEPT_HEAD = 'DEPT_HEAD', _('Department Head')
         TEAM_MANAGER = 'TEAM_MANAGER', _('Team Manager')
         TEAM_MEMBER = 'TEAM_MEMBER', _('Team Member')
@@ -152,8 +153,8 @@ class User(AbstractUser):
     
     @property
     def is_admin(self):
-        """Check if user is a Super Admin."""
-        return self.role == self.Role.SUPER_ADMIN
+        """Check if user is an Admin (either Platform or Organization level)."""
+        return self.role in [self.Role.SUPER_ADMIN, self.Role.ORG_ADMIN]
     
     @property
     def is_manager(self):
