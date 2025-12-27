@@ -20,26 +20,51 @@ User = get_user_model()
 
 class GlobalSearchView(View):
     """
-    Search across users, channels, projects and messages.
+    Search across users, channels, projects, and system navigation paths.
     Returns JSON for the live dropdown.
     """
     @method_decorator(login_required)
     def get(self, request):
         query = request.GET.get('q', '').strip()
-        if not query or len(query) < 2:
+        if not query or len(query) < 1:
             return JsonResponse({'results': []})
 
+        # Handle simple wildcard visualization (e.g., if user types *, show more)
+        clean_query = query.replace('*', '')
+        
         results = []
         user_org = request.user.organization
-        
-        # 1. Search Users in the same organization
+
+        # 1. System Path Recommendations (Navigation)
+        system_paths = [
+            {'title': 'Profile Settings', 'subtitle': 'Manage your account', 'url': reverse('accounts:profile_settings'), 'keywords': ['settings', 'account', 'profile', 'password', 'theme']},
+            {'title': 'Workspace Overview', 'subtitle': 'Organization dashboard', 'url': reverse('organizations:overview'), 'keywords': ['dashboard', 'workspace', 'teams', 'departments', 'org']},
+            {'title': 'Member Directory', 'subtitle': 'View all colleagues', 'url': reverse('organizations:member_directory'), 'keywords': ['members', 'people', 'users', 'colleagues', 'directory']},
+            {'title': 'Shared Projects', 'subtitle': 'External collaborations', 'url': reverse('organizations:shared_project_list'), 'keywords': ['projects', 'external', 'shared', 'collaboration']},
+            {'title': 'Browse Channels', 'subtitle': 'Find communication spaces', 'url': reverse('chat_channels:channel_list'), 'keywords': ['channels', 'chat', 'rooms', 'groups']},
+        ]
+
+        for path in system_paths:
+            if any(clean_query.lower() in kw for kw in path['keywords']) or clean_query.lower() in path['title'].lower():
+                results.append({
+                    'type': 'Navigation',
+                    'title': path['title'],
+                    'subtitle': path['subtitle'],
+                    'url': path['url'],
+                    'icon': 'bolt'
+                })
+
+        if not clean_query and '*' not in query:
+             return JsonResponse({'results': results[:5]})
+
+        # 2. Search Users
         users = User.objects.filter(
             organization=user_org
         ).filter(
-            Q(username__icontains=query) |
-            Q(first_name__icontains=query) |
-            Q(last_name__icontains=query) |
-            Q(professional_role__icontains=query)
+            Q(username__icontains=clean_query) |
+            Q(first_name__icontains=clean_query) |
+            Q(last_name__icontains=clean_query) |
+            Q(professional_role__icontains=clean_query)
         )[:5]
 
         for u in users:
@@ -51,17 +76,16 @@ class GlobalSearchView(View):
                 'icon': 'user'
             })
 
-        # 2. Search Channels
+        # 3. Search Channels
         from apps.chat_channels.models import Channel
         channels = Channel.objects.filter(
             organization=user_org,
             is_archived=False
         ).filter(
-            Q(name__icontains=query) |
-            Q(description__icontains=query)
+            Q(name__icontains=clean_query) |
+            Q(description__icontains=clean_query)
         ).distinct()
         
-        # Filter by permission
         viewable_channels = [c for c in channels if c.can_user_view(request.user)][:5]
         
         for c in viewable_channels:
@@ -73,16 +97,15 @@ class GlobalSearchView(View):
                 'icon': 'hashtag'
             })
 
-        # 3. Search Shared Projects
+        # 4. Search Shared Projects
         from apps.organizations.models import SharedProject
         projects = SharedProject.objects.filter(
             Q(host_organization=user_org) | Q(guest_organizations=user_org)
         ).filter(
-            Q(name__icontains=query) |
-            Q(description__icontains=query)
+            Q(name__icontains=clean_query) |
+            Q(description__icontains=clean_query)
         ).distinct()
         
-        # Only show if user is a member
         my_projects = projects.filter(members=request.user)[:5]
         
         for p in my_projects:
