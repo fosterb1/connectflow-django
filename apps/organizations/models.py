@@ -166,10 +166,14 @@ class Organization(models.Model):
 
     def can_add_user(self):
         plan = self.get_plan()
+        if plan.max_users == -1:
+            return True
         return self.members.count() < plan.max_users
 
     def can_create_project(self):
         plan = self.get_plan()
+        if plan.max_projects == -1:
+            return True
         # Count projects where this org is the host
         return self.hosted_projects.count() < plan.max_projects
 

@@ -30,8 +30,8 @@ class SubscriptionPlanForm(forms.ModelForm):
             'name': forms.TextInput(attrs={'class': 'w-full px-4 py-2 border rounded-xl outline-none focus:ring-2 focus:ring-indigo-500'}),
             'price_monthly': forms.NumberInput(attrs={'class': 'w-full px-4 py-2 border rounded-xl outline-none focus:ring-2 focus:ring-indigo-500'}),
             'paystack_plan_code': forms.TextInput(attrs={'class': 'w-full px-4 py-2 border rounded-xl outline-none focus:ring-2 focus:ring-indigo-500', 'placeholder': 'PLN_...'}),
-            'max_users': forms.NumberInput(attrs={'class': 'w-full px-4 py-2 border rounded-xl outline-none focus:ring-2 focus:ring-indigo-500'}),
-            'max_projects': forms.NumberInput(attrs={'class': 'w-full px-4 py-2 border rounded-xl outline-none focus:ring-2 focus:ring-indigo-500'}),
+            'max_users': forms.NumberInput(attrs={'class': 'w-full px-4 py-2 border rounded-xl outline-none focus:ring-2 focus:ring-indigo-500', 'placeholder': '-1 for unlimited'}),
+            'max_projects': forms.NumberInput(attrs={'class': 'w-full px-4 py-2 border rounded-xl outline-none focus:ring-2 focus:ring-indigo-500', 'placeholder': '-1 for unlimited'}),
             'max_storage_mb': forms.HiddenInput(),
         }
 

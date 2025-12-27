@@ -28,11 +28,11 @@
                 <ul class="space-y-4">
                     <li class="flex items-center text-sm text-gray-600 font-medium">
                         <svg class="w-5 h-5 text-green-500 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path></svg>
-                        Up to {{ plan.max_users }} members
+                        Up to {% if plan.max_users == -1 %}Unlimited{% else %}{{ plan.max_users }}{% endif %} members
                     </li>
                     <li class="flex items-center text-sm text-gray-600 font-medium">
                         <svg class="w-5 h-5 text-green-500 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path></svg>
-                        {{ plan.max_projects }} Shared Workspaces
+                        {% if plan.max_projects == -1 %}Unlimited{% else %}{{ plan.max_projects }}{% endif %} Shared Workspaces
                     </li>
                     <li class="flex items-center text-sm text-gray-600 font-medium">
                         <svg class="w-5 h-5 text-green-500 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path></svg>
