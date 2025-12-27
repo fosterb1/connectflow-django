@@ -41,7 +41,7 @@
         <!-- Quantitative Limits -->
         <div class="bg-white rounded-2xl shadow-sm border border-gray-100 p-8 space-y-6">
             <h3 class="text-xs font-black text-gray-400 uppercase tracking-widest">Usage Limits</h3>
-            <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+            <div class="grid grid-cols-1 md:grid-cols-4 gap-6">
                 <div>
                     <label class="block text-xs font-black text-gray-400 uppercase mb-2">User Cap</label>
                     {{ form.max_users }}
@@ -51,9 +51,14 @@
                     {{ form.max_projects }}
                 </div>
                 <div>
-                    <label class="block text-xs font-black text-gray-400 uppercase mb-2">Storage (MB)</label>
-                    {{ form.max_storage_mb }}
+                    <label class="block text-xs font-black text-gray-400 uppercase mb-2">Storage</label>
+                    {{ form.storage_value }}
                 </div>
+                <div>
+                    <label class="block text-xs font-black text-gray-400 uppercase mb-2">Unit</label>
+                    {{ form.storage_unit }}
+                </div>
+                {{ form.max_storage_mb }}
             </div>
         </div>
 

@@ -9,6 +9,15 @@ User = get_user_model()
 
 
 class SubscriptionPlanForm(forms.ModelForm):
+    storage_value = forms.FloatField(
+        label="Storage Limit",
+        widget=forms.NumberInput(attrs={'class': 'w-full px-4 py-2 border rounded-xl outline-none focus:ring-2 focus:ring-indigo-500', 'step': '0.1'})
+    )
+    storage_unit = forms.ChoiceField(
+        choices=[('MB', 'MB'), ('GB', 'GB'), ('TB', 'TB')],
+        widget=forms.Select(attrs={'class': 'w-full px-4 py-2 border rounded-xl outline-none focus:ring-2 focus:ring-indigo-500'})
+    )
+
     class Meta:
         model = SubscriptionPlan
         fields = [
@@ -23,8 +32,38 @@ class SubscriptionPlanForm(forms.ModelForm):
             'paystack_plan_code': forms.TextInput(attrs={'class': 'w-full px-4 py-2 border rounded-xl outline-none focus:ring-2 focus:ring-indigo-500', 'placeholder': 'PLN_...'}),
             'max_users': forms.NumberInput(attrs={'class': 'w-full px-4 py-2 border rounded-xl outline-none focus:ring-2 focus:ring-indigo-500'}),
             'max_projects': forms.NumberInput(attrs={'class': 'w-full px-4 py-2 border rounded-xl outline-none focus:ring-2 focus:ring-indigo-500'}),
-            'max_storage_mb': forms.NumberInput(attrs={'class': 'w-full px-4 py-2 border rounded-xl outline-none focus:ring-2 focus:ring-indigo-500'}),
+            'max_storage_mb': forms.HiddenInput(),
         }
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        if self.instance and self.instance.pk:
+            # Convert MB back to appropriate unit for display
+            mb = self.instance.max_storage_mb
+            if mb >= 1048576:
+                self.fields['storage_value'].initial = round(mb / 1048576, 2)
+                self.fields['storage_unit'].initial = 'TB'
+            elif mb >= 1024:
+                self.fields['storage_value'].initial = round(mb / 1024, 2)
+                self.fields['storage_unit'].initial = 'GB'
+            else:
+                self.fields['storage_value'].initial = mb
+                self.fields['storage_unit'].initial = 'MB'
+
+    def clean(self):
+        cleaned_data = super().clean()
+        val = cleaned_data.get('storage_value')
+        unit = cleaned_data.get('storage_unit')
+
+        if val is not None and unit:
+            if unit == 'GB':
+                cleaned_data['max_storage_mb'] = int(val * 1024)
+            elif unit == 'TB':
+                cleaned_data['max_storage_mb'] = int(val * 1024 * 1024)
+            else:
+                cleaned_data['max_storage_mb'] = int(val)
+        
+        return cleaned_data
 
 
 class OrganizationForm(forms.ModelForm):

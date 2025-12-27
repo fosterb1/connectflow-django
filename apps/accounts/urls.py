@@ -29,4 +29,5 @@ urlpatterns = [
     path('platform/plans/', platform_admin_views.platform_plan_list, name='platform_plan_list'),
     path('platform/plans/create/', platform_admin_views.platform_plan_edit, name='platform_plan_create'),
     path('platform/plans/<uuid:pk>/edit/', platform_admin_views.platform_plan_edit, name='platform_plan_edit'),
+    path('platform/plans/<uuid:pk>/delete/', platform_admin_views.platform_plan_delete, name='platform_plan_delete'),
 ]

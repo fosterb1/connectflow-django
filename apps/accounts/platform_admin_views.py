@@ -38,6 +38,17 @@ def platform_plan_edit(request, pk=None):
 
 @login_required
 @user_passes_test(super_admin_check)
+def platform_plan_delete(request, pk):
+    """Delete a subscription plan."""
+    plan = get_object_or_404(SubscriptionPlan, pk=pk)
+    if request.method == 'POST':
+        name = plan.name
+        plan.delete()
+        messages.success(request, f"Plan '{name}' deleted successfully.")
+    return redirect('accounts:platform_plan_list')
+
+@login_required
+@user_passes_test(super_admin_check)
 def platform_dashboard(request):
     """Global overview for platform operators."""
     stats = {
