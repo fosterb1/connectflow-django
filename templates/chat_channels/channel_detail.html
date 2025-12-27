@@ -813,7 +813,45 @@ document.addEventListener("DOMContentLoaded", function () {
     const emojiPopup = document.getElementById('emoji-picker-popup');
     const picker = emojiPopup.querySelector('emoji-picker');
     let emojiTarget = null;
-    function showPicker(btn, target) { emojiTarget = target; const rect = btn.getBoundingClientRect(); emojiPopup.style.top = `${rect.top - 420}px`; emojiPopup.style.left = `${rect.left - 200}px`; emojiPopup.classList.toggle('hidden'); }
+    
+    function showPicker(btn, target) {
+        emojiTarget = target;
+        const rect = btn.getBoundingClientRect();
+        const pickerWidth = 350; // Standard emoji-picker-element width
+        const pickerHeight = 420; // Standard emoji-picker-element height
+        
+        emojiPopup.classList.remove('hidden');
+        
+        let top = rect.top - pickerHeight;
+        let left = rect.left - (pickerWidth / 2);
+        
+        // Viewport constraints
+        const vWidth = window.innerWidth;
+        const vHeight = window.innerHeight;
+        
+        // Prevent top overflow
+        if (top < 10) {
+            top = rect.bottom + 10;
+        }
+        
+        // Prevent bottom overflow
+        if (top + pickerHeight > vHeight) {
+            top = vHeight - pickerHeight - 10;
+        }
+        
+        // Prevent left overflow
+        if (left < 10) {
+            left = 10;
+        }
+        
+        // Prevent right overflow
+        if (left + pickerWidth > vWidth - 10) {
+            left = vWidth - pickerWidth - 10;
+        }
+        
+        emojiPopup.style.top = `${top}px`;
+        emojiPopup.style.left = `${left}px`;
+    }
     picker.addEventListener('emoji-click', e => { if (emojiTarget === 'input') { messageInput.value += e.detail.unicode; updateSendButtonState(); } else { const f = document.getElementById('reaction-form-' + emojiTarget); if(f) { document.getElementById('emoji-input-' + emojiTarget).value = e.detail.unicode; f.submit(); } } emojiPopup.classList.add('hidden'); });
     document.getElementById('emoji-input-btn').onclick = (e) => { e.stopPropagation(); showPicker(e.currentTarget, 'input'); };
     document.addEventListener('click', () => {
