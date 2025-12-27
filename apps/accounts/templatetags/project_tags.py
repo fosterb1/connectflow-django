@@ -40,3 +40,11 @@ def format_mb(value):
         return filesizeformat(int(value) * 1048576)
     except (ValueError, TypeError):
         return value
+
+@register.filter
+def replace_string(value, arg):
+    """Replaces a string with another. Usage: {{ val|replace_string:"old,new" }}"""
+    if ',' not in arg:
+        return value
+    old, new = arg.split(',', 1)
+    return value.replace(old, new)
