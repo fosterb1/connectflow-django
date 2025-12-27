@@ -114,6 +114,10 @@ body, aside, nav, main, div, p, span, h1, h2, h3, a, button {
     body.sidebar-hidden .main-content-wrapper {
         margin-left: 0;
     }
+
+    body.sidebar-hidden #top-nav-logo {
+        display: flex !important;
+    }
 }
 
 /* Mobile Bottom Navigation */
