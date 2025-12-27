@@ -87,48 +87,48 @@ Endpoints like `/projects/{id}/analytics/` use the **HasSubscriptionFeature** pe
 
 ---
 
-## 🧪 Postman Presentation Guide
+## 🧪 Postman Presentation Guide (Pure API Flow)
 
-This guide walks you through the exact steps to demonstrate the **ConnectFlow Pro API** during a live presentation using Postman.
+This guide walks you through a professional, **headless authentication flow**—exactly how a mobile app (Flutter/React Native) would interact with ConnectFlow Pro.
 
-### **Phase 1: The Firebase Handshake (Getting your Token)**
-ConnectFlow Pro uses Firebase for secure identity. You first need a valid **ID Token**.
+### **Step 1: The Firebase Handshake (Get ID Token)**
+Instead of a browser, we request a secure identity token directly from Google's Identity Toolkit.
 
-1.  Open your browser and log into **ConnectFlow Pro**.
-2.  Open the **Browser Console** (F12) and run:
-    ```javascript
-    firebase.auth().currentUser.getIdToken().then(token => console.log(token))
-    ```
-3.  **Copy the long string of text** that appears.
-
-### **Phase 2: Postman Authorization Login**
-Tell the backend that Postman should be treated as an authorized device.
-
-1.  Open **Postman** and create a new **POST** request.
-2.  **URL:** `https://connectflow-pro.onrender.com/accounts/login/`
-3.  **Headers:** `Content-Type: application/json`
-4.  **Body (Raw JSON):**
+1.  **Method:** `POST`
+2.  **URL:** `https://identitytoolkit.googleapis.com/v1/accounts:signInWithPassword?key=AIzaSyAfkKZt1a7oKZDKrPpKIGGtc6inABx5-rw`
+3.  **Body (Raw JSON):**
     ```json
-    { "id_token": "PASTE_YOUR_COPIED_TOKEN_HERE" }
+    {
+        "email": "your-staff-email@example.com",
+        "password": "your-password",
+        "returnSecureToken": true
+    }
     ```
-5.  **Click Send.** You should receive a `{"status": "ok"}` response. Postman has now saved your **Session Cookie**.
+4.  **Action:** Click **Send**.
+5.  **Result:** Copy the `"idToken"` from the response. 
+    *   *Talk Track:* "We are starting with a pure API-to-API handshake. We request a secure JWT from Firebase, proving our identity without ever touching a browser."
 
-### **Phase 3: CSRF Security (Required for POST/DELETE)**
-1.  In the browser Console, run:
-    ```javascript
-    document.cookie.split('; ').find(row => row.startsWith('csrftoken=')).split('=')[1]
+### **Step 2: Backend Authorization (Session Exchange)**
+Tell the ConnectFlow Django server to trust this Postman session.
+
+1.  **Method:** `POST`
+2.  **URL:** `https://connectflow-pro.onrender.com/accounts/login/`
+3.  **Body (Raw JSON):**
+    ```json
+    { "id_token": "PASTE_THE_TOKEN_FROM_STEP_1" }
     ```
-2.  In Postman, for any `POST/DELETE` request, add this header:
-    *   **Key:** `X-CSRFToken`
-    *   **Value:** `(The code you just copied)`
+4.  **Headers:** Add `Referer` = `https://connectflow-pro.onrender.com` (for CSRF safety).
+5.  **Action:** Click **Send**.
+6.  **Result:** You should receive `{"status": "ok"}`. Postman has now saved your session cookies.
+    *   *Talk Track:* "Now, we pass that token to our Django backend. The server verifies the signature with Google's public keys and establishes a secure, isolated session for this device."
 
-### **Phase 4: Presentation Endpoints**
+### **Step 3: The Live Data Demo**
 
-| Action | URL | Talking Point |
-|--------|-----|---------------|
-| **GET Identity** | `/api/v1/users/me/` | "Server identifies the user, role, and organization context independently of the UI." |
-| **GET Projects** | `/api/v1/projects/` | "Demonstrating organization isolation and secure data multi-tenancy." |
-| **GET Analytics**| `/projects/{id}/analytics/` | "Showcasing the **Gatekeeper**. Returns 403 on basic plans, data on premium tiers." |
+| Action | URL | Talk Track |
+|--------|-----|------------|
+| **Identify** | `GET /api/v1/users/me/` | "The API now identifies my role and organization context based on that handshake." |
+| **Isolate** | `GET /api/v1/projects/` | "Demonstrating secure multi-tenancy. I only see projects I am authorized to access." |
+| **Gatekeep**| `GET /projects/{id}/analytics/`| "Showcasing business logic. Lower tiers get a **403 Forbidden**; premium tiers see full data." |
 
 ---
 
