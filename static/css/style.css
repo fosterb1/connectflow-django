@@ -454,5 +454,23 @@ button:active, .btn:active {
     .message-input {
         padding-bottom: env(safe-area-inset-bottom);
     }
+
+    .conversation-panel {
+        position: fixed;
+        left: 0;
+        top: 64px;
+        bottom: 0;
+        z-index: 45;
+        width: 85% !important;
+        max-width: 300px;
+        transform: translateX(-100%);
+        transition: transform 0.3s ease-in-out;
+    }
+
+    .conversation-panel.active {
+        display: flex !important;
+        transform: translateX(0);
+        box-shadow: 10px 0 20px rgba(0,0,0,0.1);
+    }
 }
 

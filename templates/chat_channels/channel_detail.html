@@ -25,10 +25,15 @@
 <div class="workspace-container">
     
     <!-- Panel 1: Conversation List -->
-    <aside class="conversation-panel hidden md:flex">
+    <aside class="conversation-panel hidden md:flex" id="conversation-panel">
         <div class="p-4 border-b border-gray-100 dark:border-gray-700 flex justify-between items-center">
             <h2 class="font-black text-[10px] uppercase tracking-widest text-gray-400">Workspace</h2>
-            <a href="{% url 'chat_channels:channel_create' %}" class="text-indigo-600 hover:text-indigo-700"><svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"></path></svg></a>
+            <div class="flex items-center space-x-2">
+                <a href="{% url 'chat_channels:channel_create' %}" class="text-indigo-600 hover:text-indigo-700"><svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"></path></svg></a>
+                <button onclick="toggleConversationPanel()" class="md:hidden text-gray-400 hover:text-gray-600">
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg>
+                </button>
+            </div>
         </div>
         <div class="flex-1 overflow-y-auto">
             <div class="p-2 space-y-4">
@@ -58,7 +63,11 @@
     <main class="messaging-panel">
         <header class="h-16 flex-shrink-0 border-b border-gray-100 dark:border-gray-700 px-6 flex items-center justify-between bg-white dark:bg-gray-800 z-10">
             <div class="flex items-center">
-                <div class="mr-3 md:hidden"><a href="{% url 'chat_channels:channel_list' %}" class="text-gray-400"><svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path d="M15 19l-7-7 7-7"></path></svg></a></div>
+                <div class="mr-3 md:hidden">
+                    <button onclick="toggleConversationPanel()" class="text-gray-400 hover:text-indigo-600">
+                        <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16"></path></svg>
+                    </button>
+                </div>
                 <div>
                     <h1 class="font-black text-lg text-gray-800 dark:text-white flex items-center">{% if channel.channel_type == 'DIRECT' %}💬 {% for m in channel.members.all %}{% if m != user %}{{ m.get_full_name }}{% endif %}{% endfor %}{% else %}<span class="text-indigo-500 mr-1">#</span>{{ channel.name }}{% endif %}</h1>
                     <p class="text-[9px] text-gray-400 font-black uppercase tracking-widest">{{ channel.get_channel_type_display }} • {{ channel.member_count }} Members</p>
@@ -531,7 +540,13 @@ document.addEventListener("DOMContentLoaded", function () {
     messageInput.addEventListener('input', updateSendButtonState);
     {% for message in messages %}{% if message.voice_message %}initWaveform('{{ message.pk }}', '{{ message.voice_message.url }}', {% if message.sender == user %}true{% else %}false{% endif %});{% endif %}{% endfor %}
     connectWebSocket(); messagesContainer.scrollTop = messagesContainer.scrollHeight; bindActions(document);
+    
+    // Auto-hide desktop sidebar when entering a channel detail view to maximize space
+    if (window.innerWidth >= 1024) {
+        document.body.classList.add('sidebar-hidden');
+    }
 });
 function toggleSidebar() { document.getElementById('info-sidebar').classList.toggle('hidden'); }
+function toggleConversationPanel() { document.getElementById('conversation-panel').classList.toggle('active'); }
 </script>
 {% endblock %}
