@@ -30,14 +30,18 @@
             </div>
             
             <div class="p-6 flex-1 space-y-4">
-                <div class="grid grid-cols-2 gap-4">
+                <div class="grid grid-cols-3 gap-4">
                     <div class="text-center p-3 bg-gray-50 rounded-xl">
-                        <p class="text-[10px] font-black text-gray-400 uppercase">Max Users</p>
-                        <p class="text-lg font-black text-gray-800">{% if plan.max_users == -1 %}∞{% else %}{{ plan.max_users }}{% endif %}</p>
+                        <p class="text-[10px] font-black text-gray-400 uppercase">Users</p>
+                        <p class="text-sm font-black text-gray-800">{% if plan.max_users == -1 %}∞{% else %}{{ plan.max_users }}{% endif %}</p>
                     </div>
                     <div class="text-center p-3 bg-gray-50 rounded-xl">
-                        <p class="text-[10px] font-black text-gray-400 uppercase">Max Projects</p>
-                        <p class="text-lg font-black text-gray-800">{% if plan.max_projects == -1 %}∞{% else %}{{ plan.max_projects }}{% endif %}</p>
+                        <p class="text-[10px] font-black text-gray-400 uppercase">Projects</p>
+                        <p class="text-sm font-black text-gray-800">{% if plan.max_projects == -1 %}∞{% else %}{{ plan.max_projects }}{% endif %}</p>
+                    </div>
+                    <div class="text-center p-3 bg-gray-50 rounded-xl">
+                        <p class="text-[10px] font-black text-gray-400 uppercase">Storage</p>
+                        <p class="text-sm font-black text-gray-800">{{ plan.max_storage_mb|format_mb }}</p>
                     </div>
                 </div>
 

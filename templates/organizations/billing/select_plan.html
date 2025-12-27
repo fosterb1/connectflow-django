@@ -36,7 +36,7 @@
                     </li>
                     <li class="flex items-center text-sm text-gray-600 font-medium">
                         <svg class="w-5 h-5 text-green-500 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path></svg>
-                        {{ plan.max_storage_mb }}MB Cloud Storage
+                        {{ plan.max_storage_mb|format_mb }} Cloud Storage
                     </li>
                     {% if plan.has_analytics %}
                     <li class="flex items-center text-sm text-gray-600 font-medium">

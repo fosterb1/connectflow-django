@@ -30,3 +30,13 @@ def has_module_access(user, module_name):
         return user.has_module_access(module_name)
         
     return True
+
+@register.filter
+def format_mb(value):
+    """Converts MB to bytes and uses filesizeformat."""
+    try:
+        from django.template.defaultfilters import filesizeformat
+        # 1 MB = 1048576 bytes
+        return filesizeformat(int(value) * 1048576)
+    except (ValueError, TypeError):
+        return value
