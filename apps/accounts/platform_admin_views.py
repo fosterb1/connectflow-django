@@ -194,3 +194,30 @@ def platform_toggle_org_status(request, pk):
     status = "activated" if org.is_active else "deactivated"
     messages.success(request, f"Organization {org.name} has been {status}.")
     return redirect('accounts:platform_org_list')
+
+@login_required
+@user_passes_test(super_admin_check)
+def platform_manage_org_subscription(request, pk):
+    """Manually override an organization's subscription."""
+    org = get_object_or_404(Organization, pk=pk)
+    plans = SubscriptionPlan.objects.filter(is_active=True)
+    
+    if request.method == 'POST':
+        plan_id = request.POST.get('plan_id')
+        status = request.POST.get('status')
+        
+        if plan_id:
+            org.subscription_plan = get_object_or_404(SubscriptionPlan, id=plan_id)
+        else:
+            org.subscription_plan = None
+            
+        org.subscription_status = status
+        org.save()
+        
+        messages.success(request, f"Subscription updated for {org.name}.")
+        return redirect('accounts:platform_org_list')
+        
+    return render(request, 'accounts/platform/manage_org_subscription.html', {
+        'organization': org,
+        'plans': plans
+    })

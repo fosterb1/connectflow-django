@@ -22,6 +22,7 @@ urlpatterns = [
     path('platform/dashboard/', platform_admin_views.platform_dashboard, name='platform_dashboard'),
     path('platform/organizations/', platform_admin_views.platform_org_list, name='platform_org_list'),
     path('platform/organizations/<uuid:pk>/toggle/', platform_admin_views.platform_toggle_org_status, name='platform_toggle_org_status'),
+    path('platform/organizations/<uuid:pk>/subscription/', platform_admin_views.platform_manage_org_subscription, name='platform_manage_org_subscription'),
     path('platform/users/', platform_admin_views.platform_user_list, name='platform_user_list'),
     path('platform/users/<str:pk>/permissions/', platform_admin_views.platform_user_permissions, name='platform_user_permissions'),
     
