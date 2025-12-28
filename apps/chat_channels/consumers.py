@@ -196,7 +196,8 @@ class ChatConsumer(AsyncWebsocketConsumer):
             'voice_duration': event.get('voice_duration'),
             'attachments': event.get('attachments', []),
             'is_pinned': event.get('is_pinned', False),
-            'is_starred': event.get('is_starred', False)
+            'is_starred': event.get('is_starred', False),
+            'parent_details': event.get('parent_details')
         }))
 
     async def user_typing(self, event):
