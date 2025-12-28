@@ -58,6 +58,7 @@ INSTALLED_APPS = [
     'apps.accounts',
     'apps.organizations',
     'apps.chat_channels',
+    'apps.support',
 ]
 
 MIDDLEWARE = [
@@ -211,6 +212,9 @@ CLOUDINARY_STORAGE = {
     'API_SECRET': config('CLOUDINARY_API_SECRET'),
     'SECURE': True,
 }
+
+# AI Configuration
+GEMINI_API_KEY = config('GEMINI_API_KEY', default='')
 
 # Modern Django 4.2+ Storage Configuration
 STORAGES = {

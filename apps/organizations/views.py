@@ -24,6 +24,15 @@ def organization_settings(request):
     if request.method == 'POST':
         form = OrganizationForm(request.POST, request.FILES, instance=organization)
         if form.is_valid():
+            # Gatekeeper: Check Custom Branding for Logo Upload
+            if 'logo' in request.FILES and not organization.has_feature('has_custom_branding'):
+                messages.error(request, f"Custom branding (logo upload) is a premium feature. Please upgrade your plan ({organization.get_plan().name}) to access it.")
+                return render(request, 'organizations/organization_form.html', {
+                    'form': form,
+                    'organization': organization,
+                    'action': 'Update Settings'
+                })
+
             form.save()
             messages.success(request, "Organization details updated successfully!")
             return redirect('organizations:organization_settings')

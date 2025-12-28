@@ -1,0 +1,107 @@
+{% extends 'base.html' %}
+
+{% block title %}AI Assistant - ConnectFlow Pro{% endblock %}
+
+{% block content %}
+<div class="max-w-4xl mx-auto py-8 px-4 h-[calc(100vh-160px)] flex flex-col">
+    <div class="flex items-center justify-between mb-6">
+        <div>
+            <h1 class="text-3xl font-black text-gray-800 tracking-tight">AI Assistant</h1>
+            <p class="text-gray-500 font-medium">Ask anything about ConnectFlow Pro.</p>
+        </div>
+        <a href="{% url 'support:ticket_create' %}" class="text-xs font-black text-indigo-600 uppercase tracking-widest hover:underline">
+            Open a Human Ticket
+        </a>
+    </div>
+
+    <!-- Chat Window -->
+    <div class="flex-1 bg-white rounded-3xl shadow-xl border border-gray-100 overflow-hidden flex flex-col">
+        <!-- Messages Area -->
+        <div id="ai-chat-messages" class="flex-1 overflow-y-auto p-6 space-y-4 bg-gray-50/50">
+            <!-- Bot Welcome (via WS) -->
+        </div>
+
+        <!-- Input Area -->
+        <div class="p-4 bg-white border-t border-gray-100">
+            <form id="ai-chat-form" class="flex items-center space-x-4">
+                <input type="text" id="ai-chat-input" 
+                    class="flex-1 px-6 py-4 bg-gray-50 border border-gray-100 rounded-2xl focus:ring-2 focus:ring-indigo-500 outline-none transition font-medium text-gray-800"
+                    placeholder="Ask me about projects, channels, or roles..."
+                    autocomplete="off">
+                <button type="submit" class="bg-indigo-600 hover:bg-indigo-700 text-white p-4 rounded-2xl shadow-lg shadow-indigo-100 transition transform active:scale-95">
+                    <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 5l7 7-7 7M5 5l7 7-7 7"></path></svg>
+                </button>
+            </form>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+{{ block.super }}
+<script>
+    const chatContainer = document.getElementById('ai-chat-messages');
+    const chatForm = document.getElementById('ai-chat-form');
+    const chatInput = document.getElementById('ai-chat-input');
+
+    const wsScheme = window.location.protocol === "https:" ? "wss" : "ws";
+    const wsUrl = `${wsScheme}://${window.location.host}/ws/support/ai/`;
+    const socket = new WebSocket(wsUrl);
+
+    socket.onmessage = function(e) {
+        const data = JSON.parse(e.data);
+        if (data.type === 'bot_message') {
+            appendMessage('bot', data.message);
+        }
+    };
+
+    socket.onclose = function(e) {
+        console.error('Chat socket closed unexpectedly');
+        appendMessage('system', 'Connection lost. Please refresh the page.');
+    };
+
+    chatForm.onsubmit = function(e) {
+        e.preventDefault();
+        const message = chatInput.value.trim();
+        if (message) {
+            appendMessage('user', message);
+            socket.send(JSON.stringify({
+                'message': message
+            }));
+            chatInput.value = '';
+        }
+    };
+
+    function appendMessage(sender, text) {
+        const div = document.createElement('div');
+        div.className = sender === 'user' ? 'flex justify-end' : 'flex justify-start';
+        
+        const inner = document.createElement('div');
+        inner.className = sender === 'user' 
+            ? 'max-w-[80%] bg-indigo-600 text-white px-6 py-3 rounded-2xl rounded-tr-none shadow-md' 
+            : 'max-w-[80%] bg-white text-gray-800 px-6 py-3 rounded-2xl rounded-tl-none shadow-sm border border-gray-100';
+        
+        if (sender === 'system') {
+            inner.className = 'max-w-full bg-red-50 text-red-600 px-4 py-2 rounded-lg text-xs font-bold mx-auto';
+        }
+
+        inner.innerHTML = sender === 'bot' ? formatBotMessage(text) : escapeHtml(text);
+        div.appendChild(inner);
+        chatContainer.appendChild(div);
+        chatContainer.scrollTop = chatContainer.scrollHeight;
+    }
+
+    function formatBotMessage(text) {
+        // Simple markdown-ish formatting for bot
+        return text.replace(/\n/g, '<br>')
+                   .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
+                   .replace(/\*(.*?)\*/g, '<em>$1</em>');
+    }
+
+    function escapeHtml(text) {
+        const div = document.createElement('div');
+        div.textContent = text;
+        return div.innerHTML;
+    }
+</script>
+{% endblock %}
