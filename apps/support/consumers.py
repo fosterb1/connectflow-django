@@ -3,6 +3,7 @@ import google.generativeai as genai
 from channels.generic.websocket import AsyncWebsocketConsumer
 from django.conf import settings
 from channels.db import database_sync_to_async
+from .ai_tools import _db_get_tickets, _db_get_projects
 
 class SupportAIConsumer(AsyncWebsocketConsumer):
     async def connect(self):
@@ -16,9 +17,32 @@ class SupportAIConsumer(AsyncWebsocketConsumer):
         # Initialize Gemini
         if settings.GEMINI_API_KEY:
             genai.configure(api_key=settings.GEMINI_API_KEY)
+            
+            # --- Define User-Bound Tools ---
+            # These wrappers allow Gemini to call functions without needing to know the User object
+            
+            def get_my_tickets():
+                """Fetch the list of my recent support tickets and their status."""
+                return _db_get_tickets(self.user)
+
+            def get_my_projects():
+                """List the shared projects I am currently a member of."""
+                return _db_get_projects(self.user)
+
+            # Register tools
+            self.tools = [get_my_tickets, get_my_projects]
+
             # Switch to stable alias to avoid experimental quota issues
-            self.model = genai.GenerativeModel('gemini-flash-latest')
-            self.chat = self.model.start_chat(history=[])
+            self.model = genai.GenerativeModel(
+                'gemini-flash-latest',
+                tools=self.tools
+            )
+            
+            # Enable Automatic Function Calling
+            self.chat = self.model.start_chat(
+                history=[],
+                enable_automatic_function_calling=True
+            )
             
             # Send welcome message
             await self.send(text_data=json.dumps({
@@ -55,9 +79,21 @@ class SupportAIConsumer(AsyncWebsocketConsumer):
                 "role-based access control, file uploads (Cloudinary), and project management features. "
                 "Help the user with their questions about using the platform. "
                 "Be professional, concise, and helpful. "
+                "You have access to tools to look up the user's tickets and projects. "
+                "ALWAYS check these tools if the user asks about their specific data. "
                 "If you cannot help, suggest they create a support ticket.\n\n"
                 f"Context about the user you are chatting with:\n{user_info}"
             )
+            
+            # We send the system prompt ONLY if it's the first message? 
+            # Or prepend it? Gemini 1.5/Flash handles large context well.
+            # For function calling to work best, we usually just send the user message 
+            # and let the system instruction (which we can set on model init, but here we do via prompt) guide it.
+            
+            # To avoid "AsyncToSync" errors inside the tools, the tools are just regular functions.
+            # But the 'enable_automatic_function_calling' runs them.
+            # Since 'database_sync_to_async' runs in a thread, and the tools use the ORM (sync),
+            # this should work perfectly.
             
             response = await self.get_ai_response(f"{system_context}\n\nUser says: {user_message}")
             
