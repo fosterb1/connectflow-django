@@ -35,6 +35,7 @@ class MessageViewSet(viewsets.ModelViewSet):
     def perform_destroy(self, instance):
         # Use our soft delete logic
         instance.delete(user=self.request.user)
+        self._broadcast(instance, 'message_deleted')
 
     @action(detail=True, methods=['post'])
     def pin(self, request, pk=None):
@@ -158,6 +159,9 @@ class MessageViewSet(viewsets.ModelViewSet):
             })
         elif event_type in ['message_pinned', 'message_unpinned']:
             data['is_pinned'] = message.is_pinned
+        elif event_type == 'message_deleted':
+            data['deleted_at'] = message.deleted_at.isoformat() if message.deleted_at else None
+            data['deleted_by'] = self.request.user.id
             
         async_to_sync(channel_layer.group_send)(
             f'chat_{channel_id}',

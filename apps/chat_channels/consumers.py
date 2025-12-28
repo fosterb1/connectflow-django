@@ -139,6 +139,31 @@ class ChatConsumer(AsyncWebsocketConsumer):
                             'deleted_by': self.user.id
                         }
                     )
+        elif message_type == 'message_read':
+            message_id = data.get('message_id')
+            if message_id:
+                await self.mark_message_read(message_id)
+                await self.channel_layer.group_send(
+                    self.room_group_name,
+                    {
+                        'type': 'message_read_receipt',
+                        'message_id': message_id,
+                        'user_id': self.user.id
+                    }
+                )
+        elif message_type == 'message_reaction':
+            message_id = data.get('message_id')
+            emoji = data.get('emoji')
+            if message_id and emoji:
+                reaction_data = await self.toggle_reaction(message_id, emoji)
+                await self.channel_layer.group_send(
+                    self.room_group_name,
+                    {
+                        'type': 'message_reaction_update',
+                        'message_id': message_id,
+                        'reactions': reaction_data
+                    }
+                )
         elif message_type == 'typing':
             # Send typing indicator to room group (excluding the sender)
             await self.channel_layer.group_send(
@@ -193,6 +218,20 @@ class ChatConsumer(AsyncWebsocketConsumer):
             'message_id': event['message_id'],
             'deleted_at': event.get('deleted_at'),
             'deleted_by': event.get('deleted_by')
+        }))
+
+    async def message_read_receipt(self, event):
+        await self.send(text_data=json.dumps({
+            'type': 'read_receipt',
+            'message_id': event['message_id'],
+            'user_id': event['user_id']
+        }))
+
+    async def message_reaction_update(self, event):
+        await self.send(text_data=json.dumps({
+            'type': 'reaction_update',
+            'message_id': event['message_id'],
+            'reactions': event['reactions']
         }))
 
     async def message_pinned(self, event):
@@ -354,6 +393,37 @@ class ChatConsumer(AsyncWebsocketConsumer):
             return False, None
         except Message.DoesNotExist:
             return False, None
+
+    @database_sync_to_async
+    def mark_message_read(self, message_id):
+        from .models import MessageReadReceipt
+        try:
+            message = Message.objects.get(id=message_id)
+            MessageReadReceipt.objects.get_or_create(
+                message=message,
+                user=self.user
+            )
+            return True
+        except Message.DoesNotExist:
+            return False
+
+    @database_sync_to_async
+    def toggle_reaction(self, message_id, emoji):
+        from .models import MessageReaction
+        try:
+            message = Message.objects.get(id=message_id)
+            reaction, created = MessageReaction.objects.get_or_create(
+                message=message,
+                user=self.user,
+                emoji=emoji
+            )
+            if not created:
+                reaction.delete()
+            
+            # Return fresh summary
+            return message.reaction_summary
+        except Message.DoesNotExist:
+            return {}
 
     @database_sync_to_async
     def update_user_status(self, status):
