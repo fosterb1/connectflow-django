@@ -46,13 +46,19 @@ class SupportAIConsumer(AsyncWebsocketConsumer):
 
         try:
             # System prompt to give context
+            user_info = f"User: {self.user.get_full_name()} ({self.user.username})"
+            if self.user.organization:
+                user_info += f"\nOrganization: {self.user.organization.name}"
+            user_info += f"\nRole: {self.user.get_role_display()}"
+
             system_context = (
                 "You are the ConnectFlow Pro Support Assistant. "
                 "ConnectFlow Pro is an organizational communication platform with real-time messaging, "
                 "role-based access control, file uploads (Cloudinary), and project management features. "
                 "Help the user with their questions about using the platform. "
                 "Be professional, concise, and helpful. "
-                "If you cannot help, suggest they create a support ticket."
+                "If you cannot help, suggest they create a support ticket.\n\n"
+                f"Context about the user you are chatting with:\n{user_info}"
             )
             
             response = await self.get_ai_response(f"{system_context}\n\nUser says: {user_message}")

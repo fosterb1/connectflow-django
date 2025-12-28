@@ -90,7 +90,9 @@ class Ticket(models.Model):
 
     def save(self, *args, **kwargs):
         # Auto-detect priority support entitlement on creation
-        if not self.pk and self.requester.organization:
+        # print(f"DEBUG: Saving ticket. PK: {self.pk}, Requester: {self.requester}")
+        
+        if self._state.adding and self.requester.organization:
             self.organization = self.requester.organization
             if self.organization.has_feature('has_priority_support'):
                 self.is_priority_support = True
