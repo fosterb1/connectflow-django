@@ -90,18 +90,24 @@ class ChatConsumer(AsyncWebsocketConsumer):
                 'voice_message_url': voice_url,
                 'voice_duration': data.get('voice_duration'),
                 'attachments': attachments,
-                'parent_message_id': parent_id
+                'parent_message_id': parent_id,
+                'parent_details': None
             }
 
             if message_id:
                 # Message already exists (e.g. voice/file upload via AJAX)
                 broadcast_data['message_id'] = message_id
+                # Fetch parent details if it exists
+                if parent_id:
+                    broadcast_data['parent_details'] = await self.get_message_summary(parent_id)
                 await self.channel_layer.group_send(self.room_group_name, broadcast_data)
             elif content or voice_url:
                 # New message to save
                 saved_message = await self.save_message(content, parent_id)
                 broadcast_data['message_id'] = str(saved_message.id)
                 broadcast_data['timestamp'] = saved_message.created_at.strftime('%b %d, %I:%M %p')
+                if parent_id:
+                    broadcast_data['parent_details'] = await self.get_message_summary(parent_id)
                 
                 # Trigger notifications
                 await self.trigger_notifications(saved_message)
@@ -353,6 +359,18 @@ class ChatConsumer(AsyncWebsocketConsumer):
             return channel.can_user_view(self.user)
         except Channel.DoesNotExist:
             return False
+
+    @database_sync_to_async
+    def get_message_summary(self, message_id):
+        try:
+            msg = Message.all_objects.get(id=message_id)
+            return {
+                'id': str(msg.id),
+                'sender_name': msg.sender.get_full_name() or msg.sender.username,
+                'content': msg.content[:100] if not msg.is_deleted else 'This message was deleted.'
+            }
+        except Message.DoesNotExist:
+            return None
 
     @database_sync_to_async
     def save_message(self, content, parent_id=None):

@@ -155,7 +155,8 @@ class MessageViewSet(viewsets.ModelViewSet):
                 'voice_duration': s_data['voice_duration'],
                 'attachments': s_data['attachments'],
                 'is_pinned': s_data['is_pinned'],
-                'is_starred': s_data['is_starred']
+                'is_starred': s_data['is_starred'],
+                'parent_details': s_data['parent_details']
             })
         elif event_type in ['message_pinned', 'message_unpinned']:
             data['is_pinned'] = message.is_pinned

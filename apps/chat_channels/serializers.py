@@ -25,17 +25,27 @@ class MessageSerializer(serializers.ModelSerializer):
     reactions = MessageReactionSerializer(many=True, read_only=True)
     star_count = serializers.SerializerMethodField()
     is_starred = serializers.SerializerMethodField()
+    parent_details = serializers.SerializerMethodField()
     
     class Meta:
         model = Message
         fields = [
             'id', 'channel', 'sender', 'sender_details', 'content', 
-            'parent_message', 'voice_message', 'voice_duration', 
+            'parent_message', 'parent_details', 'voice_message', 'voice_duration', 
             'is_edited', 'is_pinned', 'forwarded_from', 'star_count', 'is_starred',
             'is_deleted', 'deleted_at', 'deleted_by',
             'created_at', 'attachments', 'reactions'
         ]
         read_only_fields = ['sender', 'is_edited', 'is_deleted', 'created_at', 'is_pinned']
+
+    def get_parent_details(self, obj):
+        if obj.parent_message:
+            return {
+                'id': str(obj.parent_message.id),
+                'sender_name': obj.parent_message.sender.get_full_name() or obj.parent_message.sender.username,
+                'content': obj.parent_message.content[:100] if not obj.parent_message.is_deleted else 'This message was deleted.'
+            }
+        return None
 
     def get_star_count(self, obj):
         return obj.starred_by.count()
