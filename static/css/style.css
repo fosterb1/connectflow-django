@@ -88,8 +88,14 @@ body, aside, nav, main, div, p, span, h1, h2, h3, a, button {
         color: rgba(255, 255, 255, 0.7) !important;
     }
 
+    /* Remove the global white override that breaks the search dropdown in light mode */
     .top-navbar .text-gray-900,
     .top-navbar .text-gray-800 {
+        /* No override here, use utility classes */
+    }
+    
+    .dark .top-navbar .text-gray-900,
+    .dark .top-navbar .text-gray-800 {
         color: white !important;
     }
 
