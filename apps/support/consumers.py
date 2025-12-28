@@ -16,8 +16,8 @@ class SupportAIConsumer(AsyncWebsocketConsumer):
         # Initialize Gemini
         if settings.GEMINI_API_KEY:
             genai.configure(api_key=settings.GEMINI_API_KEY)
-            # Updated to use gemini-2.0-flash as listed in available models
-            self.model = genai.GenerativeModel('gemini-2.0-flash')
+            # Switch to stable alias to avoid experimental quota issues
+            self.model = genai.GenerativeModel('gemini-flash-latest')
             self.chat = self.model.start_chat(history=[])
             
             # Send welcome message
