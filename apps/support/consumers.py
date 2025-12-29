@@ -63,17 +63,19 @@ class SupportAIConsumer(AsyncWebsocketConsumer):
                 self.backup_model_name = 'gemini-1.5-flash'
                 
                 # Fetch user info safely
-                self.user_context_str = await self.get_user_context()
+                context_data = await self.get_user_context()
+                self.user_context_str = context_data['instruction']
+                self.display_name = context_data['display_name']
                 
                 # Start (Wrap initialization in sync_to_async to be 100% safe)
                 print(f"[AI DEBUG] Setting up chat with {self.primary_model_name}...")
                 await database_sync_to_async(self._init_chat)(self.primary_model_name, self.user_context_str)
                 print("[AI DEBUG] Chat initialization complete")
                 
-                # Send welcome message
+                # Send welcome message (Use self.display_name instead of touching self.user)
                 await self.send(text_data=json.dumps({
                     'type': 'bot_message',
-                    'message': f"Hello {self.user.first_name or self.user.username}! I'm your ConnectFlow Assistant. How can I help you today?"
+                    'message': f"Hello {self.display_name}! I'm your ConnectFlow Assistant. How can I help you today?"
                 }))
             else:
                 print("[AI DEBUG] Warning: GEMINI_API_KEY missing")
@@ -178,3 +180,20 @@ class SupportAIConsumer(AsyncWebsocketConsumer):
             
             # 4. Total Exhaustion
             raise e
+
+    @database_sync_to_async
+    def get_user_context(self):
+        """Fetch user details safely in a sync context."""
+        # Get name safely
+        display_name = self.user.first_name or self.user.username
+        
+        user_info = f"User: {self.user.get_full_name()} ({self.user.username})"
+        # Accessing foreign keys triggers DB queries, so this must be sync
+        if self.user.organization:
+            user_info += f"\nOrganization: {self.user.organization.name}"
+        user_info += f"\nRole: {self.user.get_role_display()}"
+        
+        return {
+            'instruction': user_info,
+            'display_name': display_name
+        }
