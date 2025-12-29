@@ -21,10 +21,14 @@ class SupportAIConsumer(AsyncWebsocketConsumer):
             await self.accept()
             print("[AI DEBUG] WebSocket accepted")
             
-            # Initialize Gemini
-            if settings.GEMINI_API_KEY:
-                print("[AI DEBUG] Initializing Gemini tools...")
-                genai.configure(api_key=settings.GEMINI_API_KEY)
+            # --- API Key Management ---
+            # Support comma-separated keys for rotation
+            raw_keys = settings.GEMINI_API_KEY.split(',')
+            self.api_keys = [k.strip() for k in raw_keys if k.strip()]
+            self.current_key_index = 0
+            
+            if self.api_keys:
+                print(f"[AI DEBUG] Initializing with {len(self.api_keys)} available keys.")
                 
                 # --- Define User-Bound Tools ---
                 def get_my_tickets():
@@ -36,7 +40,7 @@ class SupportAIConsumer(AsyncWebsocketConsumer):
                     return _db_get_projects(self.user)
 
                 def get_project_milestones(project_id_prefix: str):
-                    """Get the progress and milestones for a specific project. Use the first few characters of the project ID."""
+                    """Get the progress and milestones for a specific project."""
                     return _db_get_project_milestones(self.user, project_id_prefix)
 
                 def get_upcoming_meetings():
@@ -48,29 +52,21 @@ class SupportAIConsumer(AsyncWebsocketConsumer):
                     return _db_get_colleagues(self.user)
 
                 def find_experts_by_skill(skill_name: str):
-                    """Search for colleagues who have a specific skill or expertise (e.g. 'Python', 'Design')."""
+                    """Search for colleagues who have a specific skill (e.g. 'Python')."""
                     return _db_find_experts(self.user, skill_name)
 
-                self.tools = [
-                    get_my_tickets, 
-                    get_my_projects, 
-                    get_project_milestones, 
-                    get_upcoming_meetings, 
-                    list_colleagues, 
-                    find_experts_by_skill
-                ]
+                self.tools = [get_my_tickets, get_my_projects, get_project_milestones, get_upcoming_meetings, list_colleagues, find_experts_by_skill]
 
                 # Model Strategy
-                self.primary_model_name = 'gemini-2.0-flash'
-                self.backup_model_name = 'gemini-flash-latest'
+                # 8B is much more reliable for high-frequency free-tier usage
+                self.primary_model_name = 'gemini-1.5-flash-8b'
+                self.backup_model_name = 'gemini-1.5-flash'
                 
-                # Fetch user info safely before initializing chat
+                # Fetch user info safely
                 self.user_context_str = await self.get_user_context()
                 
-                # Start with primary
-                print(f"[AI DEBUG] Setting up chat with {self.primary_model_name}...")
+                # Start
                 self._init_chat(self.primary_model_name, self.user_context_str)
-                print("[AI DEBUG] Chat initialization complete")
                 
                 # Send welcome message
                 await self.send(text_data=json.dumps({
@@ -81,7 +77,7 @@ class SupportAIConsumer(AsyncWebsocketConsumer):
                 print("[AI DEBUG] Warning: GEMINI_API_KEY missing")
                 await self.send(text_data=json.dumps({
                     'type': 'bot_message',
-                    'message': "I'm sorry, but the AI Assistant is currently unavailable (API key missing). Please create a support ticket instead."
+                    'message': "I'm sorry, but the AI Assistant is currently unavailable (API key missing)."
                 }))
         except Exception as e:
             import traceback
@@ -90,18 +86,19 @@ class SupportAIConsumer(AsyncWebsocketConsumer):
             await self.close()
 
     def _init_chat(self, model_name, user_info, history=[]):
-        """Initialize chat session with a specific model and history."""
+        """Initialize chat session with a specific model and key."""
         try:
+            # Use current key
+            key = self.api_keys[self.current_key_index]
+            genai.configure(api_key=key)
+
             system_instruction = (
                 "You are the ConnectFlow Pro Support Assistant. "
-                "ConnectFlow Pro is an organizational communication platform with real-time messaging, "
-                "role-based access control, file uploads (Cloudinary), and project management features. "
-                "Help the user with their questions about using the platform. "
-                "Be professional, concise, and helpful. "
-                "You have access to tools to look up the user's tickets and projects. "
-                "ALWAYS check these tools if the user asks about their specific data. "
-                "If you cannot help, suggest they create a support ticket.\n\n"
-                f"Context about the user you are chatting with:\n{user_info}"
+                "ConnectFlow Pro is an organizational communication platform. "
+                "Help users with projects, meetings, and tickets. "
+                "Be professional and helpful. "
+                "Use your tools to look up real user data when asked.\n\n"
+                f"User context: {user_info}"
             )
 
             self.model = genai.GenerativeModel(
@@ -119,26 +116,13 @@ class SupportAIConsumer(AsyncWebsocketConsumer):
             raise e
 
     async def receive(self, text_data):
-        print(f"[AI DEBUG] Received message from user: {self.user.username}")
         try:
             data = json.loads(text_data)
             user_message = data.get('message')
+            if not user_message or not hasattr(self, 'chat'): return
 
-            if not user_message:
-                return
-
-            if not hasattr(self, 'chat'):
-                print("[AI DEBUG] Error: Chat object not initialized")
-                await self.send(text_data=json.dumps({
-                    'type': 'bot_message',
-                    'message': "AI Assistant is not properly configured."
-                }))
-                return
-
-            # Use fallback-aware response getter
-            print(f"[AI DEBUG] Sending request to Gemini (Model: {self.current_model_name})...")
+            # Get response with robust fallback
             response = await self.get_ai_response(user_message)
-            print("[AI DEBUG] Gemini responded successfully.")
             
             await self.send(text_data=json.dumps({
                 'type': 'bot_message',
@@ -146,55 +130,49 @@ class SupportAIConsumer(AsyncWebsocketConsumer):
             }))
         except Exception as e:
             import traceback
-            print(f"[AI DEBUG] EXCEPTION in receive: {str(e)}")
             traceback.print_exc()
-            
             error_msg = str(e)
-            if "429" in error_msg or "ResourceExhausted" in error_msg:
-                friendly_msg = "I'm currently overwhelmed with requests (Daily/Minute Quota Exceeded). Please try again in a few minutes."
+            if "429" in error_msg:
+                friendly_msg = "I'm currently receiving too many requests. Please wait 60 seconds and try again."
             else:
-                friendly_msg = f"I encountered an error while processing your request. Please try again."
+                friendly_msg = "I encountered an error. Please try again."
 
             await self.send(text_data=json.dumps({
                 'type': 'bot_message',
                 'message': friendly_msg
             }))
 
-    @database_sync_to_async
-    def get_user_context(self):
-        """Fetch user details safely in a sync context."""
-        user_info = f"User: {self.user.get_full_name()} ({self.user.username})"
-        # Accessing foreign keys triggers DB queries, so this must be sync
-        if self.user.organization:
-            user_info += f"\nOrganization: {self.user.organization.name}"
-        user_info += f"\nRole: {self.user.get_role_display()}"
-        return user_info
-
     async def get_ai_response(self, prompt):
-        # Run the sync logic (with retry) in a thread
         return await database_sync_to_async(self._send_message_with_retry)(prompt)
 
     def _send_message_with_retry(self, prompt):
-        """Try sending message with current model, switch to backup on 429."""
+        """Retry loop that handles Quota errors by switching keys and models."""
+        import time
+        
+        # 1. Try Primary
         try:
-            response = self.chat.send_message(prompt)
-            return response.text
+            return self.chat.send_message(prompt).text
         except Exception as e:
-            # Check for quota error (429 or ResourceExhausted)
             error_str = str(e)
-            if ("429" in error_str or "ResourceExhausted" in error_str) and self.current_model_name == self.primary_model_name:
-                # Switch to backup
-                print(f"AI: Quota exceeded on {self.primary_model_name}. Switching to {self.backup_model_name}...")
-                
-                # Preserve history
-                current_history = self.chat.history
-                
-                # Re-init with backup model (using the saved user_context_str)
-                self._init_chat(self.backup_model_name, self.user_context_str, history=current_history)
-                
-                # Retry send
-                response = self.chat.send_message(prompt)
-                return response.text
-            else:
-                # Re-raise if it's not a quota error OR we are already on backup
-                raise e
+            if "429" not in error_str and "ResourceExhausted" not in error_str:
+                raise e # Not a quota error
+            
+            print(f"[AI DEBUG] Quota Hit on {self.current_model_name}")
+            
+            # 2. Key Rotation Fallback
+            if self.current_key_index + 1 < len(self.api_keys):
+                self.current_key_index += 1
+                print(f"[AI DEBUG] Rotating to Key #{self.current_key_index + 1}...")
+                time.sleep(1) # Tiny breather
+                self._init_chat(self.current_model_name, self.user_context_str, self.chat.history)
+                return self.chat.send_message(prompt).text
+
+            # 3. Model Fallback (If we're out of keys for primary model)
+            if self.current_model_name == self.primary_model_name:
+                print(f"[AI DEBUG] Switching to backup model {self.backup_model_name}...")
+                self.current_key_index = 0 # Reset keys for the new model
+                self._init_chat(self.backup_model_name, self.user_context_str, self.chat.history)
+                return self.chat.send_message(prompt).text
+            
+            # 4. Total Exhaustion
+            raise e
