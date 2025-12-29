@@ -35,6 +35,68 @@ def _db_get_projects(user):
     
     results = []
     for p in projects:
-        results.append(f"Project: {p.name} | Host: {p.host_organization.name}")
+        results.append(f"Project: {p.name} (ID: {str(p.id)[:8]}) | Host: {p.host_organization.name}")
+    return "\n".join(results)
+
+def _db_get_project_milestones(user, project_id_partial):
+    """Fetch milestones for a project the user belongs to."""
+    # Find project by partial ID or name
+    project = user.shared_projects.filter(id__icontains=project_id_partial).first()
+    if not project:
+        return "Project not found or you are not a member."
+    
+    milestones = project.milestones.all().order_by('target_date')
+    if not milestones.exists():
+        return f"No milestones defined for {project.name}."
+    
+    results = [f"Milestones for {project.name}:"]
+    for m in milestones:
+        status = "✅ Completed" if m.is_completed else "⏳ Pending"
+        results.append(f"- {m.title} ({m.target_date}): {status}")
+    return "\n".join(results)
+
+def _db_get_upcoming_meetings(user):
+    """Fetch upcoming meetings across all user projects."""
+    from django.utils import timezone
+    from apps.organizations.models import ProjectMeeting
+    
+    # Meetings in projects user is member of
+    meetings = ProjectMeeting.objects.filter(
+        project__members=user,
+        start_time__gte=timezone.now()
+    ).order_by('start_time')[:5]
+    
+    if not meetings.exists():
+        return "You have no upcoming meetings scheduled."
+    
+    results = ["Your upcoming meetings:"]
+    for m in meetings:
+        results.append(f"- {m.title} on {m.start_time.strftime('%b %d, %I:%M %p')} (Project: {m.project.name})")
+    return "\n".join(results)
+
+def _db_get_colleagues(user):
+    """List members of the user's organization and their roles."""
+    if not user.organization:
+        return "You are not associated with an organization."
+    
+    members = user.organization.members.exclude(id=user.id).order_by('last_name')[:10]
+    results = [f"Colleagues at {user.organization.name}:"]
+    for m in members:
+        role = m.professional_role or m.get_role_display()
+        results.append(f"- {m.get_full_name()} ({m.username}): {role}")
+    return "\n".join(results)
+
+def _db_find_experts(user, skill_query):
+    """Find colleagues with specific skills."""
+    if not user.organization:
+        return "You are not associated with an organization."
+    
+    experts = user.organization.members.filter(skills__icontains=skill_query).exclude(id=user.id)
+    if not experts.exists():
+        return f"No one in {user.organization.name} has '{skill_query}' listed in their skills."
+    
+    results = [f"Experts in '{skill_query}':"]
+    for e in experts:
+        results.append(f"- {e.get_full_name()} ({e.username}): {e.skills}")
     return "\n".join(results)
 

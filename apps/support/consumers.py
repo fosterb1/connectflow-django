@@ -3,7 +3,10 @@ import google.generativeai as genai
 from channels.generic.websocket import AsyncWebsocketConsumer
 from django.conf import settings
 from channels.db import database_sync_to_async
-from .ai_tools import _db_get_tickets, _db_get_projects
+from .ai_tools import (
+    _db_get_tickets, _db_get_projects, _db_get_project_milestones, 
+    _db_get_upcoming_meetings, _db_get_colleagues, _db_find_experts
+)
 
 class SupportAIConsumer(AsyncWebsocketConsumer):
     async def connect(self):
@@ -27,7 +30,30 @@ class SupportAIConsumer(AsyncWebsocketConsumer):
                 """List the shared projects I am currently a member of."""
                 return _db_get_projects(self.user)
 
-            self.tools = [get_my_tickets, get_my_projects]
+            def get_project_milestones(project_id_prefix: str):
+                """Get the progress and milestones for a specific project. Use the first few characters of the project ID."""
+                return _db_get_project_milestones(self.user, project_id_prefix)
+
+            def get_upcoming_meetings():
+                """List all scheduled meetings for projects I am involved in."""
+                return _db_get_upcoming_meetings(self.user)
+
+            def list_colleagues():
+                """List the people in my organization and their professional roles."""
+                return _db_get_colleagues(self.user)
+
+            def find_experts_by_skill(skill_name: str):
+                """Search for colleagues who have a specific skill or expertise (e.g. 'Python', 'Design')."""
+                return _db_find_experts(self.user, skill_name)
+
+            self.tools = [
+                get_my_tickets, 
+                get_my_projects, 
+                get_project_milestones, 
+                get_upcoming_meetings, 
+                list_colleagues, 
+                find_experts_by_skill
+            ]
 
             # Model Strategy
             self.primary_model_name = 'gemini-flash-latest'
