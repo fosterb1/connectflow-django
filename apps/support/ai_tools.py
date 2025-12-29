@@ -40,10 +40,17 @@ def _db_get_projects(user):
 
 def _db_get_project_milestones(user, project_id_partial):
     """Fetch milestones for a project the user belongs to."""
-    # Find project by partial ID or name
-    project = user.shared_projects.filter(id__icontains=project_id_partial).first()
+    # Try exact match first, then fallback to icontains
+    project = user.shared_projects.filter(id__iexact=project_id_partial).first()
     if not project:
-        return "Project not found or you are not a member."
+        project = user.shared_projects.filter(id__icontains=project_id_partial).first()
+    
+    if not project:
+        # One last try by name
+        project = user.shared_projects.filter(name__icontains=project_id_partial).first()
+
+    if not project:
+        return f"I couldn't find a project matching '{project_id_partial}' that you are a member of."
     
     milestones = project.milestones.all().order_by('target_date')
     if not milestones.exists():

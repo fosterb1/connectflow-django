@@ -12,23 +12,25 @@ class SupportAIConsumer(AsyncWebsocketConsumer):
     async def connect(self):
         try:
             self.user = self.scope["user"]
-            print(f"[AI DEBUG] Connecting user: {self.user}")
             if not self.user.is_authenticated:
-                print("[AI DEBUG] Rejecting: User not authenticated")
                 await self.close()
                 return
 
             await self.accept()
-            print("[AI DEBUG] WebSocket accepted")
             
             # --- API Key Management ---
-            # Support comma-separated keys for rotation
-            raw_keys = settings.GEMINI_API_KEY.split(',')
+            raw_keys = getattr(settings, 'GEMINI_API_KEY', '').split(',')
             self.api_keys = [k.strip() for k in raw_keys if k.strip()]
             self.current_key_index = 0
             
             if self.api_keys:
-                print(f"[AI DEBUG] Initializing with {len(self.api_keys)} available keys.")
+                # Use gemini-1.5-flash as primary for better tool calling reliability
+                self.primary_model_name = 'gemini-1.5-flash'
+                self.backup_model_name = 'gemini-1.5-flash-8b'
+                
+                context_data = await self.get_user_context()
+                self.user_context_str = context_data['instruction']
+                self.display_name = context_data['display_name']
                 
                 # --- Define User-Bound Tools ---
                 def get_my_tickets():
@@ -57,67 +59,62 @@ class SupportAIConsumer(AsyncWebsocketConsumer):
 
                 self.tools = [get_my_tickets, get_my_projects, get_project_milestones, get_upcoming_meetings, list_colleagues, find_experts_by_skill]
 
-                # Model Strategy
-                # 8B is much more reliable for high-frequency free-tier usage
-                self.primary_model_name = 'gemini-1.5-flash-8b'
-                self.backup_model_name = 'gemini-1.5-flash'
+                # Initialize chat with primary model
+                await self.initialize_chat_session(self.primary_model_name)
                 
-                # Fetch user info safely
-                context_data = await self.get_user_context()
-                self.user_context_str = context_data['instruction']
-                self.display_name = context_data['display_name']
-                
-                # Start (Wrap initialization in sync_to_async to be 100% safe)
-                print(f"[AI DEBUG] Setting up chat with {self.primary_model_name}...")
-                await database_sync_to_async(self._init_chat)(self.primary_model_name, self.user_context_str)
-                print("[AI DEBUG] Chat initialization complete")
-                
-                # Send welcome message (Use self.display_name instead of touching self.user)
                 await self.send(text_data=json.dumps({
                     'type': 'bot_message',
                     'message': f"Hello {self.display_name}! I'm your ConnectFlow Assistant. How can I help you today?"
                 }))
             else:
-                print("[AI DEBUG] Warning: GEMINI_API_KEY missing")
                 await self.send(text_data=json.dumps({
                     'type': 'bot_message',
-                    'message': "I'm sorry, but the AI Assistant is currently unavailable (API key missing)."
+                    'message': "I'm sorry, the AI Assistant is currently unavailable (API key not configured)."
                 }))
         except Exception as e:
-            import traceback
-            print(f"[AI DEBUG] CRITICAL ERROR IN CONNECT: {str(e)}")
-            traceback.print_exc()
+            print(f"[AI ERROR] Connect failure: {str(e)}")
             await self.close()
 
-    def _init_chat(self, model_name, user_info, history=[]):
-        """Initialize chat session with a specific model and key."""
+    async def initialize_chat_session(self, model_name):
+        """Initialize or re-initialize the chat session safely."""
         try:
-            # Use current key
-            key = self.api_keys[self.current_key_index]
-            genai.configure(api_key=key)
-
-            system_instruction = (
-                "You are the ConnectFlow Pro Support Assistant. "
-                "ConnectFlow Pro is an organizational communication platform. "
-                "Help users with projects, meetings, and tickets. "
-                "Be professional and helpful. "
-                "Use your tools to look up real user data when asked.\n\n"
-                f"User context: {user_info}"
-            )
-
-            self.model = genai.GenerativeModel(
-                model_name,
-                tools=self.tools,
-                system_instruction=system_instruction
-            )
-            self.chat = self.model.start_chat(
-                history=history,
-                enable_automatic_function_calling=True
-            )
-            self.current_model_name = model_name
+            # We must use database_sync_to_async for the SDK calls as they can block
+            await database_sync_to_async(self._sync_init_chat)(model_name)
         except Exception as e:
-            print(f"[AI DEBUG] ERROR IN _INIT_CHAT: {str(e)}")
+            print(f"[AI ERROR] Chat Init Error: {str(e)}")
             raise e
+
+    def _sync_init_chat(self, model_name):
+        """Synchronous part of chat initialization."""
+        key = self.api_keys[self.current_key_index]
+        
+        # Configure is global, which is a limitation of the current SDK.
+        # We try to mitigate by re-configuring right before starting the model.
+        genai.configure(api_key=key)
+
+        system_instruction = (
+            "You are the ConnectFlow Pro Support Assistant. "
+            "ConnectFlow Pro is an organizational communication platform. "
+            "Help users with projects, meetings, and tickets. "
+            "Be professional and helpful. "
+            "Use your tools to look up real user data when asked.\n\n"
+            f"User context: {self.user_context_str}"
+        )
+
+        model = genai.GenerativeModel(
+            model_name=model_name,
+            tools=self.tools,
+            system_instruction=system_instruction
+        )
+        
+        # Maintain history if we are rotating/recovering
+        history = self.chat.history if hasattr(self, 'chat') else []
+        
+        self.chat = model.start_chat(
+            history=history,
+            enable_automatic_function_calling=True
+        )
+        self.current_model_name = model_name
 
     async def receive(self, text_data):
         try:
@@ -125,61 +122,57 @@ class SupportAIConsumer(AsyncWebsocketConsumer):
             user_message = data.get('message')
             if not user_message or not hasattr(self, 'chat'): return
 
-            # Get response with robust fallback
-            response = await self.get_ai_response(user_message)
+            # Get response with robust retry/fallback logic
+            response_text = await self.get_ai_response(user_message)
             
             await self.send(text_data=json.dumps({
                 'type': 'bot_message',
-                'message': response
+                'message': response_text
             }))
         except Exception as e:
-            import traceback
-            traceback.print_exc()
-            error_msg = str(e)
-            if "429" in error_msg:
-                friendly_msg = "I'm currently receiving too many requests. Please wait 60 seconds and try again."
-            else:
-                friendly_msg = "I encountered an error. Please try again."
-
+            print(f"[AI ERROR] Receive loop error: {str(e)}")
             await self.send(text_data=json.dumps({
                 'type': 'bot_message',
-                'message': friendly_msg
+                'message': "I encountered an error. Please try again."
             }))
 
     async def get_ai_response(self, prompt):
-        return await database_sync_to_async(self._send_message_with_retry)(prompt)
+        """Wrapper for the retry logic."""
+        return await database_sync_to_async(self._sync_send_with_retry)(prompt)
 
-    def _send_message_with_retry(self, prompt):
-        """Retry loop that handles Quota errors by switching keys and models."""
+    def _sync_send_with_retry(self, prompt):
+        """Handles quota limits and model fallbacks."""
         import time
+        max_retries = len(self.api_keys) * 2 # Try keys, then try backup model
         
-        # 1. Try Primary
-        try:
-            return self.chat.send_message(prompt).text
-        except Exception as e:
-            error_str = str(e)
-            if "429" not in error_str and "ResourceExhausted" not in error_str:
-                raise e # Not a quota error
-            
-            print(f"[AI DEBUG] Quota Hit on {self.current_model_name}")
-            
-            # 2. Key Rotation Fallback
-            if self.current_key_index + 1 < len(self.api_keys):
-                self.current_key_index += 1
-                print(f"[AI DEBUG] Rotating to Key #{self.current_key_index + 1}...")
-                time.sleep(1) # Tiny breather
-                self._init_chat(self.current_model_name, self.user_context_str, self.chat.history)
+        for attempt in range(max_retries):
+            try:
+                # Ensure configuration is correct for THIS call (mitigate global state)
+                genai.configure(api_key=self.api_keys[self.current_key_index])
                 return self.chat.send_message(prompt).text
-
-            # 3. Model Fallback (If we're out of keys for primary model)
-            if self.current_model_name == self.primary_model_name:
-                print(f"[AI DEBUG] Switching to backup model {self.backup_model_name}...")
-                self.current_key_index = 0 # Reset keys for the new model
-                self._init_chat(self.backup_model_name, self.user_context_str, self.chat.history)
-                return self.chat.send_message(prompt).text
-            
-            # 4. Total Exhaustion
-            raise e
+            except Exception as e:
+                err = str(e)
+                if "429" in err or "ResourceExhausted" in err:
+                    print(f"[AI DEBUG] Quota exceeded for {self.current_model_name} (Key {self.current_key_index})")
+                    
+                    # Try next key
+                    if self.current_key_index + 1 < len(self.api_keys):
+                        self.current_key_index += 1
+                        self._sync_init_chat(self.current_model_name)
+                        time.sleep(1)
+                        continue
+                    
+                    # If all keys exhausted for primary, try backup model
+                    if self.current_model_name == self.primary_model_name:
+                        print(f"[AI DEBUG] All keys exhausted for {self.primary_model_name}. Switching to backup...")
+                        self.current_key_index = 0
+                        self._sync_init_chat(self.backup_model_name)
+                        continue
+                
+                # If it's not a quota error or we're totally exhausted
+                raise e
+        
+        return "I'm currently overloaded with requests. Please try again in a minute."
 
     @database_sync_to_async
     def get_user_context(self):
