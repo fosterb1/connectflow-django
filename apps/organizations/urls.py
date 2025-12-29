@@ -31,6 +31,7 @@ urlpatterns = [
     # Members
     path('invite/', views.invite_member, name='invite_member'),
     path('members/', views.member_directory, name='member_directory'),
+    path('members/<str:pk>/role/', views.member_edit_role, name='member_edit_role'),
     path('members/<str:pk>/remove/', views.member_remove, name='member_remove'),
     
     # Shared Projects

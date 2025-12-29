@@ -1190,20 +1190,124 @@ def shared_project_remove_member(request, project_pk, member_pk):
 
 
 @login_required
-def member_directory(request):
+
+
+def member_edit_role(request, pk):
+
+
+    """Allow organization admins to change a member's role."""
+
+
     user = request.user
-    if not user.organization:
-        return redirect('accounts:dashboard')
+
+
+    if not user.is_admin:
+
+
+        messages.error(request, "Only organization admins can change roles.")
+
+
+        return redirect('organizations:member_directory')
+
+
     
-    members = user.organization.members.all().order_by('first_name', 'last_name')
-    q = request.GET.get('q')
-    if q: members = members.filter(Q(first_name__icontains=q) | Q(last_name__icontains=q) | Q(username__icontains=q) | Q(role__icontains=q))
+
+
+    from django.contrib.auth import get_user_model
+
+
+    User = get_user_model()
+
+
+    member = get_object_or_404(User, pk=pk, organization=user.organization)
+
+
     
-    # Ensure is_admin is accurately passed
-    is_admin = user.role == user.Role.SUPER_ADMIN or user.is_staff or user.is_superuser
+
+
+    if member == user:
+
+
+        messages.error(request, "You cannot change your own role.")
+
+
+        return redirect('organizations:member_directory')
+
+
+
+
+
+    if request.method == 'POST':
+
+
+        new_role = request.POST.get('role')
+
+
+        if new_role in [r[0] for r in User.Role.choices]:
+
+
+            # Security: ORG_ADMIN cannot promote someone to SUPER_ADMIN
+
+
+            if new_role == User.Role.SUPER_ADMIN and user.role != User.Role.SUPER_ADMIN:
+
+
+                messages.error(request, "You cannot promote users to Platform Super Admin.")
+
+
+            else:
+
+
+                member.role = new_role
+
+
+                member.save()
+
+
+                messages.success(request, f"Role for {member.get_full_name() or member.username} updated to {member.get_role_display()}.")
+
+
+        else:
+
+
+            messages.error(request, "Invalid role selected.")
+
+
+        return redirect('organizations:member_directory')
+
+
     
-    return render(request, 'organizations/member_directory.html', {
-        'members': members, 
-        'search_query': q, 
-        'is_admin': is_admin
+
+
+    # Filter out SUPER_ADMIN role for non-superadmin org admins
+
+
+    roles = []
+
+
+    for r in User.Role.choices:
+
+
+        if r[0] == User.Role.SUPER_ADMIN and user.role != User.Role.SUPER_ADMIN:
+
+
+            continue
+
+
+        roles.append(r)
+
+
+
+
+
+    return render(request, 'organizations/member_role_form.html', {
+
+
+        'member': member,
+
+
+        'roles': roles
+
+
     })
+

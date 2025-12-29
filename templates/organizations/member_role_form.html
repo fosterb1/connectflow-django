@@ -1,0 +1,83 @@
+{% extends 'base.html' %}
+
+{% block title %}Edit Role - {{ member.get_full_name|default:member.username }}{% endblock %}
+
+{% block content %}
+<div class="max-w-xl mx-auto px-4 py-12">
+    <nav class="flex mb-8 text-sm text-gray-500 font-medium">
+        <a href="{% url 'organizations:member_directory' %}" class="hover:text-indigo-600 transition">Directory</a>
+        <span class="mx-2">/</span>
+        <span class="text-gray-800">Edit Role</span>
+    </nav>
+
+    <div class="bg-white dark:bg-gray-800 rounded-3xl shadow-xl border border-gray-100 dark:border-gray-700 overflow-hidden">
+        <div class="p-8 text-center border-b border-gray-100 dark:border-gray-700">
+            <div class="relative inline-block mb-4">
+                {% if member.avatar %}
+                    <img src="{{ member.avatar.url }}" class="w-20 h-20 rounded-2xl object-cover ring-4 ring-indigo-50 dark:ring-indigo-900/30">
+                {% else %}
+                    <div class="w-20 h-20 bg-indigo-600 rounded-2xl flex items-center justify-center text-white text-2xl font-black">
+                        {{ member.username.0|upper }}
+                    </div>
+                {% endif %}
+            </div>
+            <h2 class="text-2xl font-black text-gray-900 dark:text-white">{{ member.get_full_name|default:member.username }}</h2>
+            <p class="text-gray-500 font-medium">@{{ member.username }}</p>
+        </div>
+
+        <form method="post" class="p-8 space-y-6">
+            {% csrf_token %}
+            
+            <div>
+                <label for="role" class="block text-xs font-black text-gray-400 uppercase tracking-widest mb-3">Select New Role</label>
+                <div class="space-y-3">
+                    {% for val, label in roles %}
+                        <label class="flex items-center p-4 rounded-xl border-2 transition cursor-pointer group 
+                            {% if member.role == val %}border-indigo-600 bg-indigo-50/50 dark:bg-indigo-900/20{% else %}border-gray-100 dark:border-gray-700 hover:border-indigo-200 dark:hover:border-indigo-800{% endif %}">
+                            <input type="radio" name="role" value="{{ val }}" {% if member.role == val %}checked{% endif %} class="hidden">
+                            <div class="flex-1">
+                                <span class="block font-black text-sm {% if member.role == val %}text-indigo-900 dark:text-indigo-400{% else %}text-gray-700 dark:text-gray-300{% endif %}">{{ label }}</span>
+                                <p class="text-[10px] text-gray-500 mt-1">
+                                    {% if val == 'ORG_ADMIN' %}Manage the entire organization and billing.{% endif %}
+                                    {% if val == 'DEPT_HEAD' %}Manage departments and assign team leaders.{% endif %}
+                                    {% if val == 'TEAM_MANAGER' %}Oversee specific team projects and members.{% endif %}
+                                    {% if val == 'TEAM_MEMBER' %}Standard collaborative access to projects.{% endif %}
+                                    {% if val == 'AUDITOR' %}Review risks, audit trails, and control effectiveness.{% endif %}
+                                    {% if val == 'COMPLIANCE_OFFICER' %}Manage regulatory requirements and evidence.{% endif %}
+                                </p>
+                            </div>
+                            <div class="w-5 h-5 rounded-full border-2 flex items-center justify-center 
+                                {% if member.role == val %}border-indigo-600 bg-indigo-600{% else %}border-gray-200 dark:border-gray-600{% endif %}">
+                                {% if member.role == val %}
+                                    <svg class="w-3 h-3 text-white" fill="currentColor" viewBox="0 0 20 20"><path d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z"></path></svg>
+                                {% endif %}
+                            </div>
+                        </label>
+                    {% endfor %}
+                </div>
+            </div>
+
+            <div class="flex gap-4 pt-4">
+                <a href="{% url 'organizations:member_directory' %}" class="flex-1 bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-300 text-center py-4 rounded-2xl text-xs font-black uppercase tracking-widest hover:bg-gray-200 transition">Cancel</a>
+                <button type="submit" class="flex-1 bg-indigo-600 text-white text-center py-4 rounded-2xl text-xs font-black uppercase tracking-widest hover:bg-indigo-700 shadow-lg shadow-indigo-200 dark:shadow-none transition">Save Role</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<script>
+    document.querySelectorAll('input[type="radio"]').forEach(radio => {
+        radio.addEventListener('change', (e) => {
+            document.querySelectorAll('label.flex').forEach(label => {
+                label.classList.remove('border-indigo-600', 'bg-indigo-50/50', 'dark:bg-indigo-900/20');
+                label.classList.add('border-gray-100', 'dark:border-gray-700');
+            });
+            if (e.target.checked) {
+                const label = e.target.closest('label');
+                label.classList.add('border-indigo-600', 'bg-indigo-50/50', 'dark:bg-indigo-900/20');
+                label.classList.remove('border-gray-100', 'dark:border-gray-700');
+            }
+        });
+    });
+</script>
+{% endblock %}
