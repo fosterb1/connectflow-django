@@ -182,10 +182,8 @@
                             </span>
                         </div>
                         <div class="w-full bg-gray-100 rounded-full h-1.5 mb-2">
-                            {% with total=test.sample_size exceptions=test.exceptions_found %}
                             <div class="{% if test.test_result == 'PASS' %}bg-green-500{% elif test.test_result == 'FAIL' %}bg-red-500{% else %}bg-yellow-500{% endif %} h-1.5 rounded-full" 
-                                 style="width: {% if total > 0 %}{{ exceptions|default:0|add:"-1"|default:0|times:-100|div:total|add:100 }}{% else %}0{% endif %}%"></div>
-                            {% endwith %}
+                                 style="width: {{ test.success_rate }}%"></div>
                         </div>
                         <div class="flex justify-between text-[10px] text-gray-400">
                             <span>Sample: {{ test.sample_size }}</span>

@@ -561,6 +561,13 @@ class ControlTest(models.Model):
         verbose_name = _('Control Test')
         verbose_name_plural = _('Control Tests')
 
+    @property
+    def success_rate(self):
+        if self.sample_size <= 0:
+            return 0
+        successes = max(0, self.sample_size - self.exceptions_found)
+        return int((successes / self.sample_size) * 100)
+
 
 class ComplianceRequirement(models.Model):
     """Regulatory requirements applicable to a project."""
