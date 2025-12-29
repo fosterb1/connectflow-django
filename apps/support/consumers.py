@@ -64,9 +64,12 @@ class SupportAIConsumer(AsyncWebsocketConsumer):
                 self.primary_model_name = 'gemini-2.0-flash'
                 self.backup_model_name = 'gemini-flash-latest'
                 
+                # Fetch user info safely before initializing chat
+                self.user_context_str = await self.get_user_context()
+                
                 # Start with primary
                 print(f"[AI DEBUG] Setting up chat with {self.primary_model_name}...")
-                self._init_chat(self.primary_model_name)
+                self._init_chat(self.primary_model_name, self.user_context_str)
                 print("[AI DEBUG] Chat initialization complete")
                 
                 # Send welcome message
@@ -86,15 +89,9 @@ class SupportAIConsumer(AsyncWebsocketConsumer):
             traceback.print_exc()
             await self.close()
 
-    def _init_chat(self, model_name, history=[]):
+    def _init_chat(self, model_name, user_info, history=[]):
         """Initialize chat session with a specific model and history."""
         try:
-            # Get user info for system instruction
-            user_info = f"User: {self.user.get_full_name()} ({self.user.username})"
-            if self.user.organization:
-                user_info += f"\nOrganization: {self.user.organization.name}"
-            user_info += f"\nRole: {self.user.get_role_display()}"
-
             system_instruction = (
                 "You are the ConnectFlow Pro Support Assistant. "
                 "ConnectFlow Pro is an organizational communication platform with real-time messaging, "
@@ -187,11 +184,13 @@ class SupportAIConsumer(AsyncWebsocketConsumer):
             error_str = str(e)
             if ("429" in error_str or "ResourceExhausted" in error_str) and self.current_model_name == self.primary_model_name:
                 # Switch to backup
+                print(f"AI: Quota exceeded on {self.primary_model_name}. Switching to {self.backup_model_name}...")
+                
                 # Preserve history
                 current_history = self.chat.history
                 
-                # Re-init with backup model
-                self._init_chat(self.backup_model_name, history=current_history)
+                # Re-init with backup model (using the saved user_context_str)
+                self._init_chat(self.backup_model_name, self.user_context_str, history=current_history)
                 
                 # Retry send
                 response = self.chat.send_message(prompt)
