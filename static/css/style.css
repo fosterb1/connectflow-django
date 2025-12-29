@@ -231,6 +231,23 @@ body, aside, nav, main, div, p, span, h1, h2, h3, a, button {
 }
 
 /* Custom scrollbar */
+.custom-scrollbar::-webkit-scrollbar {
+    width: 4px;
+}
+
+.custom-scrollbar::-webkit-scrollbar-track {
+    background: transparent;
+}
+
+.custom-scrollbar::-webkit-scrollbar-thumb {
+    background: #e2e8f0;
+    border-radius: 10px;
+}
+
+.dark .custom-scrollbar::-webkit-scrollbar-thumb {
+    background: #334155;
+}
+
 ::-webkit-scrollbar {
     width: 10px;
 }
