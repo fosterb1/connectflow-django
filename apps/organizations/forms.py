@@ -68,6 +68,24 @@ class ComplianceEvidenceForm(forms.ModelForm):
         }
 
 
+class ComplianceRequirementForm(forms.ModelForm):
+    class Meta:
+        model = ComplianceRequirement
+        fields = ['regulation', 'requirement_id', 'requirement_text', 'applicable', 'owner']
+        widgets = {
+            'regulation': forms.Select(attrs={'class': 'w-full px-4 py-2 border border-gray-300 rounded-lg text-gray-900'}),
+            'requirement_id': forms.TextInput(attrs={'class': 'w-full px-4 py-2 border border-gray-300 rounded-lg text-gray-900', 'placeholder': 'e.g., GDPR-32'}),
+            'requirement_text': forms.Textarea(attrs={'class': 'w-full px-4 py-2 border border-gray-300 rounded-lg text-gray-900', 'rows': 2}),
+            'applicable': forms.CheckboxInput(attrs={'class': 'w-4 h-4 text-indigo-600 border-gray-300 rounded focus:ring-indigo-500'}),
+            'owner': forms.Select(attrs={'class': 'w-full px-4 py-2 border border-gray-300 rounded-lg text-gray-900'}),
+        }
+
+    def __init__(self, *args, project=None, **kwargs):
+        super().__init__(*args, **kwargs)
+        if project:
+            self.fields['owner'].queryset = project.members.all()
+
+
 class SubscriptionPlanForm(forms.ModelForm):
     storage_value = forms.FloatField(
         label="Storage Limit",

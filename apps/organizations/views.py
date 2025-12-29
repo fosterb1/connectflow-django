@@ -13,7 +13,7 @@ from .models import (
 from .forms import (
     DepartmentForm, TeamForm, InviteMemberForm, SharedProjectForm, JoinProjectForm,
     ProjectFileForm, ProjectMeetingForm, ProjectTaskForm, ProjectMilestoneForm, OrganizationForm,
-    ProjectRiskForm, AuditTrailForm, ControlTestForm, ComplianceEvidenceForm
+    ProjectRiskForm, AuditTrailForm, ControlTestForm, ComplianceEvidenceForm, ComplianceRequirementForm
 )
 
 
@@ -51,6 +51,7 @@ def project_risk_dashboard(request, pk):
         'risk_form': ProjectRiskForm(project=project),
         'audit_form': AuditTrailForm(),
         'control_form': ControlTestForm(),
+        'compliance_form': ComplianceRequirementForm(project=project),
         'evidence_form': ComplianceEvidenceForm(),
         'metrics': {
             'financial_risks': risks.filter(category='FIN').order_by('-impact'),
@@ -61,6 +62,44 @@ def project_risk_dashboard(request, pk):
         }
     }
     return render(request, 'organizations/risk_dashboard.html', context)
+
+
+@login_required
+@require_POST
+def add_compliance_requirement(request, pk):
+    project = get_object_or_404(SharedProject, pk=pk)
+    if not (request.user.is_admin or request.user.role == 'COMPLIANCE_OFFICER'):
+        return JsonResponse({'success': False}, status=403)
+    
+    form = ComplianceRequirementForm(request.POST, project=project)
+    if form.is_valid():
+        req = form.save(commit=False)
+        req.project = project
+        req.save()
+        messages.success(request, 'Regulatory requirement added.')
+    return redirect('organizations:project_risk_dashboard', pk=pk)
+
+
+@login_required
+@require_POST
+def delete_compliance_requirement(request, pk, req_pk):
+    project = get_object_or_404(SharedProject, pk=pk)
+    req = get_object_or_404(ComplianceRequirement, pk=req_pk, project=project)
+    if request.user.is_admin or request.user.role == 'COMPLIANCE_OFFICER':
+        req.delete()
+        messages.success(request, 'Requirement removed.')
+    return redirect('organizations:project_risk_dashboard', pk=pk)
+
+
+@login_required
+@require_POST
+def delete_compliance_evidence(request, pk, evidence_pk):
+    project = get_object_or_404(SharedProject, pk=pk)
+    evidence = get_object_or_404(ComplianceEvidence, pk=evidence_pk, requirement__project=project)
+    if request.user.is_admin or request.user == evidence.uploaded_by:
+        evidence.delete()
+        messages.success(request, 'Evidence removed.')
+    return redirect('organizations:project_risk_dashboard', pk=pk)
 
 
 @login_required
