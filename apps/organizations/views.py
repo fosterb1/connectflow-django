@@ -1339,14 +1339,149 @@ def member_edit_role(request, pk):
 
 
 
-    return render(request, 'organizations/member_role_form.html', {
+        return render(request, 'organizations/member_role_form.html', {
 
 
-        'member': member,
 
 
-        'roles': roles
+
+            'member': member,
 
 
-    })
+
+
+
+            'roles': roles
+
+
+
+
+
+        })
+
+
+
+
+
+    
+
+
+
+
+
+    
+
+
+
+
+
+    @login_required
+
+
+
+
+
+    def member_directory(request):
+
+
+
+
+
+        user = request.user
+
+
+
+
+
+        if not user.organization:
+
+
+
+
+
+            return redirect('accounts:dashboard')
+
+
+
+
+
+        
+
+
+
+
+
+        members = user.organization.members.all().order_by('first_name', 'last_name')
+
+
+
+
+
+        q = request.GET.get('q')
+
+
+
+
+
+        if q: members = members.filter(Q(first_name__icontains=q) | Q(last_name__icontains=q) | Q(username__icontains=q) | Q(role__icontains=q))
+
+
+
+
+
+        
+
+
+
+
+
+        # Ensure is_admin is accurately passed
+
+
+
+
+
+        is_admin = user.role == user.Role.SUPER_ADMIN or user.is_staff or user.is_superuser
+
+
+
+
+
+        
+
+
+
+
+
+        return render(request, 'organizations/member_directory.html', {
+
+
+
+
+
+            'members': members, 
+
+
+
+
+
+            'search_query': q, 
+
+
+
+
+
+            'is_admin': is_admin
+
+
+
+
+
+        })
+
+
+
+
+
+    
 
