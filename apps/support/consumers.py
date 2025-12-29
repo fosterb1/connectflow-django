@@ -19,8 +19,6 @@ class SupportAIConsumer(AsyncWebsocketConsumer):
             genai.configure(api_key=settings.GEMINI_API_KEY)
             
             # --- Define User-Bound Tools ---
-            # These wrappers allow Gemini to call functions without needing to know the User object
-            
             def get_my_tickets():
                 """Fetch the list of my recent support tickets and their status."""
                 return _db_get_tickets(self.user)
@@ -29,20 +27,14 @@ class SupportAIConsumer(AsyncWebsocketConsumer):
                 """List the shared projects I am currently a member of."""
                 return _db_get_projects(self.user)
 
-            # Register tools
             self.tools = [get_my_tickets, get_my_projects]
 
-            # Switch to stable alias to avoid experimental quota issues
-            self.model = genai.GenerativeModel(
-                'gemini-flash-latest',
-                tools=self.tools
-            )
+            # Model Strategy
+            self.primary_model_name = 'gemini-flash-latest'
+            self.backup_model_name = 'gemini-1.5-flash'
             
-            # Enable Automatic Function Calling
-            self.chat = self.model.start_chat(
-                history=[],
-                enable_automatic_function_calling=True
-            )
+            # Start with primary
+            self._init_chat(self.primary_model_name)
             
             # Send welcome message
             await self.send(text_data=json.dumps({
@@ -54,6 +46,18 @@ class SupportAIConsumer(AsyncWebsocketConsumer):
                 'type': 'bot_message',
                 'message': "I'm sorry, but the AI Assistant is currently unavailable (API key missing). Please create a support ticket instead."
             }))
+
+    def _init_chat(self, model_name, history=[]):
+        """Initialize chat session with a specific model and history."""
+        self.model = genai.GenerativeModel(
+            model_name,
+            tools=self.tools
+        )
+        self.chat = self.model.start_chat(
+            history=history,
+            enable_automatic_function_calling=True
+        )
+        self.current_model_name = model_name
 
     async def receive(self, text_data):
         data = json.loads(text_data)
@@ -85,16 +89,7 @@ class SupportAIConsumer(AsyncWebsocketConsumer):
                 f"Context about the user you are chatting with:\n{user_info}"
             )
             
-            # We send the system prompt ONLY if it's the first message? 
-            # Or prepend it? Gemini 1.5/Flash handles large context well.
-            # For function calling to work best, we usually just send the user message 
-            # and let the system instruction (which we can set on model init, but here we do via prompt) guide it.
-            
-            # To avoid "AsyncToSync" errors inside the tools, the tools are just regular functions.
-            # But the 'enable_automatic_function_calling' runs them.
-            # Since 'database_sync_to_async' runs in a thread, and the tools use the ORM (sync),
-            # this should work perfectly.
-            
+            # Use fallback-aware response getter
             response = await self.get_ai_response(f"{system_context}\n\nUser says: {user_message}")
             
             await self.send(text_data=json.dumps({
@@ -124,6 +119,28 @@ class SupportAIConsumer(AsyncWebsocketConsumer):
         return user_info
 
     async def get_ai_response(self, prompt):
-        # Run the blocking API call in a thread
-        response = await database_sync_to_async(self.chat.send_message)(prompt)
-        return response.text
+        # Run the sync logic (with retry) in a thread
+        return await database_sync_to_async(self._send_message_with_retry)(prompt)
+
+    def _send_message_with_retry(self, prompt):
+        """Try sending message with current model, switch to backup on 429."""
+        try:
+            response = self.chat.send_message(prompt)
+            return response.text
+        except Exception as e:
+            # Check for quota error (429 or ResourceExhausted)
+            error_str = str(e)
+            if ("429" in error_str or "ResourceExhausted" in error_str) and self.current_model_name == self.primary_model_name:
+                # Switch to backup
+                # Preserve history
+                current_history = self.chat.history
+                
+                # Re-init with backup model
+                self._init_chat(self.backup_model_name, history=current_history)
+                
+                # Retry send
+                response = self.chat.send_message(prompt)
+                return response.text
+            else:
+                # Re-raise if it's not a quota error OR we are already on backup
+                raise e
