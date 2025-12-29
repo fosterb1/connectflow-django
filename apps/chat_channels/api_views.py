@@ -34,7 +34,7 @@ class MessageViewSet(viewsets.ModelViewSet):
 
     def perform_destroy(self, instance):
         # Use our soft delete logic
-        instance.delete(user=self.request.user)
+        instance.soft_delete(user=self.request.user)
         self._broadcast(instance, 'message_deleted')
 
     @action(detail=True, methods=['post'])

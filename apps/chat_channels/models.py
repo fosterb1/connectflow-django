@@ -314,17 +314,18 @@ class Message(models.Model):
     def __str__(self):
         return f"{self.sender.username} in #{self.channel.name}: {self.content[:50]}"
     
-    def delete(self, user=None, force=False, *args, **kwargs):
-        """Soft delete by default, unless force=True."""
-        if force:
-            super().delete(*args, **kwargs)
-        else:
-            from django.utils import timezone
-            self.is_deleted = True
-            self.deleted_at = timezone.now()
-            if user:
-                self.deleted_by = user
-            self.save()
+    def delete(self, using=None, keep_parents=False):
+        """Standard Django delete - performs hard delete."""
+        super().delete(using=using, keep_parents=keep_parents)
+
+    def soft_delete(self, user=None):
+        """Perform a soft delete."""
+        from django.utils import timezone
+        self.is_deleted = True
+        self.deleted_at = timezone.now()
+        if user:
+            self.deleted_by = user
+        self.save()
     
     @property
     def reply_count(self):
