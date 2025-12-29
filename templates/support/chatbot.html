@@ -51,12 +51,14 @@
     socket.onmessage = function(e) {
         const data = JSON.parse(e.data);
         if (data.type === 'bot_message') {
+            hideTypingIndicator();
             appendMessage('bot', data.message);
         }
     };
 
     socket.onclose = function(e) {
         console.error('Chat socket closed unexpectedly');
+        hideTypingIndicator();
         appendMessage('system', 'Connection lost. Please refresh the page.');
     };
 
@@ -65,12 +67,35 @@
         const message = chatInput.value.trim();
         if (message) {
             appendMessage('user', message);
+            showTypingIndicator();
             socket.send(JSON.stringify({
                 'message': message
             }));
             chatInput.value = '';
         }
     };
+
+    function showTypingIndicator() {
+        if (document.getElementById('ai-typing-indicator')) return;
+        
+        const div = document.createElement('div');
+        div.id = 'ai-typing-indicator';
+        div.className = 'flex justify-start';
+        div.innerHTML = `
+            <div class="bg-white text-gray-400 px-6 py-3 rounded-2xl rounded-tl-none shadow-sm border border-gray-100 flex items-center space-x-1">
+                <div class="w-1.5 h-1.5 bg-gray-300 rounded-full animate-bounce" style="animation-delay: 0ms"></div>
+                <div class="w-1.5 h-1.5 bg-gray-300 rounded-full animate-bounce" style="animation-delay: 150ms"></div>
+                <div class="w-1.5 h-1.5 bg-gray-300 rounded-full animate-bounce" style="animation-delay: 300ms"></div>
+            </div>
+        `;
+        chatContainer.appendChild(div);
+        chatContainer.scrollTop = chatContainer.scrollHeight;
+    }
+
+    function hideTypingIndicator() {
+        const el = document.getElementById('ai-typing-indicator');
+        if (el) el.remove();
+    }
 
     function appendMessage(sender, text) {
         const div = document.createElement('div');
