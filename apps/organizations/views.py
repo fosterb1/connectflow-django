@@ -18,6 +18,44 @@ from .forms import (
 
 @login_required
 def project_risk_dashboard(request, pk):
+    """
+    Unified Risk & Compliance Dashboard for PMs, Auditors, and Compliance Officers.
+    """
+    project = get_object_or_404(SharedProject, pk=pk)
+    if request.user not in project.members.all():
+        messages.error(request, 'You do not have access to this project.')
+        return redirect('organizations:shared_project_list')
+
+    risks = project.risks.all()
+    audits = project.audits.all()
+    compliance_reqs = project.compliance_requirements.all()
+    
+    # Calculate Compliance metrics
+    applicable_reqs = compliance_reqs.filter(applicable=True).count()
+    covered_reqs = compliance_reqs.filter(evidence__review_status='APPROVED').distinct().count()
+    compliance_gap = 100 - (int((covered_reqs / applicable_reqs) * 100) if applicable_reqs > 0 else 0)
+    
+    # Control Effectiveness
+    tests = project.control_tests.all()
+    control_effectiveness = 0
+    if tests.exists():
+        passed = tests.filter(test_result='PASS').count()
+        control_effectiveness = int((passed / tests.count()) * 100)
+
+    context = {
+        'project': project,
+        'risks': risks,
+        'audits': audits,
+        'compliance_reqs': compliance_reqs,
+        'metrics': {
+            'financial_risks': risks.filter(category='FIN').order_by('-impact'),
+            'compliance_risks': risks.filter(category='COM').order_by('-impact'),
+            'open_audit_findings': sum(len(audit.findings) if isinstance(audit.findings, list) else 0 for audit in audits),
+            'compliance_gap_percentage': compliance_gap,
+            'control_effectiveness': control_effectiveness,
+        }
+    }
+    return render(request, 'organizations/risk_dashboard.html', context)
 
 
 @login_required
