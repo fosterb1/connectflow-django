@@ -82,6 +82,28 @@
 
                 <div class="p-6 flex items-center justify-between hover:bg-gray-50/50 transition">
                     <div>
+                        <p class="text-sm font-bold text-gray-800">Governance Suite</p>
+                        <p class="text-[10px] text-gray-400 font-medium">Access to the Risk & Compliance Dashboard.</p>
+                    </div>
+                    <label class="relative inline-flex items-center cursor-pointer">
+                        <input type="checkbox" name="has_governance_suite" class="sr-only peer" {% if form.has_governance_suite.value %}checked{% endif %}>
+                        <div class="w-11 h-6 bg-gray-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-indigo-600"></div>
+                    </label>
+                </div>
+
+                <div class="p-6 flex items-center justify-between hover:bg-gray-50/50 transition">
+                    <div>
+                        <p class="text-sm font-bold text-gray-800">Advanced Roles</p>
+                        <p class="text-[10px] text-gray-400 font-medium">Allow assignment of Auditor and Compliance Officer roles.</p>
+                    </div>
+                    <label class="relative inline-flex items-center cursor-pointer">
+                        <input type="checkbox" name="has_advanced_roles" class="sr-only peer" {% if form.has_advanced_roles.value %}checked{% endif %}>
+                        <div class="w-11 h-6 bg-gray-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-indigo-600"></div>
+                    </label>
+                </div>
+
+                <div class="p-6 flex items-center justify-between hover:bg-gray-50/50 transition">
+                    <div>
                         <p class="text-sm font-bold text-gray-800">Custom Branding</p>
                         <p class="text-[10px] text-gray-400 font-medium">Allow organizations to upload custom logos and themes.</p>
                     </div>
