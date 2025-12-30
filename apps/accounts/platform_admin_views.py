@@ -1,7 +1,7 @@
 from django.shortcuts import render, redirect, get_object_or_404
 from django.contrib.auth.decorators import login_required, user_passes_test
 from django.contrib import messages
-from django.db.models import Count, Q
+from django.db.models import Count, Q, Sum
 from apps.accounts.models import User
 from apps.organizations.models import Organization, SharedProject, SubscriptionPlan
 from apps.support.models import Ticket
@@ -86,6 +86,12 @@ def platform_dashboard(request):
         health_status = "DEGRADED"
         health_issues.append("Cloudinary storage not configured")
 
+    # Calculate Revenue
+    monthly_revenue = Organization.objects.filter(
+        subscription_status='active',
+        subscription_plan__isnull=False
+    ).aggregate(total=Sum('subscription_plan__price_monthly'))['total'] or 0
+
     stats = {
         'total_orgs': total_orgs,
         'active_orgs': Organization.objects.filter(is_active=True).count() if total_orgs else 0,
@@ -93,6 +99,7 @@ def platform_dashboard(request):
         'total_projects': SharedProject.objects.count() if total_orgs else 0,
         'open_tickets': Ticket.objects.filter(status=Ticket.Status.OPEN).count() if total_orgs else 0,
         'total_tickets': Ticket.objects.count() if total_orgs else 0,
+        'monthly_revenue': monthly_revenue,
         'health_status': health_status,
         'health_issues': health_issues
     }
