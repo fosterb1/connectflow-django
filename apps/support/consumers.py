@@ -7,7 +7,8 @@ from channels.db import database_sync_to_async
 from .ai_tools import (
     _db_get_tickets, _db_get_projects, _db_get_project_milestones, 
     _db_get_upcoming_meetings, _db_get_colleagues, _db_find_experts,
-    get_platform_revenue, _db_get_tasks, _db_get_risks, _db_get_compliance
+    get_platform_revenue, _db_get_tasks, _db_get_risks, _db_get_compliance,
+    _db_get_project_summary, _db_get_recent_activity
 )
 
 class SupportAIConsumer(AsyncWebsocketConsumer):
@@ -75,10 +76,19 @@ class SupportAIConsumer(AsyncWebsocketConsumer):
                     """Get compliance requirements and regulations for a project."""
                     return _db_get_compliance(self.user, project_name)
 
+                def get_project_analytics(project_name: str):
+                    """Get completion rate and task statistics for a project."""
+                    return _db_get_project_summary(self.user, project_name)
+
+                def get_weekly_snapshot():
+                    """Get a summary of platform activity (new tasks/files) from the last 7 days."""
+                    return _db_get_recent_activity(self.user)
+
                 self.tools = [
                     get_my_tickets, get_my_projects, get_project_milestones, 
                     get_upcoming_meetings, list_colleagues, find_experts_by_skill, 
-                    get_revenue_data, get_my_tasks, get_project_risks, get_compliance_requirements
+                    get_revenue_data, get_my_tasks, get_project_risks, 
+                    get_compliance_requirements, get_project_analytics, get_weekly_snapshot
                 ]
 
                 # Initialize chat with primary model
@@ -213,15 +223,25 @@ class SupportAIConsumer(AsyncWebsocketConsumer):
 
     @database_sync_to_async
     def get_user_context(self):
-        """Fetch user details safely in a sync context."""
-        # Get name safely
+        """Fetch user details and a Situational Snapshot safely."""
+        from apps.organizations.models import SharedProject, ProjectTask
+        from apps.support.models import Ticket
+        
         display_name = self.user.first_name or self.user.username
         
+        # Situational Snapshot (Low token cost, high context value)
+        project_count = self.user.shared_projects.count()
+        pending_tasks = ProjectTask.objects.filter(project__members=self.user).exclude(status='COMPLETED').count()
+        open_tickets = Ticket.objects.filter(requester=self.user, status='OPEN').count()
+        
         user_info = f"User: {self.user.get_full_name()} ({self.user.username})"
-        # Accessing foreign keys triggers DB queries, so this must be sync
         if self.user.organization:
             user_info += f"\nOrganization: {self.user.organization.name}"
         user_info += f"\nRole: {self.user.get_role_display()}"
+        
+        # Add Snapshot to the instruction
+        user_info += f"\n\nCURRENT SNAPSHOT:\n- Active Projects: {project_count}\n- Pending Tasks: {pending_tasks}\n- Open Support Tickets: {open_tickets}"
+        user_info += "\nAlways use tools to fetch detailed lists if the user asks for them."
         
         return {
             'instruction': user_info,

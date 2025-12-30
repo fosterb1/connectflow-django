@@ -193,3 +193,42 @@ def _db_get_compliance(user, project_name=None):
         results.append(f"- {r.regulation} ({r.requirement_id}): {r.requirement_text[:50]}... | Applicable: {applicable}")
     return "\n".join(results)
 
+def _db_get_project_summary(user, project_id_partial):
+    """Fetch high-level analytics for a project (Completion %, Task counts)."""
+    from apps.organizations.models import SharedProject
+    project = user.shared_projects.filter(models.Q(id__icontains=project_id_partial) | models.Q(name__icontains=project_id_partial)).first()
+    
+    if not project:
+        return "Project not found."
+    
+    total_tasks = project.tasks.count()
+    completed_tasks = project.tasks.filter(status='COMPLETED').count()
+    completion_rate = (completed_tasks / total_tasks * 100) if total_tasks > 0 else 0
+    
+    return (
+        f"📊 Analytics for {project.name}:\n"
+        f"- Completion Rate: {completion_rate:.1f}%\n"
+        f"- Total Tasks: {total_tasks}\n"
+        f"- Completed: {completed_tasks}\n"
+        f"- Active Risks: {project.risks.count()}\n"
+        f"- Milestones: {project.milestones.count()}"
+    )
+
+def _db_get_recent_activity(user):
+    """Fetch updates from the last 7 days across user's projects."""
+    from django.utils import timezone
+    from datetime import timedelta
+    from apps.organizations.models import ProjectTask, ProjectFile
+    
+    last_week = timezone.now() - timedelta(days=7)
+    
+    new_tasks = ProjectTask.objects.filter(project__members=user, created_at__gte=last_week).count()
+    new_files = ProjectFile.objects.filter(project__members=user, created_at__gte=last_week).count()
+    
+    return (
+        f"🕒 Recent Activity (Last 7 Days):\n"
+        f"- {new_tasks} new tasks created\n"
+        f"- {new_files} new files uploaded\n"
+        f"- Use 'get_my_tasks' for specific details."
+    )
+
