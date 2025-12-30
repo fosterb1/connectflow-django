@@ -149,7 +149,7 @@ class SupportAIConsumer(AsyncWebsocketConsumer):
 
             await self.send(text_data=json.dumps({
                 'type': 'bot_message',
-                'message': f"I encountered an error: {str(e)}"
+                'message': "I encountered an error. Please try again."
             }))
 
     async def get_ai_response(self, prompt):
