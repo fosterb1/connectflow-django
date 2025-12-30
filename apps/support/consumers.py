@@ -157,7 +157,15 @@ class SupportAIConsumer(AsyncWebsocketConsumer):
 
     async def receive(self, text_data):
         try:
-            data = json.loads(text_data)
+            try:
+                data = json.loads(text_data)
+            except json.JSONDecodeError:
+                print(f"[AI ERROR] Invalid JSON received: {text_data}")
+                return
+
+            if data.get('type') == 'ping':
+                return
+
             user_message = data.get('message')
             if not user_message or not hasattr(self, 'chat'): return
 

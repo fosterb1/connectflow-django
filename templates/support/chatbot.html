@@ -62,6 +62,14 @@
             chatInput.disabled = false;
             sendBtn.disabled = false;
             chatInput.placeholder = "Ask me about projects, channels, or roles...";
+            
+            // Keep-alive ping every 30 seconds
+            if (window.chatPingInterval) clearInterval(window.chatPingInterval);
+            window.chatPingInterval = setInterval(() => {
+                if (socket.readyState === WebSocket.OPEN) {
+                    socket.send(JSON.stringify({type: 'ping'}));
+                }
+            }, 30000);
         };
 
         socket.onmessage = function(e) {
@@ -99,6 +107,14 @@
     sendBtn.disabled = true;
     chatInput.placeholder = "Connecting to Assistant...";
     connectWebSocket();
+
+    // Handle Enter key for submission
+    chatInput.addEventListener('keydown', function(e) {
+        if (e.key === 'Enter' && !e.shiftKey) {
+            e.preventDefault();
+            chatForm.requestSubmit(); // Better than dispatchEvent for forms
+        }
+    });
 
     chatForm.onsubmit = function(e) {
         e.preventDefault();
