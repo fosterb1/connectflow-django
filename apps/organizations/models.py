@@ -209,22 +209,31 @@ class Organization(models.Model):
     def get_storage_usage(self):
         """Calculate total storage used by all projects hosted by this organization in MB."""
         total_bytes = 0
-        for project in self.hosted_projects.all():
-            # Standard Project Files
-            for project_file in project.files.all():
-                try:
-                    total_bytes += project_file.file.size
-                except Exception:
-                    continue
-            
-            # Compliance Evidence Files
-            for requirement in project.compliance_requirements.all():
-                for evidence in requirement.evidence.all():
+        try:
+            # Optimize: use select_related or prefetch_related if called in a loop, 
+            # but here we iterate over hosted projects.
+            for project in self.hosted_projects.all():
+                # Standard Project Files
+                for project_file in project.files.all():
                     try:
-                        if evidence.document:
-                            total_bytes += evidence.document.size
-                    except Exception:
+                        if project_file.file and hasattr(project_file.file, 'size'):
+                            total_bytes += project_file.file.size
+                    except Exception as e:
+                        # Log error if needed, but don't crash
                         continue
+                
+                # Compliance Evidence Files
+                for requirement in project.compliance_requirements.all():
+                    for evidence in requirement.evidence.all():
+                        try:
+                            if evidence.document and hasattr(evidence.document, 'size'):
+                                total_bytes += evidence.document.size
+                        except Exception as e:
+                            continue
+        except Exception:
+            # Final fallback to ensure no 500 error
+            return 0
+            
         return round(total_bytes / (1024 * 1024), 2)
     
     def get_storage_usage_percentage(self):
