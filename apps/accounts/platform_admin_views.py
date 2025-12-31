@@ -92,6 +92,17 @@ def platform_dashboard(request):
         subscription_plan__isnull=False
     ).aggregate(total=Sum('subscription_plan__price_monthly'))['total'] or 0
 
+    # Calculate Total Storage Usage (approximate)
+    from apps.organizations.models import ProjectFile
+    total_files_size = 0
+    # Note: iterating through all files might be heavy, but for now it's okay for dashboard
+    for pf in ProjectFile.objects.all():
+        try:
+            total_files_size += pf.file.size
+        except Exception:
+            continue
+    total_storage_mb = round(total_files_size / (1024 * 1024), 2)
+
     stats = {
         'total_orgs': total_orgs,
         'active_orgs': Organization.objects.filter(is_active=True).count() if total_orgs else 0,
@@ -100,6 +111,7 @@ def platform_dashboard(request):
         'open_tickets': Ticket.objects.filter(status=Ticket.Status.OPEN).count() if total_orgs else 0,
         'total_tickets': Ticket.objects.count() if total_orgs else 0,
         'monthly_revenue': monthly_revenue,
+        'total_storage_mb': total_storage_mb,
         'health_status': health_status,
         'health_issues': health_issues
     }

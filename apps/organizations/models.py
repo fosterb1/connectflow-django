@@ -206,6 +206,35 @@ class Organization(models.Model):
         plan = self.get_plan()
         return getattr(plan, feature_name, False)
     
+    def get_storage_usage(self):
+        """Calculate total storage used by all projects hosted by this organization in MB."""
+        total_bytes = 0
+        for project in self.hosted_projects.all():
+            # Standard Project Files
+            for project_file in project.files.all():
+                try:
+                    total_bytes += project_file.file.size
+                except Exception:
+                    continue
+            
+            # Compliance Evidence Files
+            for requirement in project.compliance_requirements.all():
+                for evidence in requirement.evidence.all():
+                    try:
+                        if evidence.document:
+                            total_bytes += evidence.document.size
+                    except Exception:
+                        continue
+        return round(total_bytes / (1024 * 1024), 2)
+    
+    def get_storage_usage_percentage(self):
+        """Return percentage of storage used."""
+        plan = self.get_plan()
+        if plan.max_storage_mb <= 0:
+            return 0
+        usage = self.get_storage_usage()
+        return min(100, int((usage / plan.max_storage_mb) * 100))
+
     class Meta:
         db_table = 'organizations'
         verbose_name = _('Organization')

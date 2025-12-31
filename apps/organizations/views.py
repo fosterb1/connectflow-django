@@ -184,6 +184,14 @@ def add_compliance_evidence(request, pk, req_pk):
     if request.user not in project.members.all():
         return JsonResponse({'success': False}, status=403)
     
+    # Check Storage Limit
+    current_usage = project.host_organization.get_storage_usage()
+    max_storage = project.host_organization.get_plan().max_storage_mb
+    
+    if current_usage >= max_storage:
+        messages.error(request, f"Upload failed: Storage limit reached ({max_storage} MB).")
+        return redirect('organizations:project_risk_dashboard', pk=pk)
+
     form = ComplianceEvidenceForm(request.POST, request.FILES)
     if form.is_valid():
         evidence = form.save(commit=False)
@@ -342,6 +350,14 @@ def project_files(request, pk):
         return redirect('organizations:shared_project_list')
     
     if request.method == 'POST':
+        # Check Storage Limit
+        current_usage = project.host_organization.get_storage_usage()
+        max_storage = project.host_organization.get_plan().max_storage_mb
+        
+        if current_usage >= max_storage:
+            messages.error(request, f"Upload failed: Your organization has reached its storage limit of {max_storage} MB. Please delete old files or upgrade your plan.")
+            return redirect('organizations:project_files', pk=pk)
+
         form = ProjectFileForm(request.POST, request.FILES)
         if form.is_valid():
             project_file = form.save(commit=False)

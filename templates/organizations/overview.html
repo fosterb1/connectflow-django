@@ -87,6 +87,44 @@
                 </div>
             </div>
         </div>
+
+        <div class="bg-white shadow-lg rounded-lg p-6 col-span-1 md:col-span-3">
+            <div class="flex items-center justify-between mb-4">
+                <div class="flex items-center">
+                    <div class="bg-amber-100 p-3 rounded-full mr-4">
+                        <svg class="w-6 h-6 text-amber-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 7v10c0 1.1.9 2 2 2h12a2 2 0 002-2V7M4 7a2 2 0 012-2h12a2 2 0 012 2M4 7l8 5 8-5M12 12V21"></path>
+                        </svg>
+                    </div>
+                    <div>
+                        <h3 class="text-lg font-bold text-gray-800">Storage Usage</h3>
+                        <p class="text-xs text-gray-500 font-medium uppercase tracking-wider">Subscription Capacity</p>
+                    </div>
+                </div>
+                <div class="text-right">
+                    <span class="text-2xl font-black text-gray-900">{{ organization.get_storage_usage }} MB</span>
+                    <span class="text-gray-400 font-bold mx-1">/</span>
+                    <span class="text-gray-500 font-bold">{{ organization.get_plan.max_storage_mb }} MB</span>
+                </div>
+            </div>
+            
+            {% with usage_pct=organization.get_storage_usage_percentage %}
+            <div class="w-full bg-gray-100 rounded-full h-4 mb-2 overflow-hidden border border-gray-200">
+                <div class="{% if usage_pct > 90 %}bg-red-500{% elif usage_pct > 70 %}bg-amber-500{% else %}bg-indigo-600{% endif %} h-4 rounded-full transition-all duration-500" 
+                     style="width: {{ usage_pct }}%"></div>
+            </div>
+            <div class="flex justify-between items-center">
+                <span class="text-[10px] font-black uppercase tracking-widest text-gray-400">
+                    {{ usage_pct }}% Consumed
+                </span>
+                {% if usage_pct > 80 %}
+                    <span class="text-[10px] font-black uppercase tracking-widest text-red-500 animate-pulse">
+                        Running Low on Space
+                    </span>
+                {% endif %}
+            </div>
+            {% endwith %}
+        </div>
     </div>
 
     <!-- Departments List -->

@@ -18,6 +18,10 @@
             <p class="text-3xl font-black text-green-600">${{ stats.monthly_revenue|floatformat:0 }}</p>
         </div>
         <div class="bg-white p-6 rounded-2xl shadow-sm border border-gray-100">
+            <p class="text-[10px] font-black text-gray-400 uppercase tracking-widest mb-1">Platform Storage</p>
+            <p class="text-3xl font-black text-purple-600">{{ stats.total_storage_mb }} <span class="text-xs">MB</span></p>
+        </div>
+        <div class="bg-white p-6 rounded-2xl shadow-sm border border-gray-100">
             <p class="text-[10px] font-black text-gray-400 uppercase tracking-widest mb-1">Active Users</p>
             <p class="text-3xl font-black text-blue-600">{{ stats.total_users }}</p>
         </div>
