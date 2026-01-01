@@ -233,13 +233,81 @@ def channel_detail(request, pk):
     
     # Handle search
     search_query = request.GET.get('q')
+    search_filters = {}
+    
     if search_query:
-        messages_query = messages_query.filter(
-            Q(content__icontains=search_query) |
-            Q(sender__first_name__icontains=search_query) |
-            Q(sender__last_name__icontains=search_query) |
-            Q(sender__username__icontains=search_query)
-        )
+        # Parse advanced search filters
+        import re
+        
+        # Extract special filters
+        from_user = re.search(r'from:(\S+)', search_query)
+        has_filter = re.search(r'has:(file|link|attachment|image|video)', search_query)
+        
+        # Remove filters from query to get clean search text
+        clean_query = search_query
+        if from_user:
+            search_filters['from_user'] = from_user.group(1)
+            clean_query = clean_query.replace(from_user.group(0), '').strip()
+        if has_filter:
+            search_filters['has'] = has_filter.group(1)
+            clean_query = clean_query.replace(has_filter.group(0), '').strip()
+        
+        # Apply filters
+        if clean_query:
+            # Try PostgreSQL full-text search first
+            try:
+                from django.contrib.postgres.search import SearchVector, SearchQuery, SearchRank
+                
+                # Create search vector for message content and sender name
+                search_vector = SearchVector('content', weight='A') + \
+                               SearchVector('sender__first_name', weight='B') + \
+                               SearchVector('sender__last_name', weight='B') + \
+                               SearchVector('sender__username', weight='C')
+                
+                search_query_obj = SearchQuery(clean_query)
+                
+                messages_query = messages_query.annotate(
+                    search=search_vector,
+                    rank=SearchRank(search_vector, search_query_obj)
+                ).filter(search=search_query_obj).order_by('-rank', '-created_at')
+                
+            except Exception as e:
+                # Fallback to basic search (SQLite or if PostgreSQL search fails)
+                messages_query = messages_query.filter(
+                    Q(content__icontains=clean_query) |
+                    Q(sender__first_name__icontains=clean_query) |
+                    Q(sender__last_name__icontains=clean_query) |
+                    Q(sender__username__icontains=clean_query)
+                )
+        
+        # Apply from:user filter
+        if 'from_user' in search_filters:
+            from_username = search_filters['from_user']
+            messages_query = messages_query.filter(
+                Q(sender__username__iexact=from_username) |
+                Q(sender__first_name__icontains=from_username) |
+                Q(sender__last_name__icontains=from_username)
+            )
+        
+        # Apply has:type filter
+        if 'has' in search_filters:
+            has_type = search_filters['has']
+            if has_type in ['file', 'attachment']:
+                messages_query = messages_query.filter(attachments__isnull=False).distinct()
+            elif has_type == 'link':
+                # Messages containing URLs
+                messages_query = messages_query.filter(
+                    Q(content__icontains='http://') |
+                    Q(content__icontains='https://')
+                )
+            elif has_type == 'image':
+                messages_query = messages_query.filter(
+                    message_type='IMAGE'
+                ).distinct()
+            elif has_type == 'video':
+                messages_query = messages_query.filter(
+                    message_type='VIDEO'
+                ).distinct()
     
     channel_messages = messages_query.order_by('-is_pinned', 'created_at')
     
