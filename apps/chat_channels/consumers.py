@@ -65,7 +65,15 @@ class ChatConsumer(AsyncWebsocketConsumer):
             )
 
     async def receive(self, text_data):
-        data = json.loads(text_data)
+        try:
+            data = json.loads(text_data)
+        except json.JSONDecodeError:
+            await self.send(text_data=json.dumps({
+                'type': 'error',
+                'message': 'Invalid message format'
+            }))
+            return
+        
         message_type = data.get('type', 'chat_message')
 
         if message_type == 'chat_message':
@@ -74,6 +82,14 @@ class ChatConsumer(AsyncWebsocketConsumer):
             voice_url = data.get('voice_message_url')
             attachments = data.get('attachments', [])
             parent_id = data.get('parent_message_id')
+            
+            # Validate message content
+            if not content and not voice_url and not attachments:
+                await self.send(text_data=json.dumps({
+                    'type': 'error',
+                    'message': 'Message cannot be empty'
+                }))
+                return
             
             # Get org name safely
             org_name = await self.get_user_org_name()

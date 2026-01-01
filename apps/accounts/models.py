@@ -31,6 +31,7 @@ class User(AbstractUser):
         max_length=20,
         choices=Role.choices,
         default=Role.TEAM_MEMBER,
+        db_index=True,
         help_text=_("User's role in the organization")
     )
     
@@ -40,6 +41,7 @@ class User(AbstractUser):
         related_name='members',
         null=True,
         blank=True,
+        db_index=True,
         help_text=_("Organization this user belongs to")
     )
     

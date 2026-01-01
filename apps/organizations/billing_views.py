@@ -1,6 +1,9 @@
 import requests
 import json
 import os
+import hmac
+import hashlib
+import logging
 from django.conf import settings
 from django.shortcuts import render, redirect, get_object_or_404
 from django.contrib.auth.decorators import login_required
@@ -9,6 +12,8 @@ from django.http import HttpResponse, JsonResponse
 from django.contrib import messages
 from django.urls import reverse
 from .models import SubscriptionPlan, Organization, SubscriptionTransaction
+
+logger = logging.getLogger(__name__)
 
 @login_required
 def billing_select_plan(request):
@@ -66,36 +71,80 @@ def paystack_checkout(request, plan_id):
 
 @csrf_exempt
 def paystack_webhook(request):
-    """Handle Paystack Webhooks."""
-    # Simplified validation: Verify with Paystack IP or signature in production
-    data = json.loads(request.body)
+    """
+    Handle Paystack Webhooks with signature verification.
+    Security: Validates Paystack signature to prevent unauthorized requests.
+    """
+    if request.method != 'POST':
+        return HttpResponse(status=405)
     
-    if data['event'] == 'subscription.create':
-        org_id = data['data']['metadata']['org_id']
-        plan_id = data['data']['metadata']['plan_id']
-        
-        org = Organization.objects.get(id=org_id)
-        plan = SubscriptionPlan.objects.get(id=plan_id)
-        
-        org.subscription_plan = plan
-        org.paystack_customer_id = data['data']['customer']['customer_code']
-        org.paystack_subscription_code = data['data']['subscription_code']
-        org.subscription_status = 'active'
-        org.save()
-        
-        # Record Transaction
-        amount_kobo = data['data'].get('amount', 0)
-        final_amount = (amount_kobo / 100) if amount_kobo > 0 else plan.price_monthly
-        
-        SubscriptionTransaction.objects.create(
-            organization=org,
-            plan=plan,
-            amount=final_amount,
-            reference=data['data'].get('subscription_code'),
-            provider='paystack',
-            status='success'
-        )
-        
+    # Verify Paystack signature
+    paystack_signature = request.headers.get('X-Paystack-Signature')
+    if not paystack_signature:
+        logger.warning("Paystack webhook received without signature")
+        return HttpResponse(status=400)
+    
+    secret_key = os.environ.get('PAYSTACK_SECRET_KEY', '')
+    if not secret_key:
+        logger.error("PAYSTACK_SECRET_KEY not configured")
+        return HttpResponse(status=500)
+    
+    # Compute expected signature
+    computed_signature = hmac.new(
+        secret_key.encode('utf-8'),
+        request.body,
+        hashlib.sha512
+    ).hexdigest()
+    
+    # Verify signature matches
+    if not hmac.compare_digest(paystack_signature, computed_signature):
+        logger.warning("Invalid Paystack webhook signature")
+        return HttpResponse(status=401)
+    
+    # Parse webhook data
+    try:
+        data = json.loads(request.body)
+    except json.JSONDecodeError:
+        logger.error("Invalid JSON in Paystack webhook")
+        return HttpResponse(status=400)
+    
+    # Handle subscription creation event
+    if data.get('event') == 'subscription.create':
+        try:
+            org_id = data['data']['metadata']['org_id']
+            plan_id = data['data']['metadata']['plan_id']
+            
+            org = Organization.objects.get(id=org_id)
+            plan = SubscriptionPlan.objects.get(id=plan_id)
+            
+            org.subscription_plan = plan
+            org.paystack_customer_id = data['data']['customer']['customer_code']
+            org.paystack_subscription_code = data['data']['subscription_code']
+            org.subscription_status = 'active'
+            org.save()
+            
+            # Record Transaction
+            amount_kobo = data['data'].get('amount', 0)
+            final_amount = (amount_kobo / 100) if amount_kobo > 0 else plan.price_monthly
+            
+            SubscriptionTransaction.objects.create(
+                organization=org,
+                plan=plan,
+                amount=final_amount,
+                reference=data['data'].get('subscription_code'),
+                provider='paystack',
+                status='success'
+            )
+            
+            logger.info(f"Subscription created for org {org.id}")
+            
+        except (KeyError, Organization.DoesNotExist, SubscriptionPlan.DoesNotExist) as e:
+            logger.error(f"Paystack webhook processing error: {e}")
+            return HttpResponse(status=400)
+        except Exception as e:
+            logger.exception(f"Unexpected error in Paystack webhook: {e}")
+            return HttpResponse(status=500)
+    
     return HttpResponse(status=200)
 
 @login_required

@@ -224,14 +224,18 @@ class Message(models.Model):
         max_length=10,
         choices=MessageType.choices,
         default=MessageType.TEXT,
-        db_index=True
+        db_index=True,
+        null=True,
+        blank=True
     )
 
     status = models.CharField(
         max_length=10,
         choices=MessageStatus.choices,
         default=MessageStatus.SENT,
-        db_index=True
+        db_index=True,
+        null=True,
+        blank=True
     )
 
     channel = models.ForeignKey(
@@ -344,9 +348,10 @@ class Message(models.Model):
     def __str__(self):
         return f"{self.sender.username} in #{self.channel.name}: {self.content[:50]}"
     
-    def delete(self, using=None, keep_parents=False):
-        """Standard Django delete - performs hard delete."""
-        super().delete(using=using, keep_parents=keep_parents)
+    def delete(self, *args, **kwargs):
+        """Standard Django delete - handles optional force parameter."""
+        kwargs.pop('force', None) # Remove force if passed
+        super().delete(*args, **kwargs)
 
     def soft_delete(self, user=None):
         """Perform a soft delete."""

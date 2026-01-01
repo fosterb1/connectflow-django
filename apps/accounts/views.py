@@ -223,6 +223,9 @@ class RegisterAPIView(View):
             organization = Organization.objects.get(code=org_code, is_active=True)
         except Organization.DoesNotExist:
             return JsonResponse({'error': 'Invalid or inactive organization code.'}, status=400)
+        except Exception as e:
+            logger.exception(f"Error retrieving organization: {e}")
+            return JsonResponse({'error': 'System error. Please try again later.'}, status=500)
 
         # 2. Authenticate User (syncs status and captures names if provided)
         user = authenticate(request, id_token=id_token, first_name=first_name, last_name=last_name)

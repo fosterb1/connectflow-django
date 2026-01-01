@@ -6,18 +6,12 @@ from .settings import *
 import os
 import dj_database_url
 
-# Media files - Use Cloudinary for persistent storage on Render
+# Cloudinary Configuration
 CLOUDINARY_CLOUD_NAME = os.environ.get('CLOUDINARY_CLOUD_NAME')
 CLOUDINARY_API_KEY = os.environ.get('CLOUDINARY_API_KEY')
 CLOUDINARY_API_SECRET = os.environ.get('CLOUDINARY_API_SECRET')
 
-# Debug: Print to logs (will show in Render logs)
-print(f"[CLOUDINARY DEBUG] Cloud Name: {CLOUDINARY_CLOUD_NAME}")
-print(f"[CLOUDINARY DEBUG] API Key: {CLOUDINARY_API_KEY[:5] if CLOUDINARY_API_KEY else 'NOT SET'}")
-print(f"[CLOUDINARY DEBUG] API Secret: {'SET' if CLOUDINARY_API_SECRET else 'NOT SET'}")
-
 if CLOUDINARY_CLOUD_NAME and CLOUDINARY_API_KEY and CLOUDINARY_API_SECRET:
-    print("[CLOUDINARY DEBUG] ✅ Configuring Cloudinary...")
     
     import cloudinary
     
@@ -33,15 +27,7 @@ if CLOUDINARY_CLOUD_NAME and CLOUDINARY_API_KEY and CLOUDINARY_API_SECRET:
     INSTALLED_APPS = list(INSTALLED_APPS)
     if 'cloudinary' not in INSTALLED_APPS:
         INSTALLED_APPS.append('cloudinary')
-    
-    print(f"[CLOUDINARY DEBUG] ✅ Cloudinary configured for CloudinaryField")
-    print(f"[CLOUDINARY DEBUG] ✅ Using NATIVE CloudinaryField in model")
 else:
-    print("[CLOUDINARY DEBUG] ❌ Cloudinary NOT configured - using local storage")
-    print(f"[CLOUDINARY DEBUG]    Cloud Name: {CLOUDINARY_CLOUD_NAME}")
-    print(f"[CLOUDINARY DEBUG]    API Key: {CLOUDINARY_API_KEY}")
-    print(f"[CLOUDINARY DEBUG]    API Secret: {'SET' if CLOUDINARY_API_SECRET else 'NOT SET'}")
-    
     # Fallback to local storage (development/testing)
     MEDIA_URL = '/media/'
     MEDIA_ROOT = os.path.join(BASE_DIR, 'media')
@@ -56,9 +42,6 @@ ALLOWED_HOSTS = [
 
 # AI Configuration
 GEMINI_API_KEY = os.environ.get('GEMINI_API_KEY')
-
-# Debug: Print to logs
-print(f"[AI DEBUG] GEMINI_API_KEY: {'SET' if GEMINI_API_KEY else 'NOT SET'}")
 
 # Database - PostgreSQL (Render provides this automatically)
 DATABASES = {
@@ -84,37 +67,56 @@ CHANNEL_LAYERS = {
 # Static files (CSS, JavaScript, Images)
 # WhiteNoise for serving static files
 MIDDLEWARE.insert(1, 'whitenoise.middleware.WhiteNoiseMiddleware')
+MIDDLEWARE.append('apps.accounts.security_middleware.SQLiteProductionCheckMiddleware')
 
 STATIC_URL = '/static/'
 STATIC_ROOT = os.path.join(BASE_DIR, 'staticfiles')
 STATICFILES_STORAGE = 'whitenoise.storage.CompressedManifestStaticFilesStorage'
 
 # Security settings
-SECRET_KEY = os.environ.get('SECRET_KEY', SECRET_KEY)
+SECRET_KEY = os.environ.get('SECRET_KEY')
+if not SECRET_KEY:
+    raise ValueError("SECRET_KEY environment variable must be set in production")
+
+# Force DEBUG to be False in production
+DEBUG = False
 
 # HTTPS/SSL settings - Render handles SSL at proxy level
-SECURE_SSL_REDIRECT = False  # Render already redirects to HTTPS
+SECURE_SSL_REDIRECT = True  # Force HTTPS
 SECURE_PROXY_SSL_HEADER = ('HTTP_X_FORWARDED_PROTO', 'https')  # Trust Render's proxy
 SESSION_COOKIE_SECURE = True
 CSRF_COOKIE_SECURE = True
 SECURE_BROWSER_XSS_FILTER = True
 SECURE_CONTENT_TYPE_NOSNIFF = True
 X_FRAME_OPTIONS = 'DENY'
-# Disabled HSTS for now to prevent issues during setup
-# SECURE_HSTS_SECONDS = 31536000
-# SECURE_HSTS_INCLUDE_SUBDOMAINS = True
-# SECURE_HSTS_PRELOAD = True
 
-# CSRF trusted origins
+# Enable HSTS for production security
+SECURE_HSTS_SECONDS = 31536000  # 1 year
+SECURE_HSTS_INCLUDE_SUBDOMAINS = True
+SECURE_HSTS_PRELOAD = True
+
+# CSRF trusted origins - specify exact domains
 CSRF_TRUSTED_ORIGINS = [
     'https://*.onrender.com',
-    # Add your custom domain here
 ]
 
-# CORS settings (if using separate frontend)
-CORS_ALLOWED_ORIGINS = [
-    'https://*.onrender.com',
+# CORS settings - Fix wildcard issue
+CORS_ALLOW_ALL_ORIGINS = False
+CORS_ALLOWED_ORIGIN_REGEXES = [
+    r"^https://.*\.onrender\.com$",
 ]
+
+# Content Security Policy
+CSP_DEFAULT_SRC = ("'self'",)
+CSP_SCRIPT_SRC = ("'self'", "'unsafe-inline'", "https://www.gstatic.com", "https://apis.google.com")
+CSP_STYLE_SRC = ("'self'", "'unsafe-inline'", "https://fonts.googleapis.com")
+CSP_FONT_SRC = ("'self'", "https://fonts.gstatic.com")
+CSP_IMG_SRC = ("'self'", "data:", "https:", "https://res.cloudinary.com")
+CSP_CONNECT_SRC = ("'self'", "https://identitytoolkit.googleapis.com", "https://securetoken.googleapis.com", "wss://")
+CSP_FRAME_SRC = ("https://connectflowpro-f1202.firebaseapp.com",)
+
+# Referrer Policy
+SECURE_REFERRER_POLICY = 'strict-origin-when-cross-origin'
 
 # Logging configuration for Render
 LOGGING = {
@@ -166,8 +168,6 @@ SESSION_ENGINE = 'django.contrib.sessions.backends.cache'
 SESSION_CACHE_ALIAS = 'default'
 
 # Production Email Settings
-DEBUG = False
-
 EMAIL_BACKEND = 'django.core.mail.backends.smtp.EmailBackend'
 EMAIL_HOST = os.environ.get('EMAIL_HOST', 'smtp.gmail.com')
 EMAIL_PORT = int(os.environ.get('EMAIL_PORT', 587))

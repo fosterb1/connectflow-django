@@ -5,6 +5,7 @@ from django.db.models import Count, Q
 from django.http import JsonResponse
 from django.urls import reverse
 from django.views.decorators.http import require_POST
+from django.http import Http404
 from .models import (
     Organization, Department, Team, SharedProject, ProjectFile, ProjectMeeting, 
     ProjectTask, ProjectMilestone, ProjectRiskRegister, AuditTrail, ControlTest, 
@@ -17,15 +18,33 @@ from .forms import (
 )
 
 
+def get_user_project_or_404(user, pk):
+    """
+    Secure helper to get project with organization validation.
+    Returns project only if user's organization is host or guest.
+    Raises Http404 if not found or no access.
+    """
+    try:
+        project = SharedProject.objects.get(pk=pk)
+        
+        # Check if user's org is host or guest
+        is_host = project.host_organization == user.organization
+        is_guest = user.organization in project.guest_organizations.all()
+        
+        if not (is_host or is_guest):
+            raise Http404("Project not found")
+        
+        return project
+    except SharedProject.DoesNotExist:
+        raise Http404("Project not found")
+
+
 @login_required
 def project_risk_dashboard(request, pk):
     """
     Unified Risk & Compliance Dashboard for PMs, Auditors, and Compliance Officers.
     """
-    project = get_object_or_404(SharedProject, pk=pk)
-    if request.user not in project.members.all():
-        messages.error(request, 'You do not have access to this project.')
-        return redirect('organizations:shared_project_list')
+    project = get_user_project_or_404(request.user, pk)
 
     # Gatekeeper: Check Governance Suite Access
     if not project.host_organization.has_feature('has_governance_suite'):
@@ -72,7 +91,7 @@ def project_risk_dashboard(request, pk):
 @login_required
 @require_POST
 def add_compliance_requirement(request, pk):
-    project = get_object_or_404(SharedProject, pk=pk)
+    project = get_user_project_or_404(request.user, pk)
     if not (request.user.is_admin or request.user.role == 'COMPLIANCE_OFFICER'):
         return JsonResponse({'success': False}, status=403)
     
@@ -88,7 +107,7 @@ def add_compliance_requirement(request, pk):
 @login_required
 @require_POST
 def delete_compliance_requirement(request, pk, req_pk):
-    project = get_object_or_404(SharedProject, pk=pk)
+    project = get_user_project_or_404(request.user, pk)
     req = get_object_or_404(ComplianceRequirement, pk=req_pk, project=project)
     if request.user.is_admin or request.user.role == 'COMPLIANCE_OFFICER':
         req.delete()
@@ -99,7 +118,7 @@ def delete_compliance_requirement(request, pk, req_pk):
 @login_required
 @require_POST
 def delete_compliance_evidence(request, pk, evidence_pk):
-    project = get_object_or_404(SharedProject, pk=pk)
+    project = get_user_project_or_404(request.user, pk)
     evidence = get_object_or_404(ComplianceEvidence, pk=evidence_pk, requirement__project=project)
     if request.user.is_admin or request.user == evidence.uploaded_by:
         evidence.delete()
@@ -110,9 +129,7 @@ def delete_compliance_evidence(request, pk, evidence_pk):
 @login_required
 @require_POST
 def add_project_risk(request, pk):
-    project = get_object_or_404(SharedProject, pk=pk)
-    if request.user not in project.members.all():
-        return JsonResponse({'success': False}, status=403)
+    project = get_user_project_or_404(request.user, pk)
     
     form = ProjectRiskForm(request.POST, project=project)
     if form.is_valid():
@@ -128,9 +145,7 @@ def add_project_risk(request, pk):
 @login_required
 @require_POST
 def add_audit_trail(request, pk):
-    project = get_object_or_404(SharedProject, pk=pk)
-    if request.user not in project.members.all() or request.user.role != 'AUDITOR' and not request.user.is_admin:
-        return JsonResponse({'success': False}, status=403)
+    project = get_user_project_or_404(request.user, pk)
     
     form = AuditTrailForm(request.POST)
     if form.is_valid():
@@ -160,9 +175,7 @@ def add_audit_trail(request, pk):
 @login_required
 @require_POST
 def add_control_test(request, pk):
-    project = get_object_or_404(SharedProject, pk=pk)
-    if request.user not in project.members.all():
-        return JsonResponse({'success': False}, status=403)
+    project = get_user_project_or_404(request.user, pk)
     
     form = ControlTestForm(request.POST)
     if form.is_valid():
@@ -178,11 +191,10 @@ def add_control_test(request, pk):
 @login_required
 @require_POST
 def add_compliance_evidence(request, pk, req_pk):
-    project = get_object_or_404(SharedProject, pk=pk)
+    project = get_user_project_or_404(request.user, pk)
     requirement = get_object_or_404(ComplianceRequirement, pk=req_pk, project=project)
     
-    if request.user not in project.members.all():
-        return JsonResponse({'success': False}, status=403)
+    # Already validated via get_user_project_or_404
     
     # Check Storage Limit
     org = project.host_organization
@@ -244,9 +256,7 @@ def organization_settings(request):
 
 @login_required
 def project_milestones(request, pk):
-    project = get_object_or_404(SharedProject, pk=pk)
-    if request.user not in project.members.all():
-        return redirect('organizations:shared_project_list')
+    project = get_user_project_or_404(request.user, pk)
     
     if request.method == 'POST':
         form = ProjectMilestoneForm(request.POST)
@@ -349,9 +359,7 @@ def toggle_milestone(request, pk):
 
 @login_required
 def project_files(request, pk):
-    project = get_object_or_404(SharedProject, pk=pk)
-    if request.user not in project.members.all():
-        return redirect('organizations:shared_project_list')
+    project = get_user_project_or_404(request.user, pk)
     
     if request.method == 'POST':
         # Check Organization Storage Limit
@@ -424,7 +432,7 @@ def project_files(request, pk):
 
 @login_required
 def project_file_delete(request, project_pk, file_pk):
-    project = get_object_or_404(SharedProject, pk=project_pk)
+    project = get_user_project_or_404(request.user, project_pk)
     project_file = get_object_or_404(ProjectFile, pk=file_pk, project=project)
     user = request.user
     
@@ -453,9 +461,7 @@ def project_file_delete(request, project_pk, file_pk):
 
 @login_required
 def project_meetings(request, pk):
-    project = get_object_or_404(SharedProject, pk=pk)
-    if request.user not in project.members.all():
-        return redirect('organizations:shared_project_list')
+    project = get_user_project_or_404(request.user, pk)
     
     if request.method == 'POST':
         form = ProjectMeetingForm(request.POST)
@@ -508,7 +514,7 @@ def project_meetings(request, pk):
 
 @login_required
 def project_meeting_edit(request, project_pk, meeting_pk):
-    project = get_object_or_404(SharedProject, pk=project_pk)
+    project = get_user_project_or_404(request.user, project_pk)
     meeting = get_object_or_404(ProjectMeeting, pk=meeting_pk, project=project)
     user = request.user
     
@@ -571,7 +577,7 @@ def project_meeting_edit(request, project_pk, meeting_pk):
 
 @login_required
 def project_meeting_delete(request, project_pk, meeting_pk):
-    project = get_object_or_404(SharedProject, pk=project_pk)
+    project = get_user_project_or_404(request.user, project_pk)
     meeting = get_object_or_404(ProjectMeeting, pk=meeting_pk, project=project)
     user = request.user
     
@@ -630,9 +636,7 @@ def project_meeting_delete(request, project_pk, meeting_pk):
 
 @login_required
 def project_tasks(request, pk):
-    project = get_object_or_404(SharedProject, pk=pk)
-    if request.user not in project.members.all():
-        return redirect('organizations:shared_project_list')
+    project = get_user_project_or_404(request.user, pk)
     
     if request.method == 'POST':
         form = ProjectTaskForm(request.POST, project=project)
@@ -683,7 +687,7 @@ def project_tasks(request, pk):
 
 @login_required
 def project_task_edit(request, project_pk, task_pk):
-    project = get_object_or_404(SharedProject, pk=project_pk)
+    project = get_user_project_or_404(request.user, project_pk)
     task = get_object_or_404(ProjectTask, pk=task_pk, project=project)
     user = request.user
     
@@ -714,7 +718,7 @@ def project_task_edit(request, project_pk, task_pk):
 
 @login_required
 def project_task_delete(request, project_pk, task_pk):
-    project = get_object_or_404(SharedProject, pk=project_pk)
+    project = get_user_project_or_404(request.user, project_pk)
     task = get_object_or_404(ProjectTask, pk=task_pk, project=project)
     user = request.user
     
@@ -740,7 +744,7 @@ def project_task_delete(request, project_pk, task_pk):
 
 @login_required
 def project_analytics(request, pk):
-    project = get_object_or_404(SharedProject, pk=pk)
+    project = get_user_project_or_404(request.user, pk)
     if request.user not in project.members.all():
         return redirect('organizations:shared_project_list')
     
@@ -911,7 +915,7 @@ def shared_project_join(request):
 @login_required
 def shared_project_detail(request, pk):
     user = request.user
-    project = get_object_or_404(SharedProject, pk=pk)
+    project = get_user_project_or_404(request.user, pk)
     
     is_host = project.host_organization == user.organization
     is_guest = user.organization in project.guest_organizations.all()
@@ -949,7 +953,7 @@ def shared_project_detail(request, pk):
 def shared_project_delete(request, pk):
     """Delete a shared project. Only host organization admins or the creator can do this."""
     user = request.user
-    project = get_object_or_404(SharedProject, pk=pk)
+    project = get_user_project_or_404(request.user, pk)
     
     # Permission check: Host admin OR project creator
     is_host_admin = user.is_admin and project.host_organization == user.organization
@@ -1180,7 +1184,7 @@ def member_remove(request, pk):
 
 @login_required
 def project_milestone_edit(request, project_pk, milestone_pk):
-    project = get_object_or_404(SharedProject, pk=project_pk)
+    project = get_user_project_or_404(request.user, project_pk)
     milestone = get_object_or_404(ProjectMilestone, pk=milestone_pk, project=project)
     user = request.user
     
@@ -1210,7 +1214,7 @@ def project_milestone_edit(request, project_pk, milestone_pk):
 
 @login_required
 def project_milestone_delete(request, project_pk, milestone_pk):
-    project = get_object_or_404(SharedProject, pk=project_pk)
+    project = get_user_project_or_404(request.user, project_pk)
     milestone = get_object_or_404(ProjectMilestone, pk=milestone_pk, project=project)
     user = request.user
     
@@ -1237,7 +1241,7 @@ def project_milestone_delete(request, project_pk, milestone_pk):
 @login_required
 @require_POST
 def shared_project_remove_member(request, project_pk, member_pk):
-    project = get_object_or_404(SharedProject, pk=project_pk)
+    project = get_user_project_or_404(request.user, project_pk)
     user = request.user
     
     # Check permissions

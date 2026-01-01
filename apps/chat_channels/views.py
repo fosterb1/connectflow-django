@@ -224,7 +224,7 @@ def channel_detail(request, pk):
         return redirect('chat_channels:channel_list')
     
     # Get messages (WhatsApp style: all messages in one stream)
-    messages_query = Message.all_objects.filter(
+    messages_query = Message.objects.filter(
         channel=channel
     ).select_related('sender', 'parent_message').prefetch_related(
         'reactions',
