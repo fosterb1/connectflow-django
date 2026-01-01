@@ -1,5 +1,6 @@
 """
 Production settings for Render.com deployment
+Updated: 2026-01-01 - Template cache cleared
 """
 
 from .settings import *
