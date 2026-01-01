@@ -897,6 +897,12 @@ document.addEventListener("DOMContentLoaded", function () {
     window.toggleVoiceRecording = async () => {
         if (!mediaRecorder || mediaRecorder.state === 'inactive') {
             try {
+                // Check if HTTPS or localhost
+                if (location.protocol !== 'https:' && !location.hostname.includes('localhost')) {
+                    alert("Voice recording requires HTTPS. Please use a secure connection.");
+                    return;
+                }
+                
                 const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
                 mediaRecorder = new MediaRecorder(stream); audioChunks = [];
                 mediaRecorder.ondataavailable = e => audioChunks.push(e.data);
@@ -907,7 +913,10 @@ document.addEventListener("DOMContentLoaded", function () {
                     initPreviewWaveform(recordedBlob); updateSendButtonState();
                 };
                 mediaRecorder.start(); document.getElementById('voice-preview').classList.remove('hidden');
-            } catch (err) { alert("Mic access needed."); }
+            } catch (err) { 
+                console.error('Microphone access error:', err);
+                alert("Microphone access denied. Please allow microphone access in your browser settings and refresh the page.");
+            }
         } else { mediaRecorder.stop(); }
     };
 
@@ -1021,6 +1030,18 @@ document.addEventListener("DOMContentLoaded", function () {
                     submitBtn.innerHTML = '<svg class="animate-spin h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg>';
                     
                     const res = await fetch(chatForm.action, { method: 'POST', body: fd, headers: { 'X-Requested-With': 'XMLHttpRequest', 'X-CSRFToken': '{{ csrf_token }}' }});
+                    
+                    // Check if response is JSON
+                    const contentType = res.headers.get('content-type');
+                    if (!contentType || !contentType.includes('application/json')) {
+                        const text = await res.text();
+                        console.error('Server returned non-JSON response:', text);
+                        alert('Upload failed: Server error. Please check your storage quota and try again.');
+                        submitBtn.disabled = false;
+                        submitBtn.innerHTML = '<svg id="send-icon" class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8"></path></svg>';
+                        return;
+                    }
+                    
                     const data = await res.json();
 
                     if (res.ok && data.success) { 
