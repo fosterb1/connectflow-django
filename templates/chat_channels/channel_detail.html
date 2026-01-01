@@ -311,7 +311,21 @@ document.addEventListener("DOMContentLoaded", function () {
         chatSocket.onmessage = (e) => {
             console.log("WebSocket message received:", e.data);
             const data = JSON.parse(e.data);
-            if (data.type === 'chat_message') { 
+            if (data.type === 'chat_message') {
+                // Remove placeholder if this is our own message
+                if (data.sender_id.toString() === userId.toString()) {
+                    const placeholders = messagesContainer.querySelectorAll('[id^="temp-"]');
+                    placeholders.forEach(placeholder => {
+                        // Check if it's a recent placeholder (within last 10 seconds)
+                        const placeholderId = placeholder.id;
+                        const placeholderTime = parseInt(placeholderId.replace('temp-', ''));
+                        const currentTime = Date.now();
+                        if (currentTime - placeholderTime < 10000) {
+                            placeholder.remove();
+                        }
+                    });
+                }
+                
                 appendMessage(data); 
                 if (data.voice_message_url) setTimeout(() => initWaveform(data.message_id, data.voice_message_url, data.sender_id.toString() === userId.toString()), 100);
                 messagesContainer.scrollTop = messagesContainer.scrollHeight; 
