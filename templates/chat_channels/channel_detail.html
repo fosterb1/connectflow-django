@@ -371,13 +371,21 @@
                                     <div class="space-y-2">
                                         {% for att in message.attachments.all %}
                                             {% if att.is_image %}
-                                                <a href="{{ att.file.url }}" target="_blank" class="block mb-2 group relative">
-                                                    <img src="{{ att.file.url }}" class="rounded-lg max-h-80 w-auto object-cover border border-gray-200 dark:border-gray-700 hover:opacity-95 transition shadow-sm">
-                                                </a>
+                                                <div class="block mb-2 group relative cursor-pointer" onclick="openLightbox('{{ att.file.url }}', '{{ message.sender.get_full_name }}', '{{ message.created_at|date:"M d, Y h:i A" }}')">
+                                                    <img src="{{ att.file.url }}" class="rounded-lg max-h-80 w-auto object-cover border border-gray-200 dark:border-gray-700 hover:opacity-95 transition shadow-sm" alt="Image">
+                                                    <div class="absolute inset-0 bg-black bg-opacity-0 group-hover:bg-opacity-10 transition-opacity rounded-lg flex items-center justify-center">
+                                                        <svg class="w-8 h-8 text-white opacity-0 group-hover:opacity-100 transition-opacity" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0zM10 7v3m0 0v3m0-3h3m-3 0H7"></path>
+                                                        </svg>
+                                                    </div>
+                                                </div>
                                             {% else %}
-                                                <a href="{{ att.file.url }}" target="_blank" class="flex items-center p-2 rounded-lg bg-gray-50 dark:bg-gray-700 border border-gray-100 dark:border-gray-600 hover:bg-white dark:hover:bg-gray-600 transition shadow-sm">
+                                                <a href="{{ att.file.url }}" target="_blank" download class="flex items-center p-2 rounded-lg bg-gray-50 dark:bg-gray-700 border border-gray-100 dark:border-gray-600 hover:bg-white dark:hover:bg-gray-600 transition shadow-sm group">
                                                     <svg class="w-4 h-4 mr-2 text-indigo-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path></svg>
                                                     <span class="text-[10px] font-black uppercase truncate max-w-[120px]">{{ att.file.name|basename }}</span>
+                                                    <svg class="w-3 h-3 ml-auto text-gray-400 group-hover:text-indigo-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"></path>
+                                                    </svg>
                                                 </a>
                                             {% endif %}
                                         {% endfor %}
@@ -618,6 +626,35 @@
             </div>
         </div>
     </aside>
+
+    <!-- Image Lightbox -->
+    <div id="lightbox" class="fixed inset-0 bg-black bg-opacity-95 z-[100] hidden flex items-center justify-center" onclick="closeLightbox()">
+        <div class="relative max-w-7xl max-h-screen p-4" onclick="event.stopPropagation()">
+            <!-- Close button -->
+            <button onclick="closeLightbox()" class="absolute top-6 right-6 text-white hover:text-gray-300 transition z-10">
+                <svg class="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+                </svg>
+            </button>
+            
+            <!-- Image info -->
+            <div class="absolute top-6 left-6 text-white z-10">
+                <p class="font-bold text-sm" id="lightbox-sender"></p>
+                <p class="text-xs text-gray-300" id="lightbox-time"></p>
+            </div>
+            
+            <!-- Image -->
+            <img id="lightbox-img" src="" alt="Full size image" class="max-w-full max-h-[90vh] object-contain mx-auto rounded-lg shadow-2xl">
+            
+            <!-- Download button -->
+            <a id="lightbox-download" href="" download class="absolute bottom-6 right-6 bg-indigo-600 hover:bg-indigo-700 text-white px-4 py-2 rounded-lg flex items-center space-x-2 transition shadow-lg">
+                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"></path>
+                </svg>
+                <span class="text-sm font-bold">Download</span>
+            </a>
+        </div>
+    </div>
 
 </div>
 
@@ -1940,5 +1977,38 @@ function escapeHtml(text) {
     div.textContent = text;
     return div.innerHTML;
 }
+
+// Lightbox functionality
+function openLightbox(imageUrl, senderName, timestamp) {
+    const lightbox = document.getElementById('lightbox');
+    const img = document.getElementById('lightbox-img');
+    const sender = document.getElementById('lightbox-sender');
+    const time = document.getElementById('lightbox-time');
+    const download = document.getElementById('lightbox-download');
+    
+    img.src = imageUrl;
+    sender.textContent = senderName;
+    time.textContent = timestamp;
+    download.href = imageUrl;
+    
+    lightbox.classList.remove('hidden');
+    lightbox.classList.add('flex');
+    document.body.style.overflow = 'hidden';
+}
+
+function closeLightbox() {
+    const lightbox = document.getElementById('lightbox');
+    lightbox.classList.add('hidden');
+    lightbox.classList.remove('flex');
+    document.body.style.overflow = '';
+}
+
+// Close lightbox on Escape key
+document.addEventListener('keydown', (e) => {
+    if (e.key === 'Escape') {
+        closeLightbox();
+        closeThread();
+    }
+});
 </script>
 {% endblock %}
