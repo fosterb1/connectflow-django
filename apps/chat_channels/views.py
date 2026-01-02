@@ -425,18 +425,39 @@ def channel_detail(request, pk):
                 # Handle multiple attachments
                 attachments = request.FILES.getlist('attachments')
                 for attachment_file in attachments:
-                    att = Attachment.objects.create(message=message, file=attachment_file)
-                    processed_attachments.append({
-                        'url': att.file.url, 
-                        'name': str(att.file).split('/')[-1],
-                        'is_image': att.is_image,
-                        'is_video': att.is_video
-                    })
+                    try:
+                        # Check file size (max 10MB)
+                        max_size = 10 * 1024 * 1024  # 10MB
+                        if attachment_file.size > max_size:
+                            raise ValueError(f"File {attachment_file.name} is too large. Maximum size is 10MB.")
+                        
+                        att = Attachment.objects.create(message=message, file=attachment_file)
+                        processed_attachments.append({
+                            'url': att.file.url, 
+                            'name': str(att.file).split('/')[-1],
+                            'is_image': att.is_image,
+                            'is_video': att.is_video
+                        })
+                    except Exception as att_error:
+                        import logging
+                        logger = logging.getLogger(__name__)
+                        logger.error(f"Individual attachment upload failed for {attachment_file.name}: {str(att_error)}", exc_info=True)
+                        raise  # Re-raise to be caught by outer try-except
+                        
             except Exception as e:
                 # Log the error for debugging
                 import logging
                 logger = logging.getLogger(__name__)
                 logger.error(f"Attachment upload failed: {str(e)}", exc_info=True)
+                
+                # Check if it's a Cloudinary error
+                error_message = str(e)
+                if 'cloudinary' in error_message.lower():
+                    error_message = "Cloudinary upload failed. Please check your Cloudinary configuration and quota."
+                elif 'size' in error_message.lower():
+                    error_message = str(e)
+                else:
+                    error_message = "Server error. Please check your storage quota and try again."
                 
                 # If attachment upload fails, permanently delete the orphan message
                 try:
@@ -445,12 +466,11 @@ def channel_detail(request, pk):
                     pass  # Message might already be deleted
                     
                 if request.headers.get('X-Requested-With') == 'XMLHttpRequest':
-                    error_msg = str(e) if str(e) else "Unknown upload error"
                     return JsonResponse({
                         'success': False, 
-                        'error': f'Upload failed: {error_msg}'
-                    }, status=400)  # Changed from 500 to 400
-                messages.error(request, f'Failed to upload attachments: {e}')
+                        'error': error_message
+                    }, status=400)
+                messages.error(request, f'Failed to upload attachments: {error_message}')
                 return redirect('chat_channels:channel_detail', pk=pk)
             
             if request.headers.get('X-Requested-With') == 'XMLHttpRequest':
