@@ -6,7 +6,8 @@
 {% block extra_css %}
 <style>
     body { overflow: hidden; }
-    .call-container { position: fixed; inset: 0; background: #1a1a2e; display: flex; flex-direction: column; }
+    .call-container { position: fixed; inset: 0; background: #1a1a2e; display: flex; }
+    .video-section { flex: 1; display: flex; flex-direction: column; }
     .video-grid { flex: 1; display: grid; gap: 0.5rem; padding: 1rem; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); }
     .video-tile { position: relative; background: #16213e; border-radius: 1rem; overflow: hidden; min-height: 200px; }
     .video-tile video { width: 100%; height: 100%; object-fit: cover; }
@@ -18,36 +19,52 @@
     .control-btn.inactive { background: #374151; }
     .control-btn.end-call { background: #ef4444; }
     .participant-name { position: absolute; bottom: 0.5rem; left: 0.5rem; background: rgba(0,0,0,0.7); color: white; padding: 0.25rem 0.75rem; border-radius: 0.5rem; font-size: 0.875rem; font-weight: 600; }
+    
+    /* Chat Sidebar */
+    .chat-sidebar { width: 350px; background: #0f172a; border-left: 1px solid #334155; display: flex; flex-direction: column; transform: translateX(100%); transition: transform 0.3s; }
+    .chat-sidebar.open { transform: translateX(0); }
+    .chat-header { padding: 1rem; border-bottom: 1px solid #334155; display: flex; justify-content: space-between; align-items: center; }
+    .chat-messages { flex: 1; overflow-y: auto; padding: 1rem; display: flex; flex-direction: column; gap: 0.5rem; }
+    .chat-message { background: #1e293b; padding: 0.75rem; border-radius: 0.5rem; }
+    .chat-message .sender { font-weight: 600; color: #818cf8; font-size: 0.875rem; margin-bottom: 0.25rem; }
+    .chat-message .text { color: #e2e8f0; font-size: 0.875rem; }
+    .chat-input-area { padding: 1rem; border-top: 1px solid #334155; }
+    .poll-option { background: #1e293b; padding: 0.75rem; border-radius: 0.5rem; margin-bottom: 0.5rem; cursor: pointer; transition: all 0.2s; }
+    .poll-option:hover { background: #334155; }
+    .poll-option.voted { background: #4f46e5; }
+    .poll-result { height: 4px; background: #4f46e5; border-radius: 2px; margin-top: 0.5rem; }
+
 </style>
 {% endblock %}
 
 {% block content %}
 <div class="call-container">
-    <!-- Header -->
-    <div class="flex items-center justify-between p-4 bg-black bg-opacity-50">
-        <div>
-            <h1 class="text-white text-xl font-bold">{{ call.get_call_type_display }} Call</h1>
-            <p class="text-gray-400 text-sm" id="call-duration">00:00</p>
+    <div class="video-section">
+        <!-- Header -->
+        <div class="flex items-center justify-between p-4 bg-black bg-opacity-50">
+            <div>
+                <h1 class="text-white text-xl font-bold">{{ call.get_call_type_display }} Call</h1>
+                <p class="text-gray-400 text-sm" id="call-duration">00:00</p>
+            </div>
+            <div class="flex items-center gap-2">
+                <span class="text-white text-sm" id="participant-count">{{ participants.count }} participant{{ participants.count|pluralize }}</span>
+            </div>
         </div>
-        <div class="flex items-center gap-2">
-            <span class="text-white text-sm" id="participant-count">{{ participants.count }} participant{{ participants.count|pluralize }}</span>
+
+        <!-- Video Grid -->
+        <div class="video-grid" id="video-grid">
+            <!-- Remote videos will be added here -->
         </div>
-    </div>
 
-    <!-- Video Grid -->
-    <div class="video-grid" id="video-grid">
-        <!-- Remote videos will be added here -->
-    </div>
+        <!-- Local Video Preview -->
+        <div class="local-video" id="local-video-container">
+            <video id="local-video" autoplay muted playsinline></video>
+            <div class="participant-name">You</div>
+        </div>
 
-    <!-- Local Video Preview -->
-    <div class="local-video" id="local-video-container">
-        <video id="local-video" autoplay muted playsinline></video>
-        <div class="participant-name">You</div>
-    </div>
-
-    <!-- Call Controls -->
-    <div class="call-controls">
-        <button id="toggle-audio" class="control-btn active" title="Mute/Unmute">
+        <!-- Call Controls -->
+        <div class="call-controls">
+            <button id="toggle-audio" class="control-btn active" title="Mute/Unmute">
             <svg class="w-6 h-6 text-white" fill="currentColor" viewBox="0 0 24 24" id="mic-on-icon">
                 <path d="M12 14c1.66 0 3-1.34 3-3V5c0-1.66-1.34-3-3-3S9 3.34 9 5v6c0 1.66 1.34 3 3 3z"/>
                 <path d="M17 11c0 2.76-2.24 5-5 5s-5-2.24-5-5H5c0 3.53 2.61 6.43 6 6.92V21h2v-3.08c3.39-.49 6-3.39 6-6.92h-2z"/>
@@ -73,12 +90,81 @@
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9.75 17L9 20l-1 1h8l-1-1-.75-3M3 13h18M5 17h14a2 2 0 002-2V5a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"/>
             </svg>
         </button>
+        
+        <button id="toggle-chat" class="control-btn inactive" title="Toggle Chat">
+            <svg class="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z"/>
+            </svg>
+        </button>
 
         <button id="end-call" class="control-btn end-call" title="End Call">
             <svg class="w-6 h-6 text-white" fill="currentColor" viewBox="0 0 24 24">
                 <path d="M12 9c-1.6 0-3.15.25-4.6.72v3.1c0 .39-.23.74-.56.9-.98.49-1.87 1.12-2.66 1.85-.18.18-.43.28-.7.28-.28 0-.53-.11-.71-.29L.29 13.08c-.18-.17-.29-.42-.29-.7 0-.28.11-.53.29-.71C3.34 8.78 7.46 7 12 7s8.66 1.78 11.71 4.67c.18.18.29.43.29.71 0 .28-.11.53-.29.71l-2.48 2.48c-.18.18-.43.29-.71.29-.27 0-.52-.11-.7-.28-.79-.74-1.68-1.36-2.66-1.85-.33-.16-.56-.5-.56-.9v-3.1C15.15 9.25 13.6 9 12 9z"/>
             </svg>
         </button>
+    </div>
+    </div>
+    
+    <!-- Chat Sidebar -->
+    <div class="chat-sidebar" id="chat-sidebar">
+        <div class="chat-header">
+            <div>
+                <h3 class="text-white font-bold text-lg">Chat</h3>
+                <div class="flex gap-2 mt-2">
+                    <button id="chat-tab" class="text-indigo-400 text-sm font-semibold border-b-2 border-indigo-400 pb-1">Messages</button>
+                    <button id="poll-tab" class="text-gray-400 text-sm font-semibold pb-1">Polls</button>
+                </div>
+            </div>
+            <button onclick="toggleChat()" class="text-gray-400 hover:text-white">
+                <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
+                </svg>
+            </button>
+        </div>
+        
+        <!-- Chat Messages -->
+        <div id="chat-tab-content" class="chat-messages">
+            <!-- Messages will be added here -->
+        </div>
+        
+        <!-- Poll Content -->
+        <div id="poll-tab-content" class="chat-messages" style="display: none;">
+            <button onclick="showCreatePoll()" class="w-full bg-indigo-600 text-white py-2 px-4 rounded-lg hover:bg-indigo-700 mb-4">
+                Create Poll
+            </button>
+            <div id="polls-list">
+                <!-- Polls will be added here -->
+            </div>
+        </div>
+        
+        <!-- Chat Input -->
+        <div class="chat-input-area">
+            <div class="flex gap-2">
+                <input type="text" id="chat-input" placeholder="Type a message..." class="flex-1 bg-slate-800 text-white px-4 py-2 rounded-lg border border-slate-700 focus:outline-none focus:border-indigo-500">
+                <button onclick="sendChatMessage()" class="bg-indigo-600 text-white px-4 py-2 rounded-lg hover:bg-indigo-700">
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8"/>
+                    </svg>
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Create Poll Modal -->
+<div id="create-poll-modal" class="hidden fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+    <div class="bg-slate-800 rounded-lg p-6 w-96">
+        <h3 class="text-white text-xl font-bold mb-4">Create Poll</h3>
+        <input type="text" id="poll-question" placeholder="Poll question" class="w-full bg-slate-700 text-white px-4 py-2 rounded-lg mb-3 border border-slate-600 focus:outline-none focus:border-indigo-500">
+        <div id="poll-options-container">
+            <input type="text" class="poll-option-input w-full bg-slate-700 text-white px-4 py-2 rounded-lg mb-2 border border-slate-600" placeholder="Option 1">
+            <input type="text" class="poll-option-input w-full bg-slate-700 text-white px-4 py-2 rounded-lg mb-2 border border-slate-600" placeholder="Option 2">
+        </div>
+        <button onclick="addPollOption()" class="text-indigo-400 text-sm mb-4">+ Add Option</button>
+        <div class="flex gap-2">
+            <button onclick="createPoll()" class="flex-1 bg-indigo-600 text-white py-2 rounded-lg hover:bg-indigo-700">Create</button>
+            <button onclick="closePollModal()" class="flex-1 bg-slate-700 text-white py-2 rounded-lg hover:bg-slate-600">Cancel</button>
+        </div>
     </div>
 </div>
 {% endblock %}
@@ -458,5 +544,211 @@ function getCookie(name) {
 
 // Cleanup on page unload
 window.addEventListener('beforeunload', cleanup);
+
+// Chat functionality
+function toggleChat() {
+    const sidebar = document.getElementById('chat-sidebar');
+    const button = document.getElementById('toggle-chat');
+    sidebar.classList.toggle('open');
+    button.classList.toggle('active');
+    button.classList.toggle('inactive');
+}
+
+function sendChatMessage() {
+    const input = document.getElementById('chat-input');
+    const message = input.value.trim();
+    if (!message) return;
+    
+    // Send via WebSocket
+    if (callSocket && callSocket.readyState === WebSocket.OPEN) {
+        callSocket.send(JSON.stringify({
+            type: 'chat_message',
+            message: message,
+            sender_name: userName
+        }));
+    }
+    
+    // Add to UI
+    addChatMessage(userName, message, true);
+    input.value = '';
+}
+
+function addChatMessage(sender, message, isSelf = false) {
+    const container = document.getElementById('chat-tab-content');
+    const div = document.createElement('div');
+    div.className = 'chat-message';
+    div.innerHTML = `
+        <div class="sender" style="color: ${isSelf ? '#818cf8' : '#f472b6'}">${sender}</div>
+        <div class="text">${escapeHtml(message)}</div>
+    `;
+    container.appendChild(div);
+    container.scrollTop = container.scrollHeight;
+}
+
+// Tab switching
+document.getElementById('chat-tab').addEventListener('click', function() {
+    document.getElementById('chat-tab-content').style.display = 'flex';
+    document.getElementById('poll-tab-content').style.display = 'none';
+    this.classList.add('text-indigo-400', 'border-b-2', 'border-indigo-400');
+    this.classList.remove('text-gray-400');
+    document.getElementById('poll-tab').classList.remove('text-indigo-400', 'border-b-2', 'border-indigo-400');
+    document.getElementById('poll-tab').classList.add('text-gray-400');
+});
+
+document.getElementById('poll-tab').addEventListener('click', function() {
+    document.getElementById('chat-tab-content').style.display = 'none';
+    document.getElementById('poll-tab-content').style.display = 'flex';
+    this.classList.add('text-indigo-400', 'border-b-2', 'border-indigo-400');
+    this.classList.remove('text-gray-400');
+    document.getElementById('chat-tab').classList.remove('text-indigo-400', 'border-b-2', 'border-indigo-400');
+    document.getElementById('chat-tab').classList.add('text-gray-400');
+});
+
+// Poll functionality
+let polls = [];
+let pollIdCounter = 0;
+
+function showCreatePoll() {
+    document.getElementById('create-poll-modal').classList.remove('hidden');
+}
+
+function closePollModal() {
+    document.getElementById('create-poll-modal').classList.add('hidden');
+    document.getElementById('poll-question').value = '';
+    document.querySelectorAll('.poll-option-input').forEach((input, i) => {
+        if (i < 2) input.value = '';
+        else input.remove();
+    });
+}
+
+function addPollOption() {
+    const container = document.getElementById('poll-options-container');
+    const optionNum = container.children.length + 1;
+    const input = document.createElement('input');
+    input.type = 'text';
+    input.className = 'poll-option-input w-full bg-slate-700 text-white px-4 py-2 rounded-lg mb-2 border border-slate-600';
+    input.placeholder = `Option ${optionNum}`;
+    container.appendChild(input);
+}
+
+function createPoll() {
+    const question = document.getElementById('poll-question').value.trim();
+    const optionInputs = document.querySelectorAll('.poll-option-input');
+    const options = Array.from(optionInputs).map(input => input.value.trim()).filter(val => val);
+    
+    if (!question || options.length < 2) {
+        alert('Please enter a question and at least 2 options');
+        return;
+    }
+    
+    const poll = {
+        id: pollIdCounter++,
+        question: question,
+        options: options.map(opt => ({ text: opt, votes: 0 })),
+        voted: false,
+        creator: userName
+    };
+    
+    polls.push(poll);
+    
+    // Broadcast poll
+    if (callSocket && callSocket.readyState === WebSocket.OPEN) {
+        callSocket.send(JSON.stringify({
+            type: 'poll_created',
+            poll: poll
+        }));
+    }
+    
+    renderPolls();
+    closePollModal();
+}
+
+function votePoll(pollId, optionIndex) {
+    const poll = polls.find(p => p.id === pollId);
+    if (!poll || poll.voted) return;
+    
+    poll.options[optionIndex].votes++;
+    poll.voted = true;
+    
+    // Broadcast vote
+    if (callSocket && callSocket.readyState === WebSocket.OPEN) {
+        callSocket.send(JSON.stringify({
+            type: 'poll_vote',
+            poll_id: pollId,
+            option_index: optionIndex
+        }));
+    }
+    
+    renderPolls();
+}
+
+function renderPolls() {
+    const container = document.getElementById('polls-list');
+    container.innerHTML = '';
+    
+    polls.forEach(poll => {
+        const totalVotes = poll.options.reduce((sum, opt) => sum + opt.votes, 0);
+        const div = document.createElement('div');
+        div.className = 'bg-slate-900 p-4 rounded-lg mb-4';
+        
+        let optionsHTML = poll.options.map((opt, i) => {
+            const percentage = totalVotes > 0 ? (opt.votes / totalVotes) * 100 : 0;
+            return `
+                <div class="poll-option ${poll.voted ? 'cursor-not-allowed' : ''}" onclick="${poll.voted ? '' : `votePoll(${poll.id}, ${i})`}">
+                    <div class="flex justify-between items-center">
+                        <span class="text-white">${escapeHtml(opt.text)}</span>
+                        ${poll.voted ? `<span class="text-gray-400 text-sm">${opt.votes} (${percentage.toFixed(0)}%)</span>` : ''}
+                    </div>
+                    ${poll.voted ? `<div class="poll-result" style="width: ${percentage}%"></div>` : ''}
+                </div>
+            `;
+        }).join('');
+        
+        div.innerHTML = `
+            <div class="text-indigo-400 font-semibold mb-3">${escapeHtml(poll.question)}</div>
+            <div class="text-xs text-gray-500 mb-3">Created by ${escapeHtml(poll.creator)}</div>
+            ${optionsHTML}
+        `;
+        
+        container.appendChild(div);
+    });
+}
+
+function escapeHtml(text) {
+    const div = document.createElement('div');
+    div.textContent = text;
+    return div.innerHTML;
+}
+
+// Handle chat/poll messages via WebSocket
+const originalOnMessage = callSocket ? callSocket.onmessage : null;
+if (callSocket) {
+    callSocket.addEventListener('message', (e) => {
+        const data = JSON.parse(e.data);
+        
+        if (data.type === 'chat_message') {
+            addChatMessage(data.sender_name, data.message, data.sender_id === userId);
+        } else if (data.type === 'poll_created') {
+            polls.push(data.poll);
+            renderPolls();
+        } else if (data.type === 'poll_vote') {
+            const poll = polls.find(p => p.id === data.poll_id);
+            if (poll) {
+                poll.options[data.option_index].votes++;
+                renderPolls();
+            }
+        }
+    });
+}
+
+// Enter to send message
+document.getElementById('chat-input').addEventListener('keypress', function(e) {
+    if (e.key === 'Enter') {
+        sendChatMessage();
+    }
+});
+
+// Toggle chat button
+document.getElementById('toggle-chat').addEventListener('click', toggleChat);
 </script>
 {% endblock %}
