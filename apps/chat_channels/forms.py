@@ -96,9 +96,9 @@ class MessageForm(forms.ModelForm):
         fields = ['content', 'voice_message', 'voice_duration', 'parent_message']
         widgets = {
             'content': forms.Textarea(attrs={
-                'class': 'w-full px-4 pr-12 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent resize-none dark:bg-gray-700 dark:border-gray-600 dark:text-white',
-                'placeholder': 'Type your message... (Shift+Enter for new line)',
-                'rows': 3
+                'class': 'w-full px-3 pr-10 py-1.5 border-0 bg-transparent focus:ring-0 focus:outline-none resize-none dark:text-white text-sm',
+                'placeholder': 'Type your message...',
+                'rows': 1
             }),
             'voice_message': forms.FileInput(attrs={'id': 'voice-message-input', 'class': 'hidden'}),
             'voice_duration': forms.HiddenInput(attrs={'id': 'voice-duration-input'}),
