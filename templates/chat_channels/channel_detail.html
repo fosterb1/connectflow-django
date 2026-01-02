@@ -1895,76 +1895,66 @@ document.addEventListener("DOMContentLoaded", function () {
                         
                         clearTimeout(timeoutId);
                     
-                    console.log('Upload response status:', res.status, 'Content-Type:', res.headers.get('content-type'));
-                    
-                    // Check if response is JSON
-                    const contentType = res.headers.get('content-type');
-                    if (!contentType || !contentType.includes('application/json')) {
-                        const text = await res.text();
-                        console.error('Server returned non-JSON response. Status:', res.status, 'Body preview:', text.substring(0, 200));
+                        console.log('Upload response status:', res.status, 'Content-Type:', res.headers.get('content-type'));
                         
-                        // If it's a redirect (302/3xx), the upload likely succeeded
-                        if (res.redirected || (res.status >= 300 && res.status < 400)) {
-                            console.log('Upload succeeded - server redirected');
-                            clearVoiceRecording(); 
-                            selectedFiles = [];
-                            renderFilePreviews();
-                            messageInput.value = ''; 
-                            cancelReply();
-                            // Page will reload via redirect, or we manually reload
-                            window.location.reload();
-                            return;
-                        }
-                        
-                        // If status 200 with HTML, check if it's an error page
-                        if (res.status === 200) {
-                            // Check if HTML contains error indicators
-                            if (text.includes('Server Error') || text.includes('500') || text.includes('Internal Server Error') || text.includes('Traceback')) {
-                                console.error('Got 500 error page from server');
-                                alert('Upload failed: Server error. Please refresh the page and try again.');
-                                submitBtn.disabled = false;
-                                submitBtn.innerHTML = '<svg id="send-icon" class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8"></path></svg>';
+                        // Check if response is JSON
+                        const contentType = res.headers.get('content-type');
+                        if (!contentType || !contentType.includes('application/json')) {
+                            const text = await res.text();
+                            console.error('Server returned non-JSON response. Status:', res.status, 'Body preview:', text.substring(0, 200));
+                            
+                            // If it's a redirect (302/3xx), the upload likely succeeded
+                            if (res.redirected || (res.status >= 300 && res.status < 400)) {
+                                console.log('Upload succeeded - server redirected');
+                                clearVoiceRecording(); 
+                                selectedFiles = [];
+                                renderFilePreviews();
+                                messageInput.value = ''; 
+                                cancelReply();
+                                // Page will reload via redirect, or we manually reload
+                                window.location.reload();
                                 return;
                             }
                             
-                            // Otherwise treat as success (backwards compatibility)
-                            console.log('Status 200 with HTML - treating as success, reloading page');
-                            clearVoiceRecording(); 
-                            selectedFiles = [];
-                            renderFilePreviews();
-                            messageInput.value = ''; 
-                            cancelReply();
-                            window.location.reload();
+                            // If status 200 with HTML, check if it's an error page
+                            if (res.status === 200) {
+                                // Check if HTML contains error indicators
+                                if (text.includes('Server Error') || text.includes('500') || text.includes('Internal Server Error') || text.includes('Traceback')) {
+                                    console.error('Got 500 error page from server');
+                                    alert('Upload failed: Server error. Please refresh the page and try again.');
+                                    submitBtn.disabled = false;
+                                    submitBtn.innerHTML = '<svg id="send-icon" class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8"></path></svg>';
+                                    return;
+                                }
+                                
+                                // Otherwise treat as success (backwards compatibility)
+                                console.log('Status 200 with HTML - treating as success, reloading page');
+                                clearVoiceRecording(); 
+                                selectedFiles = [];
+                                renderFilePreviews();
+                                messageInput.value = ''; 
+                                cancelReply();
+                                window.location.reload();
+                                return;
+                            }
+                            
+                            // Only show error if it's actually an error status
+                            if (res.status >= 400) {
+                                console.error('Upload failed with status', res.status);
+                                if (res.status === 502) {
+                                    alert('Upload timed out. For large files (>10MB), the upload may still complete. Please wait a moment and refresh the page.');
+                                } else {
+                                    alert('Upload failed: Server error. Please check your storage quota and try again.');
+                                }
+                            }
+                            
+                            submitBtn.disabled = false;
+                            submitBtn.innerHTML = '<svg id="send-icon" class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8"></path></svg>';
                             return;
                         }
                         
-                        // Only show error if it's actually an error status
-                        if (res.status >= 400) {
-                            console.error('Upload failed with status', res.status);
-                            if (res.status === 502) {
-                                alert('Upload timed out. For large files (>10MB), the upload may still complete. Please wait a moment and refresh the page.');
-                            } else {
-                                alert('Upload failed: Server error. Please check your storage quota and try again.');
-                            }
-                        }
-                        
-                        submitBtn.disabled = false;
-                        submitBtn.innerHTML = '<svg id="send-icon" class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8"></path></svg>';
-                        return;
-                    } catch (fetchError) {
-                        console.error('Fetch error:', fetchError);
-                        if (fetchError.name === 'AbortError') {
-                            alert('Upload timed out after 2 minutes. For very large files, the upload may still complete in the background. Please refresh the page in a moment.');
-                        } else {
-                            alert('Upload failed: ' + fetchError.message);
-                        }
-                        submitBtn.disabled = false;
-                        submitBtn.innerHTML = '<svg id="send-icon" class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8"></path></svg>';
-                        return;
-                    }
-                    
-                    const data = await res.json();
-                    console.log('Upload response data:', data);
+                        const data = await res.json();
+                        console.log('Upload response data:', data);
 
                     if (res.ok && data.success) { 
                         console.log('Upload successful!');
@@ -1991,7 +1981,17 @@ document.addEventListener("DOMContentLoaded", function () {
                         submitBtn.disabled = false;
                         submitBtn.innerHTML = '<svg id="send-icon" class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8"></path></svg>';
                     }
-                } else { 
+                    } catch (fetchError) {
+                        console.error('Fetch error:', fetchError);
+                        if (fetchError.name === 'AbortError') {
+                            alert('Upload timed out after 2 minutes. For very large files, the upload may still complete in the background. Please refresh the page in a moment.');
+                        } else {
+                            alert('Upload failed: ' + fetchError.message);
+                        }
+                        submitBtn.disabled = false;
+                        submitBtn.innerHTML = '<svg id="send-icon" class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8"></path></svg>';
+                    }
+                } else {
                     const msgData = { 
                         'message': msg,
                         'message_type': messageType
