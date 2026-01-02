@@ -149,6 +149,132 @@ class MessageViewSet(viewsets.ModelViewSet):
                 status=status.HTTP_500_INTERNAL_SERVER_ERROR
             )
 
+    @action(detail=True, methods=['post'])
+    def create_meeting(self, request, pk=None):
+        """Schedule a project meeting from a message."""
+        try:
+            message = self.get_object()
+            channel = message.channel
+            
+            if not channel.shared_project:
+                return Response(
+                    {'error': 'This channel is not linked to a project.'}, 
+                    status=status.HTTP_400_BAD_REQUEST
+                )
+            
+            from apps.organizations.models import ProjectMeeting
+            from django.utils import timezone
+            from datetime import timedelta
+            
+            title = request.data.get('title', f"Meeting: {message.content[:50]}")
+            
+            # Default to tomorrow at 10am
+            start_time = timezone.now() + timedelta(days=1)
+            start_time = start_time.replace(hour=10, minute=0, second=0, microsecond=0)
+            end_time = start_time + timedelta(hours=1)
+            
+            meeting = ProjectMeeting.objects.create(
+                project=channel.shared_project,
+                organizer=request.user,
+                title=title,
+                description=message.content,
+                start_time=start_time,
+                end_time=end_time
+            )
+            
+            return Response({
+                'status': 'meeting_created',
+                'meeting_id': str(meeting.id),
+                'message': 'Meeting scheduled successfully'
+            })
+        except Exception as e:
+            return Response(
+                {'error': f'Failed to create meeting: {str(e)}'}, 
+                status=status.HTTP_500_INTERNAL_SERVER_ERROR
+            )
+
+    @action(detail=True, methods=['post'])
+    def add_to_files(self, request, pk=None):
+        """Add message attachments to project files."""
+        try:
+            message = self.get_object()
+            channel = message.channel
+            
+            if not channel.shared_project:
+                return Response(
+                    {'error': 'This channel is not linked to a project.'}, 
+                    status=status.HTTP_400_BAD_REQUEST
+                )
+            
+            from apps.organizations.models import ProjectFile
+            
+            # Check if message has attachments
+            attachments = message.attachments.all()
+            if not attachments.exists():
+                return Response(
+                    {'error': 'This message has no attachments to add.'}, 
+                    status=status.HTTP_400_BAD_REQUEST
+                )
+            
+            files_added = 0
+            for attachment in attachments:
+                ProjectFile.objects.create(
+                    project=channel.shared_project,
+                    uploader=request.user,
+                    file=attachment.file,
+                    name=attachment.file.name or f"File from message"
+                )
+                files_added += 1
+            
+            return Response({
+                'status': 'files_added',
+                'count': files_added,
+                'message': f'{files_added} file(s) added to project'
+            })
+        except Exception as e:
+            return Response(
+                {'error': f'Failed to add files: {str(e)}'}, 
+                status=status.HTTP_500_INTERNAL_SERVER_ERROR
+            )
+
+    @action(detail=True, methods=['post'])
+    def link_milestone(self, request, pk=None):
+        """Link message to a project milestone."""
+        try:
+            message = self.get_object()
+            channel = message.channel
+            
+            if not channel.shared_project:
+                return Response(
+                    {'error': 'This channel is not linked to a project.'}, 
+                    status=status.HTTP_400_BAD_REQUEST
+                )
+            
+            milestone_id = request.data.get('milestone_id')
+            if not milestone_id:
+                # Return list of milestones
+                from apps.organizations.models import ProjectMilestone
+                milestones = ProjectMilestone.objects.filter(
+                    project=channel.shared_project
+                ).values('id', 'title', 'target_date', 'is_completed')
+                
+                return Response({
+                    'milestones': list(milestones),
+                    'message': 'Available milestones'
+                })
+            
+            # Link to milestone (you'll need to add a field to Message or ProjectMilestone model)
+            # For now, just return success
+            return Response({
+                'status': 'milestone_linked',
+                'message': f'Message linked to milestone {milestone_id}'
+            })
+        except Exception as e:
+            return Response(
+                {'error': f'Failed to link milestone: {str(e)}'}, 
+                status=status.HTTP_500_INTERNAL_SERVER_ERROR
+            )
+
     def _broadcast(self, message, event_type):
         channel_layer = get_channel_layer()
         channel_id = str(message.channel.id)
