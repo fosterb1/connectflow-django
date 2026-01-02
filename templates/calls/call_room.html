@@ -88,7 +88,7 @@
 const callId = '{{ call.id }}';
 const userId = '{{ user.id }}';
 const userName = '{{ user.get_full_name|default:user.username }}';
-const isInitiator = {{ is_initiator|yojson }};
+const isInitiator = {% if is_initiator %}true{% else %}false{% endif %};
 const callType = '{{ call.call_type }}';
 const iceServers = {{ ice_servers|safe }};
 
