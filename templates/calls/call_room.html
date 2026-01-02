@@ -337,16 +337,21 @@ async function toggleScreenShare() {
             const screenStream = await navigator.mediaDevices.getDisplayMedia({ video: true });
             const screenTrack = screenStream.getVideoTracks()[0];
             
-            // Replace video track in all peer connections
+            // Add screen share track to peer connections (don't replace camera)
             Object.values(peerConnections).forEach(pc => {
-                const sender = pc.getSenders().find(s => s.track?.kind === 'video');
-                if (sender) {
-                    sender.replaceTrack(screenTrack);
-                }
+                pc.addTrack(screenTrack, screenStream);
             });
             
-            // Update local video
-            document.getElementById('local-video').srcObject = screenStream;
+            // Add screen share to video grid (keep camera in local preview)
+            const screenTile = document.createElement('div');
+            screenTile.id = 'screen-share-tile';
+            screenTile.className = 'video-tile';
+            screenTile.innerHTML = `
+                <video id="screen-share-video" autoplay playsinline></video>
+                <div class="participant-name">Your Screen</div>
+            `;
+            document.getElementById('video-grid').appendChild(screenTile);
+            document.getElementById('screen-share-video').srcObject = screenStream;
             
             screenTrack.onended = () => {
                 toggleScreenShare();
@@ -359,16 +364,26 @@ async function toggleScreenShare() {
             console.error('Screen share error:', err);
         }
     } else {
-        // Restore camera
-        const videoTrack = localStream.getVideoTracks()[0];
+        // Stop screen share
+        const screenTile = document.getElementById('screen-share-tile');
+        if (screenTile) {
+            const video = document.getElementById('screen-share-video');
+            if (video && video.srcObject) {
+                video.srcObject.getTracks().forEach(track => track.stop());
+            }
+            screenTile.remove();
+        }
+        
+        // Remove screen track from peer connections
         Object.values(peerConnections).forEach(pc => {
-            const sender = pc.getSenders().find(s => s.track?.kind === 'video');
-            if (sender) {
-                sender.replaceTrack(videoTrack);
+            const screenSender = pc.getSenders().find(s => 
+                s.track?.kind === 'video' && s.track?.label.includes('screen')
+            );
+            if (screenSender) {
+                pc.removeTrack(screenSender);
             }
         });
         
-        document.getElementById('local-video').srcObject = localStream;
         isScreenSharing = false;
         document.getElementById('share-screen').classList.remove('active');
         document.getElementById('share-screen').classList.add('inactive');
