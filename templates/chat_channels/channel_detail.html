@@ -1588,6 +1588,9 @@ document.addEventListener("DOMContentLoaded", function () {
                 if (confirm('Delete this message?')) {
                     const res = await fetch(`/api/v1/messages/${messageId}/`, { method: 'DELETE', headers: { 'X-CSRFToken': csrfToken } });
                     if (!res.ok) throw new Error("Failed to delete message");
+                    
+                    // Immediately update UI
+                    handleMessageDelete({ message_id: messageId });
                 }
             } else if (action === 'forward') {
                 const targetId = prompt('Enter target channel ID:');
