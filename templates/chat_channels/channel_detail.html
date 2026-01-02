@@ -800,17 +800,25 @@ document.addEventListener("DOMContentLoaded", function () {
     // Auto-expand textarea as user types
     if (messageInput) {
         messageInput.style.height = 'auto';
-        messageInput.style.overflowY = 'hidden';
         
         messageInput.addEventListener('input', function() {
             this.style.height = 'auto';
-            this.style.height = Math.min(this.scrollHeight, 150) + 'px'; // Max height 150px
+            const newHeight = Math.min(this.scrollHeight, 150);
+            this.style.height = newHeight + 'px';
+            
+            // Show scrollbar when max height is reached
+            if (this.scrollHeight > 150) {
+                this.style.overflowY = 'auto';
+            } else {
+                this.style.overflowY = 'hidden';
+            }
         });
         
         // Reset height when message is sent
         chatForm?.addEventListener('submit', function() {
             setTimeout(() => {
                 messageInput.style.height = 'auto';
+                messageInput.style.overflowY = 'hidden';
             }, 100);
         });
     }
