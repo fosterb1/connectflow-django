@@ -1767,10 +1767,17 @@ document.addEventListener("DOMContentLoaded", function () {
     window.clearVoiceRecording = () => { recordedBlob = null; if (previewWaveform) previewWaveform.destroy(); document.getElementById('voice-playback-preview').classList.add('hidden'); updateSendButtonState(); };
     
     window.renderFilePreviews = () => {
+        console.log('renderFilePreviews called, selectedFiles:', selectedFiles.length);
         const container = document.getElementById('file-previews-container');
         const grid = document.getElementById('preview-grid');
+        console.log('Container:', container, 'Grid:', grid);
         grid.innerHTML = '';
-        if (selectedFiles.length === 0) { container.classList.add('hidden'); return; }
+        if (selectedFiles.length === 0) { 
+            console.log('No files, hiding container');
+            container.classList.add('hidden'); 
+            return; 
+        }
+        console.log('Showing container with', selectedFiles.length, 'files');
         container.classList.remove('hidden');
         selectedFiles.forEach((file, index) => {
             const isImage = file.type.startsWith('image/');
@@ -1790,17 +1797,21 @@ document.addEventListener("DOMContentLoaded", function () {
             rb.innerHTML = '<svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg>';
             div.appendChild(rb); grid.appendChild(div);
         });
+        console.log('Preview rendering complete');
     };
     window.removeFile = (index) => { selectedFiles.splice(index, 1); renderFilePreviews(); updateSendButtonState(); };
     window.clearAllFiles = () => { selectedFiles = []; renderFilePreviews(); updateSendButtonState(); };
 
     document.getElementById('file-upload').addEventListener('change', function() {
+        console.log('File input changed, files:', this.files);
         if (this.files) {
             Array.from(this.files).forEach(file => {
+                console.log('Processing file:', file.name, file.size);
                 if (!selectedFiles.some(f => f.name === file.name && f.size === file.size)) {
                     selectedFiles.push(file);
                 }
             });
+            console.log('Selected files after update:', selectedFiles.length);
             renderFilePreviews();
             this.value = '';
         }
