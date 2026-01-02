@@ -740,3 +740,96 @@ def channel_pinned_messages(request, pk):
         } for msg in pinned_messages]
     })
 
+
+
+@login_required
+@require_POST
+def update_notification_settings(request, pk):
+    """Update notification settings for a channel."""
+    import json
+    from .models import ChannelNotificationSettings
+    
+    channel = get_object_or_404(Channel, pk=pk)
+    
+    # Check access
+    if not channel.members.filter(id=request.user.id).exists():
+        return JsonResponse({'error': 'Access denied'}, status=403)
+    
+    try:
+        data = json.loads(request.body)
+        level = data.get('notification_level', 'ALL')
+        
+        settings, created = ChannelNotificationSettings.objects.get_or_create(
+            user=request.user,
+            channel=channel
+        )
+        settings.notification_level = level
+        settings.save()
+        
+        return JsonResponse({'success': True})
+    except Exception as e:
+        return JsonResponse({'error': str(e)}, status=500)
+
+
+@login_required
+@require_POST
+def mute_channel(request, pk):
+    """Mute a channel for specified hours."""
+    import json
+    from datetime import timedelta
+    from django.utils import timezone
+    from .models import ChannelNotificationSettings
+    
+    channel = get_object_or_404(Channel, pk=pk)
+    
+    if not channel.members.filter(id=request.user.id).exists():
+        return JsonResponse({'error': 'Access denied'}, status=403)
+    
+    try:
+        data = json.loads(request.body)
+        hours = int(data.get('hours', 0))
+        
+        settings, created = ChannelNotificationSettings.objects.get_or_create(
+            user=request.user,
+            channel=channel
+        )
+        settings.is_muted = True
+        
+        if hours > 0:
+            settings.muted_until = timezone.now() + timedelta(hours=hours)
+        else:
+            settings.muted_until = None  # Muted indefinitely
+        
+        settings.save()
+        
+        return JsonResponse({'success': True})
+    except Exception as e:
+        return JsonResponse({'error': str(e)}, status=500)
+
+
+@login_required
+@require_POST
+def unmute_channel(request, pk):
+    """Unmute a channel."""
+    from .models import ChannelNotificationSettings
+    
+    channel = get_object_or_404(Channel, pk=pk)
+    
+    if not channel.members.filter(id=request.user.id).exists():
+        return JsonResponse({'error': 'Access denied'}, status=403)
+    
+    try:
+        settings = ChannelNotificationSettings.objects.filter(
+            user=request.user,
+            channel=channel
+        ).first()
+        
+        if settings:
+            settings.is_muted = False
+            settings.muted_until = None
+            settings.save()
+        
+        return JsonResponse({'success': True})
+    except Exception as e:
+        return JsonResponse({'error': str(e)}, status=500)
+

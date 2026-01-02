@@ -649,3 +649,59 @@ def notify_members_added_to_channel(sender, instance, action, pk_set, **kwargs):
                 )
             except Exception as e:
                 print(f"Error sending notification: {e}")
+
+class ChannelNotificationSettings(models.Model):
+    """User-specific notification settings for a channel."""
+    
+    class NotificationLevel(models.TextChoices):
+        ALL = 'ALL', _('All messages')
+        MENTIONS = 'MENTIONS', _('Mentions only')
+        DMS = 'DMS', _('Direct messages only')
+        NOTHING = 'NOTHING', _('Nothing')
+    
+    user = models.ForeignKey(
+        User,
+        on_delete=models.CASCADE,
+        related_name='channel_notification_settings'
+    )
+    
+    channel = models.ForeignKey(
+        Channel,
+        on_delete=models.CASCADE,
+        related_name='notification_settings'
+    )
+    
+    notification_level = models.CharField(
+        max_length=20,
+        choices=NotificationLevel.choices,
+        default=NotificationLevel.ALL
+    )
+    
+    is_muted = models.BooleanField(default=False)
+    muted_until = models.DateTimeField(null=True, blank=True)
+    
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+    
+    class Meta:
+        unique_together = ['user', 'channel']
+        verbose_name = _("Channel Notification Setting")
+        verbose_name_plural = _("Channel Notification Settings")
+    
+    def __str__(self):
+        return f"{self.user.username} - {self.channel.name}: {self.notification_level}"
+    
+    @property
+    def is_currently_muted(self):
+        """Check if channel is currently muted."""
+        from django.utils import timezone
+        if not self.is_muted:
+            return False
+        if self.muted_until and self.muted_until < timezone.now():
+            # Auto-unmute if time expired
+            self.is_muted = False
+            self.muted_until = None
+            self.save()
+            return False
+        return True
+

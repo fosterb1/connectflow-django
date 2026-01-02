@@ -246,6 +246,56 @@
                     </svg>
                 </button>
                 
+                <!-- Notification Settings -->
+                <div class="relative">
+                    <button id="notification-btn" onclick="toggleNotificationMenu()" class="p-2 text-gray-400 hover:text-indigo-600 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg transition relative" title="Notification settings">
+                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" id="bell-icon">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9"></path>
+                        </svg>
+                        <svg class="w-5 h-5 hidden" fill="none" stroke="currentColor" viewBox="0 0 24 24" id="bell-off-icon">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5.586 15H4s1.405-1.405 1.405-1.405A2.032 2.032 0 016 12.159V8.5l6-6 6 6v3.659c0 .538-.214 1.055-.595 1.436L19 15h-1.586m-1.414-1.414L5.414 3M19.586 19.414L15 19"></path>
+                        </svg>
+                    </button>
+                    
+                    <!-- Dropdown Menu -->
+                    <div id="notification-menu" class="hidden absolute right-0 mt-2 w-72 bg-white dark:bg-gray-800 rounded-xl shadow-2xl border border-gray-200 dark:border-gray-700 overflow-hidden z-50">
+                        <div class="p-4 border-b border-gray-200 dark:border-gray-700">
+                            <h3 class="text-sm font-black text-gray-800 dark:text-white uppercase tracking-wider">Notifications</h3>
+                        </div>
+                        
+                        <!-- Notification Level -->
+                        <div class="p-4 border-b border-gray-200 dark:border-gray-700">
+                            <p class="text-xs text-gray-500 dark:text-gray-400 mb-2 font-medium">Notify me about</p>
+                            <div class="space-y-2">
+                                <label class="flex items-center cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-700 p-2 rounded-lg transition">
+                                    <input type="radio" name="notification-level" value="ALL" class="text-indigo-600" checked>
+                                    <span class="ml-2 text-sm text-gray-700 dark:text-gray-300">All messages</span>
+                                </label>
+                                <label class="flex items-center cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-700 p-2 rounded-lg transition">
+                                    <input type="radio" name="notification-level" value="MENTIONS" class="text-indigo-600">
+                                    <span class="ml-2 text-sm text-gray-700 dark:text-gray-300">@mentions only</span>
+                                </label>
+                                <label class="flex items-center cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-700 p-2 rounded-lg transition">
+                                    <input type="radio" name="notification-level" value="NOTHING" class="text-indigo-600">
+                                    <span class="ml-2 text-sm text-gray-700 dark:text-gray-300">Nothing</span>
+                                </label>
+                            </div>
+                        </div>
+                        
+                        <!-- Mute Options -->
+                        <div class="p-4">
+                            <p class="text-xs text-gray-500 dark:text-gray-400 mb-2 font-medium">Mute channel</p>
+                            <div class="space-y-2">
+                                <button onclick="muteChannel(8)" class="w-full text-left px-3 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 rounded-lg transition">For 8 hours</button>
+                                <button onclick="muteChannel(24)" class="w-full text-left px-3 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 rounded-lg transition">For 24 hours</button>
+                                <button onclick="muteChannel(168)" class="w-full text-left px-3 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 rounded-lg transition">For 1 week</button>
+                                <button onclick="muteChannel(0)" class="w-full text-left px-3 py-2 text-sm text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-lg transition">Until I unmute</button>
+                            </div>
+                            <button onclick="unmuteChannel()" class="w-full mt-3 px-3 py-2 text-sm text-indigo-600 dark:text-indigo-400 hover:bg-indigo-50 dark:hover:bg-indigo-900/20 rounded-lg transition font-medium">Unmute channel</button>
+                        </div>
+                    </div>
+                </div>
+                
                 {% if can_edit and channel.channel_type == 'BREAKOUT' %}<form action="{% url 'chat_channels:breakout_close' channel.pk %}" method="post" class="inline">{% csrf_token %}<button type="submit" class="bg-red-50 text-red-600 px-3 py-1.5 rounded-lg text-[10px] font-black uppercase tracking-widest hover:bg-red-100 transition">Close Room</button></form>
                 {% elif can_edit %}<a href="{% url 'chat_channels:channel_edit' channel.pk %}" class="text-gray-400 hover:text-indigo-600 p-2 rounded-lg transition"><svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"></path><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path></svg></a>{% endif %}
                 <button onclick="toggleSidebar()" class="lg:hidden p-2 text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-full transition"><svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg></button>
@@ -2155,6 +2205,105 @@ function unpinMessage(messageId) {
         }
     })
     .catch(error => console.error('Error unpinning message:', error));
+}
+
+// Notification settings
+function toggleNotificationMenu() {
+    const menu = document.getElementById('notification-menu');
+    menu.classList.toggle('hidden');
+}
+
+// Close notification menu when clicking outside
+document.addEventListener('click', (e) => {
+    const menu = document.getElementById('notification-menu');
+    const btn = document.getElementById('notification-btn');
+    if (menu && btn && !menu.contains(e.target) && !btn.contains(e.target)) {
+        menu.classList.add('hidden');
+    }
+});
+
+// Handle notification level change
+document.addEventListener('DOMContentLoaded', () => {
+    const radios = document.querySelectorAll('input[name="notification-level"]');
+    radios.forEach(radio => {
+        radio.addEventListener('change', (e) => {
+            updateNotificationLevel(e.target.value);
+        });
+    });
+});
+
+function updateNotificationLevel(level) {
+    fetch(`/channels/{{ channel.id }}/notifications/`, {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+            'X-CSRFToken': getCookie('csrftoken')
+        },
+        body: JSON.stringify({ notification_level: level })
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            showToast(`Notifications set to: ${level.toLowerCase()}`, 'success');
+        }
+    })
+    .catch(error => console.error('Error updating notification settings:', error));
+}
+
+function muteChannel(hours) {
+    fetch(`/channels/{{ channel.id }}/mute/`, {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+            'X-CSRFToken': getCookie('csrftoken')
+        },
+        body: JSON.stringify({ hours: hours })
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            document.getElementById('bell-icon').classList.add('hidden');
+            document.getElementById('bell-off-icon').classList.remove('hidden');
+            
+            const message = hours === 0 ? 'Channel muted' : `Channel muted for ${hours} hours`;
+            showToast(message, 'success');
+            document.getElementById('notification-menu').classList.add('hidden');
+        }
+    })
+    .catch(error => console.error('Error muting channel:', error));
+}
+
+function unmuteChannel() {
+    fetch(`/channels/{{ channel.id }}/unmute/`, {
+        method: 'POST',
+        headers: {
+            'X-CSRFToken': getCookie('csrftoken')
+        }
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            document.getElementById('bell-icon').classList.remove('hidden');
+            document.getElementById('bell-off-icon').classList.add('hidden');
+            showToast('Channel unmuted', 'success');
+            document.getElementById('notification-menu').classList.add('hidden');
+        }
+    })
+    .catch(error => console.error('Error unmuting channel:', error));
+}
+
+function showToast(message, type = 'info') {
+    // Simple toast notification
+    const toast = document.createElement('div');
+    toast.className = `fixed bottom-4 right-4 px-6 py-3 rounded-lg shadow-lg text-white text-sm font-medium z-50 ${type === 'success' ? 'bg-green-600' : 'bg-blue-600'}`;
+    toast.textContent = message;
+    document.body.appendChild(toast);
+    
+    setTimeout(() => {
+        toast.style.opacity = '0';
+        toast.style.transition = 'opacity 0.3s';
+        setTimeout(() => toast.remove(), 300);
+    }, 3000);
 }
 </script>
 {% endblock %}

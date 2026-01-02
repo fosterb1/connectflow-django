@@ -23,4 +23,7 @@ urlpatterns = [
     path('message/<uuid:pk>/thread/', views.message_thread, name='message_thread'),
     path('message/<uuid:pk>/reply/', views.message_reply, name='message_reply'),
     path('<uuid:pk>/pinned/', views.channel_pinned_messages, name='channel_pinned_messages'),
+    path('<uuid:pk>/notifications/', views.update_notification_settings, name='update_notification_settings'),
+    path('<uuid:pk>/mute/', views.mute_channel, name='mute_channel'),
+    path('<uuid:pk>/unmute/', views.unmute_channel, name='unmute_channel'),
 ]
