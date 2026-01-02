@@ -20,4 +20,6 @@ urlpatterns = [
     path('message/<uuid:pk>/edit/', views.message_edit, name='message_edit'),
     path('message/<uuid:pk>/delete/', views.message_delete, name='message_delete'),
     path('message/<uuid:pk>/react/', views.message_react, name='message_react'),
+    path('message/<uuid:pk>/thread/', views.message_thread, name='message_thread'),
+    path('message/<uuid:pk>/reply/', views.message_reply, name='message_reply'),
 ]

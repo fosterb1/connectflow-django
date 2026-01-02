@@ -641,3 +641,76 @@ def message_react(request, pk):
         })
     
     return redirect('chat_channels:channel_detail', pk=message.channel.pk)
+
+
+@login_required
+def message_thread(request, pk):
+    """Get thread (parent message and all replies)."""
+    message = get_object_or_404(Message, pk=pk)
+    
+    # Check access
+    if not message.channel.members.filter(id=request.user.id).exists():
+        return JsonResponse({'error': 'Access denied'}, status=403)
+    
+    # Get replies
+    replies = message.replies.filter(is_deleted=False).order_by('created_at')
+    
+    return JsonResponse({
+        'parent': {
+            'id': str(message.id),
+            'content': message.content,
+            'sender_name': message.sender.get_full_name(),
+            'sender_avatar': message.sender.avatar.url if message.sender.avatar else None,
+            'timestamp': message.created_at.strftime('%b %d, %I:%M %p'),
+        },
+        'replies': [{
+            'id': str(reply.id),
+            'content': reply.content,
+            'sender_name': reply.sender.get_full_name(),
+            'sender_avatar': reply.sender.avatar.url if reply.sender.avatar else None,
+            'timestamp': reply.created_at.strftime('%b %d, %I:%M %p'),
+        } for reply in replies]
+    })
+
+
+@login_required
+@require_POST
+def message_reply(request, pk):
+    """Add a reply to a message thread."""
+    import json
+    from django.utils import timezone
+    
+    parent_message = get_object_or_404(Message, pk=pk)
+    
+    # Check access
+    if not parent_message.channel.members.filter(id=request.user.id).exists():
+        return JsonResponse({'error': 'Access denied'}, status=403)
+    
+    try:
+        data = json.loads(request.body)
+        content = data.get('content', '').strip()
+        
+        if not content:
+            return JsonResponse({'error': 'Content required'}, status=400)
+        
+        # Create reply
+        reply = Message.objects.create(
+            channel=parent_message.channel,
+            sender=request.user,
+            content=content,
+            parent_message=parent_message
+        )
+        
+        return JsonResponse({
+            'id': str(reply.id),
+            'content': reply.content,
+            'sender_name': request.user.get_full_name(),
+            'sender_avatar': request.user.avatar.url if request.user.avatar else None,
+            'timestamp': timezone.now().strftime('%b %d, %I:%M %p'),
+        })
+        
+    except json.JSONDecodeError:
+        return JsonResponse({'error': 'Invalid JSON'}, status=400)
+    except Exception as e:
+        return JsonResponse({'error': str(e)}, status=500)
+

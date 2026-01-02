@@ -477,6 +477,21 @@
                                 </div>
                             {% endif %}
                             
+                            {# Thread indicator #}
+                            {% if message.reply_count > 0 and not message.parent_message %}
+                                <div class="mt-2 {% if message.sender == user %}text-right{% endif %}">
+                                    <button onclick="openThread('{{ message.pk }}')" class="inline-flex items-center text-[10px] font-bold text-indigo-600 dark:text-indigo-400 hover:text-indigo-700 dark:hover:text-indigo-300 transition-colors gap-1.5 group">
+                                        <svg class="w-3.5 h-3.5 group-hover:scale-110 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z"></path>
+                                        </svg>
+                                        <span>{{ message.reply_count }} repl{{ message.reply_count|pluralize:"y,ies" }}</span>
+                                        <svg class="w-3 h-3 opacity-50" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"></path>
+                                        </svg>
+                                    </button>
+                                </div>
+                            {% endif %}
+                            
                             <form id="reaction-form-{{ message.pk }}" method="post" action="{% url 'chat_channels:message_react' message.pk %}" class="hidden">
                                 {% csrf_token %}
                                 <input type="hidden" name="emoji" id="emoji-input-{{ message.pk }}">
@@ -558,6 +573,49 @@
             {% if channel.channel_type != 'DIRECT' %}<div class="mb-8"><p class="text-xs text-gray-600 dark:text-gray-300 italic">{{ channel.description|default:"No description provided." }}</p></div>{% if can_edit %}<div class="mb-8 p-4 bg-indigo-50 dark:bg-indigo-900/20 rounded-2xl border border-indigo-100 dark:border-indigo-800"><h4 class="text-[10px] font-black uppercase text-indigo-600 mb-3">Management</h4><div class="space-y-2"><a href="{% url 'chat_channels:channel_edit' channel.pk %}" class="block w-full text-center py-2 bg-white dark:bg-gray-800 text-indigo-600 text-[10px] font-black uppercase tracking-widest rounded-lg border border-indigo-100 transition hover:bg-indigo-50">Manage Members</a><a href="{% url 'chat_channels:breakout_create' channel.pk %}" class="block w-full text-center py-2 bg-indigo-600 text-white text-[10px] font-black uppercase tracking-widest rounded-lg transition hover:bg-indigo-700 shadow-sm">+ Breakout Room</a></div></div>{% else %}<div class="mb-8"><a href="{% url 'chat_channels:breakout_create' channel.pk %}" class="block w-full text-center py-3 bg-gray-50 dark:bg-gray-800 text-gray-600 dark:text-gray-300 text-[10px] font-black uppercase tracking-widest rounded-xl border-2 border-dashed border-gray-200 dark:border-gray-700 hover:border-indigo-300 transition">Start Breakout Room</a></div>{% endif %}{% endif %}
             {% if breakout_rooms %}<div class="mb-8"><h4 class="text-[10px] font-black uppercase text-gray-400 mb-4 tracking-widest">Active Breakouts</h4><div class="space-y-2">{% for room in breakout_rooms %}<a href="{% url 'chat_channels:channel_detail' room.pk %}" class="flex items-center p-3 bg-green-50 dark:bg-green-900/20 border border-green-100 dark:border-green-800 rounded-xl hover:bg-green-100 transition group"><span class="w-2 h-2 bg-green-500 rounded-full mr-3 animate-pulse"></span><span class="text-xs font-bold text-green-700 dark:text-green-400 truncate">{{ room.name }}</span></a>{% endfor %}</div></div>{% endif %}
             <div><h4 class="text-[10px] font-black uppercase text-gray-400 mb-4 tracking-widest">Members ({{ channel.member_count }})</h4><div class="space-y-3">{% for member in channel.members.all %}<div class="flex items-center justify-between group" data-user-id="{{ member.id }}"><a href="{% url 'accounts:profile_detail' member.id %}" class="flex items-center space-x-3"><div class="relative">{% if member.avatar %}<img src="{{ member.avatar.url }}" class="w-8 h-8 rounded-full object-cover">{% else %}<div class="w-8 h-8 bg-indigo-100 text-indigo-600 rounded-full flex items-center justify-center text-[10px] font-black">{{ member.username.0|upper }}</div>{% endif %}<div class="status-dot absolute -bottom-0.5 -right-0.5 w-2.5 h-2.5 rounded-full border-2 border-white dark:border-gray-900 {% if member.status == 'ONLINE' %}bg-green-500{% else %}bg-gray-300{% endif %}"></div></div><div class="min-w-0"><p class="text-xs font-bold text-gray-700 dark:text-gray-200 truncate">{{ member.get_full_name }}</p><p class="text-[8px] text-gray-400 uppercase font-black">{{ member.professional_role|default:member.get_role_display }}</p></div></a></div>{% endfor %}</div></div>
+        </div>
+    </aside>
+
+    <!-- Thread Panel -->
+    <aside class="fixed top-0 right-0 h-full w-full md:w-[480px] bg-white dark:bg-gray-900 shadow-2xl transform translate-x-full transition-transform duration-300 ease-in-out z-50" id="thread-panel">
+        <div class="flex flex-col h-full">
+            <!-- Thread Header -->
+            <div class="flex items-center justify-between p-4 border-b border-gray-200 dark:border-gray-700">
+                <div class="flex items-center space-x-2">
+                    <svg class="w-5 h-5 text-indigo-600 dark:text-indigo-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z"></path>
+                    </svg>
+                    <h3 class="text-sm font-black text-gray-800 dark:text-white uppercase tracking-wider">Thread</h3>
+                    <span id="thread-reply-count" class="text-xs text-gray-500 dark:text-gray-400 font-medium"></span>
+                </div>
+                <button onclick="closeThread()" class="text-gray-400 hover:text-gray-600 dark:hover:text-gray-200 transition">
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+                    </svg>
+                </button>
+            </div>
+            
+            <!-- Thread Parent Message -->
+            <div id="thread-parent" class="border-b border-gray-200 dark:border-gray-700 p-4 bg-gray-50 dark:bg-gray-800/50">
+                <!-- Parent message will be inserted here -->
+            </div>
+            
+            <!-- Thread Replies -->
+            <div id="thread-replies" class="flex-1 overflow-y-auto p-4 space-y-3">
+                <!-- Replies will be inserted here -->
+            </div>
+            
+            <!-- Thread Input -->
+            <div class="border-t border-gray-200 dark:border-gray-700 p-4">
+                <form id="thread-reply-form" class="flex items-center space-x-2">
+                    <input type="text" id="thread-input" placeholder="Reply in thread..." class="flex-1 px-4 py-2 border border-gray-200 dark:border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 dark:bg-gray-800 dark:text-white text-sm" />
+                    <button type="submit" class="bg-indigo-600 text-white p-2 rounded-lg hover:bg-indigo-700 transition">
+                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8"></path>
+                        </svg>
+                    </button>
+                </form>
+            </div>
         </div>
     </aside>
 
@@ -1732,6 +1790,155 @@ function insertMarkdown(before, after) {
     }
     
     input.focus();
+}
+
+// Thread management
+let currentThreadId = null;
+
+async function openThread(messageId) {
+    currentThreadId = messageId;
+    const panel = document.getElementById('thread-panel');
+    
+    try {
+        // Fetch thread data
+        const response = await fetch(`/channels/message/${messageId}/thread/`);
+        if (!response.ok) throw new Error('Failed to load thread');
+        
+        const data = await response.json();
+        
+        // Update thread UI
+        document.getElementById('thread-reply-count').textContent = `${data.replies.length} ${data.replies.length === 1 ? 'reply' : 'replies'}`;
+        
+        // Display parent message
+        const parentHTML = `
+            <div class="flex items-start space-x-3">
+                ${data.parent.sender_avatar ? 
+                    `<img src="${data.parent.sender_avatar}" class="w-8 h-8 rounded-full">` :
+                    `<div class="w-8 h-8 bg-indigo-600 rounded-full flex items-center justify-center text-white text-xs font-bold">${data.parent.sender_name.charAt(0)}</div>`
+                }
+                <div class="flex-1 min-w-0">
+                    <div class="flex items-center space-x-2 mb-1">
+                        <span class="font-bold text-sm text-gray-800 dark:text-white">${data.parent.sender_name}</span>
+                        <span class="text-[10px] text-gray-400">${data.parent.timestamp}</span>
+                    </div>
+                    <div class="text-sm text-gray-700 dark:text-gray-300">${escapeHtml(data.parent.content)}</div>
+                </div>
+            </div>
+        `;
+        document.getElementById('thread-parent').innerHTML = parentHTML;
+        
+        // Display replies
+        const repliesHTML = data.replies.map(reply => `
+            <div class="flex items-start space-x-3">
+                ${reply.sender_avatar ?
+                    `<img src="${reply.sender_avatar}" class="w-7 h-7 rounded-full">` :
+                    `<div class="w-7 h-7 bg-gray-400 rounded-full flex items-center justify-center text-white text-xs font-bold">${reply.sender_name.charAt(0)}</div>`
+                }
+                <div class="flex-1 min-w-0">
+                    <div class="flex items-center space-x-2 mb-0.5">
+                        <span class="font-bold text-xs text-gray-800 dark:text-white">${reply.sender_name}</span>
+                        <span class="text-[9px] text-gray-400">${reply.timestamp}</span>
+                    </div>
+                    <div class="text-sm text-gray-700 dark:text-gray-300 bg-gray-100 dark:bg-gray-800 rounded-lg px-3 py-2">
+                        ${escapeHtml(reply.content)}
+                    </div>
+                </div>
+            </div>
+        `).join('');
+        
+        document.getElementById('thread-replies').innerHTML = repliesHTML || '<p class="text-center text-gray-400 text-sm italic">No replies yet. Be the first to reply!</p>';
+        
+        // Show panel
+        panel.classList.remove('translate-x-full');
+        
+    } catch (error) {
+        console.error('Error opening thread:', error);
+        alert('Failed to load thread. Please try again.');
+    }
+}
+
+function closeThread() {
+    currentThreadId = null;
+    document.getElementById('thread-panel').classList.add('translate-x-full');
+}
+
+// Handle thread reply submission
+document.getElementById('thread-reply-form')?.addEventListener('submit', async (e) => {
+    e.preventDefault();
+    
+    const input = document.getElementById('thread-input');
+    const content = input.value.trim();
+    
+    if (!content || !currentThreadId) return;
+    
+    try {
+        const response = await fetch(`/channels/message/${currentThreadId}/reply/`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRFToken': getCookie('csrftoken')
+            },
+            body: JSON.stringify({ content })
+        });
+        
+        if (!response.ok) throw new Error('Failed to send reply');
+        
+        const data = await response.json();
+        
+        // Add reply to thread
+        const repliesContainer = document.getElementById('thread-replies');
+        if (repliesContainer.querySelector('p.italic')) {
+            repliesContainer.innerHTML = '';
+        }
+        
+        const replyHTML = `
+            <div class="flex items-start space-x-3">
+                ${data.sender_avatar ?
+                    `<img src="${data.sender_avatar}" class="w-7 h-7 rounded-full">` :
+                    `<div class="w-7 h-7 bg-gray-400 rounded-full flex items-center justify-center text-white text-xs font-bold">${data.sender_name.charAt(0)}</div>`
+                }
+                <div class="flex-1 min-w-0">
+                    <div class="flex items-center space-x-2 mb-0.5">
+                        <span class="font-bold text-xs text-gray-800 dark:text-white">${data.sender_name}</span>
+                        <span class="text-[9px] text-gray-400">${data.timestamp}</span>
+                    </div>
+                    <div class="text-sm text-gray-700 dark:text-gray-300 bg-gray-100 dark:bg-gray-800 rounded-lg px-3 py-2">
+                        ${escapeHtml(data.content)}
+                    </div>
+                </div>
+            </div>
+        `;
+        
+        repliesContainer.insertAdjacentHTML('beforeend', replyHTML);
+        repliesContainer.scrollTop = repliesContainer.scrollHeight;
+        
+        // Update reply count
+        const countElem = document.getElementById('thread-reply-count');
+        const currentCount = parseInt(countElem.textContent) || 0;
+        countElem.textContent = `${currentCount + 1} ${currentCount + 1 === 1 ? 'reply' : 'replies'}`;
+        
+        // Clear input
+        input.value = '';
+        
+        // Broadcast via WebSocket
+        if (chatSocket && chatSocket.readyState === WebSocket.OPEN) {
+            chatSocket.send(JSON.stringify({
+                type: 'chat_message',
+                message: content,
+                parent_message_id: currentThreadId
+            }));
+        }
+        
+    } catch (error) {
+        console.error('Error sending reply:', error);
+        alert('Failed to send reply. Please try again.');
+    }
+});
+
+function escapeHtml(text) {
+    const div = document.createElement('div');
+    div.textContent = text;
+    return div.innerHTML;
 }
 </script>
 {% endblock %}
