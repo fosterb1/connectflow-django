@@ -59,6 +59,7 @@ INSTALLED_APPS = [
     'apps.organizations',
     'apps.chat_channels',
     'apps.support',
+    'apps.calls',
 ]
 
 MIDDLEWARE = [

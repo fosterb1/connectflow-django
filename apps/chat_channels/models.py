@@ -705,3 +705,134 @@ class ChannelNotificationSettings(models.Model):
             return False
         return True
 
+
+
+class Call(models.Model):
+    """Voice/Video call model."""
+    
+    class CallType(models.TextChoices):
+        AUDIO = 'AUDIO', _('Audio Call')
+        VIDEO = 'VIDEO', _('Video Call')
+        SCREEN = 'SCREEN', _('Screen Share')
+    
+    class CallStatus(models.TextChoices):
+        INITIATING = 'INITIATING', _('Initiating')
+        RINGING = 'RINGING', _('Ringing')
+        ACTIVE = 'ACTIVE', _('Active')
+        ENDED = 'ENDED', _('Ended')
+        MISSED = 'MISSED', _('Missed')
+        REJECTED = 'REJECTED', _('Rejected')
+        FAILED = 'FAILED', _('Failed')
+    
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    
+    # Call metadata
+    call_type = models.CharField(
+        max_length=10,
+        choices=CallType.choices,
+        default=CallType.AUDIO
+    )
+    
+    status = models.CharField(
+        max_length=15,
+        choices=CallStatus.choices,
+        default=CallStatus.INITIATING
+    )
+    
+    # Participants
+    initiator = models.ForeignKey(
+        User,
+        on_delete=models.CASCADE,
+        related_name='initiated_calls'
+    )
+    
+    channel = models.ForeignKey(
+        Channel,
+        on_delete=models.CASCADE,
+        related_name='calls',
+        null=True,
+        blank=True,
+        help_text=_("Channel for group calls")
+    )
+    
+    participants = models.ManyToManyField(
+        User,
+        related_name='calls',
+        through='CallParticipant'
+    )
+    
+    # Call timing
+    started_at = models.DateTimeField(null=True, blank=True)
+    ended_at = models.DateTimeField(null=True, blank=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+    
+    # WebRTC session data
+    room_id = models.CharField(max_length=100, unique=True)
+    
+    # Call settings
+    is_recording = models.BooleanField(default=False)
+    recording_url = models.URLField(blank=True, null=True)
+    
+    class Meta:
+        ordering = ['-created_at']
+        verbose_name = _("Call")
+        verbose_name_plural = _("Calls")
+    
+    def __str__(self):
+        return f"{self.get_call_type_display()} - {self.initiator.username} - {self.status}"
+    
+    @property
+    def duration(self):
+        """Calculate call duration."""
+        if self.started_at and self.ended_at:
+            return (self.ended_at - self.started_at).total_seconds()
+        return 0
+    
+    @property
+    def is_active(self):
+        """Check if call is currently active."""
+        return self.status in [self.CallStatus.RINGING, self.CallStatus.ACTIVE]
+
+
+class CallParticipant(models.Model):
+    """Track individual participants in a call."""
+    
+    class ParticipantStatus(models.TextChoices):
+        INVITED = 'INVITED', _('Invited')
+        RINGING = 'RINGING', _('Ringing')
+        JOINED = 'JOINED', _('Joined')
+        LEFT = 'LEFT', _('Left')
+        REJECTED = 'REJECTED', _('Rejected')
+        MISSED = 'MISSED', _('Missed')
+    
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    
+    call = models.ForeignKey(Call, on_delete=models.CASCADE, related_name='participant_records')
+    user = models.ForeignKey(User, on_delete=models.CASCADE)
+    
+    status = models.CharField(
+        max_length=10,
+        choices=ParticipantStatus.choices,
+        default=ParticipantStatus.INVITED
+    )
+    
+    # Media state
+    is_audio_enabled = models.BooleanField(default=True)
+    is_video_enabled = models.BooleanField(default=True)
+    is_screen_sharing = models.BooleanField(default=False)
+    
+    # Timing
+    joined_at = models.DateTimeField(null=True, blank=True)
+    left_at = models.DateTimeField(null=True, blank=True)
+    
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+    
+    class Meta:
+        unique_together = ['call', 'user']
+        verbose_name = _("Call Participant")
+        verbose_name_plural = _("Call Participants")
+    
+    def __str__(self):
+        return f"{self.user.username} in {self.call.room_id} - {self.status}"
+
