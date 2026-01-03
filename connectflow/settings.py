@@ -53,6 +53,7 @@ INSTALLED_APPS = [
     'cloudinary',
     'cloudinary_storage',
     'rest_framework',
+    'rest_framework.authtoken',
     'corsheaders',
     
     # Local apps
@@ -181,6 +182,7 @@ AUTH_USER_MODEL = 'accounts.User'
 # DRF Settings
 REST_FRAMEWORK = {
     'DEFAULT_AUTHENTICATION_CLASSES': [
+        'rest_framework.authentication.TokenAuthentication',
         'rest_framework.authentication.SessionAuthentication',
         'apps.accounts.authentication_drf.FirebaseAuthentication',
     ],

@@ -1,8 +1,66 @@
 from rest_framework import viewsets, permissions, status
-from rest_framework.decorators import action
+from rest_framework.decorators import action, api_view, permission_classes
 from rest_framework.response import Response
+from rest_framework.authtoken.models import Token
+from django.contrib.auth import authenticate
 from .models import User
 from .serializers import UserSerializer
+
+from rest_framework import viewsets, permissions, status
+from rest_framework.decorators import action, api_view, permission_classes
+from rest_framework.response import Response
+from rest_framework.authtoken.models import Token
+from django.contrib.auth import authenticate
+from .models import User
+from .serializers import UserSerializer
+
+@api_view(['POST'])
+@permission_classes([permissions.AllowAny])
+def api_login(request):
+    """
+    Login endpoint for Postman/API testing
+    POST /api/v1/login/
+    Body: {"email": "user@example.com", "password": "password"}
+    Returns: {"token": "abc123...", "user": {...}}
+    """
+    email = request.data.get('email')
+    password = request.data.get('password')
+    
+    if not email or not password:
+        return Response({
+            'error': 'Email and password required'
+        }, status=status.HTTP_400_BAD_REQUEST)
+    
+    # Authenticate user
+    user = authenticate(request, username=email, password=password)
+    
+    if user is None:
+        return Response({
+            'error': 'Invalid credentials'
+        }, status=status.HTTP_401_UNAUTHORIZED)
+    
+    # Get or create token
+    token, created = Token.objects.get_or_create(user=user)
+    
+    # Return token and user data
+    serializer = UserSerializer(user)
+    return Response({
+        'token': token.key,
+        'user': serializer.data
+    })
+
+@api_view(['POST'])
+@permission_classes([permissions.IsAuthenticated])
+def api_logout(request):
+    """
+    Logout endpoint - deletes the user's token
+    POST /api/v1/logout/
+    """
+    try:
+        request.user.auth_token.delete()
+        return Response({'message': 'Logged out successfully'})
+    except:
+        return Response({'message': 'Logged out'})
 
 class UserViewSet(viewsets.ModelViewSet):
     queryset = User.objects.all()
