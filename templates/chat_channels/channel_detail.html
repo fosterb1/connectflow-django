@@ -853,6 +853,11 @@ document.addEventListener("DOMContentLoaded", function () {
         const wsScheme = window.location.protocol === "https:" ? "wss" : "ws";
         const wsUrl = `${wsScheme}://${window.location.host}/ws/chat/${channelId}/`;
         chatSocket = new WebSocket(wsUrl);
+        
+        chatSocket.onopen = () => {
+            console.log("✅ Chat WebSocket connected!");
+        };
+        
         chatSocket.onmessage = (e) => {
             console.log("WebSocket message received:", e.data);
             const data = JSON.parse(e.data);
@@ -884,7 +889,15 @@ document.addEventListener("DOMContentLoaded", function () {
             else if (data.type === 'typing') { handleTyping(data); }
             else if (data.type === 'presence') { handlePresence(data); }
         };
-        chatSocket.onclose = () => setTimeout(connectWebSocket, 1000);
+        
+        chatSocket.onerror = (error) => {
+            console.error("❌ Chat WebSocket error:", error);
+        };
+        
+        chatSocket.onclose = () => {
+            console.log("Chat WebSocket closed. Reconnecting...");
+            setTimeout(connectWebSocket, 1000);
+        };
     }
 
     function handleMessagePinned(data, isPinned) {
