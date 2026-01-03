@@ -195,6 +195,43 @@ LOGIN_REDIRECT_URL = 'accounts:dashboard'
 LOGOUT_REDIRECT_URL = 'accounts:login'
 
 # Media files (uploaded files like avatars)
+
+# WebRTC Configuration
+# STUN/TURN servers for NAT traversal
+WEBRTC_ICE_SERVERS = [
+    # Google STUN servers (free)
+    {'urls': 'stun:stun.l.google.com:19302'},
+    {'urls': 'stun:stun1.l.google.com:19302'},
+    {'urls': 'stun:stun2.l.google.com:19302'},
+    {'urls': 'stun:stun3.l.google.com:19302'},
+    {'urls': 'stun:stun4.l.google.com:19302'},
+]
+
+# Add TURN servers if configured (for production)
+TURN_SERVER_URL = config('TURN_SERVER_URL', default='')
+TURN_USERNAME = config('TURN_USERNAME', default='')
+TURN_PASSWORD = config('TURN_PASSWORD', default='')
+
+if TURN_SERVER_URL and TURN_USERNAME and TURN_PASSWORD:
+    WEBRTC_ICE_SERVERS.append({
+        'urls': TURN_SERVER_URL,
+        'username': TURN_USERNAME,
+        'credential': TURN_PASSWORD
+    })
+
+# WebRTC Call Settings
+WEBRTC_CONFIG = {
+    'max_participants': 50,  # Maximum participants per call
+    'call_timeout': 30,  # Seconds before call times out
+    'max_reconnect_attempts': 5,
+    'reconnect_delay': 2000,  # milliseconds
+    'connection_timeout': 15000,  # milliseconds
+    'enable_simulcast': True,  # For better multi-party calls
+    'preferred_codec': 'VP9',  # VP8, VP9, or H264
+    'max_bitrate': 2500000,  # 2.5 Mbps
+    'min_bitrate': 250000,  # 250 Kbps
+}
+
 MEDIA_URL = '/media/'
 MEDIA_ROOT = BASE_DIR / 'media'
 
