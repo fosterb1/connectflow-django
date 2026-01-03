@@ -3,14 +3,7 @@ from rest_framework.decorators import action, api_view, permission_classes
 from rest_framework.response import Response
 from rest_framework.authtoken.models import Token
 from django.contrib.auth import authenticate
-from .models import User
-from .serializers import UserSerializer
-
-from rest_framework import viewsets, permissions, status
-from rest_framework.decorators import action, api_view, permission_classes
-from rest_framework.response import Response
-from rest_framework.authtoken.models import Token
-from django.contrib.auth import authenticate
+from django.utils import timezone
 from .models import User
 from .serializers import UserSerializer
 
@@ -39,6 +32,11 @@ def api_login(request):
             'error': 'Invalid credentials'
         }, status=status.HTTP_401_UNAUTHORIZED)
     
+    # Set user ONLINE on API login
+    user.status = User.Status.ONLINE
+    user.last_seen = timezone.now()
+    user.save(update_fields=['status', 'last_seen'])
+    
     # Get or create token
     token, created = Token.objects.get_or_create(user=user)
     
@@ -56,6 +54,11 @@ def api_logout(request):
     Logout endpoint - deletes the user's token
     POST /api/v1/logout/
     """
+    # Set user OFFLINE on logout
+    request.user.status = User.Status.OFFLINE
+    request.user.last_seen = timezone.now()
+    request.user.save(update_fields=['status', 'last_seen'])
+    
     try:
         request.user.auth_token.delete()
         return Response({'message': 'Logged out successfully'})

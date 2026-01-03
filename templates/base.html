@@ -658,6 +658,126 @@
             }
         }
         setupNotifications();
+
+        // --- Global Presence Tracking ---
+        function setupPresence() {
+            const wsScheme = window.location.protocol === "https:" ? "wss" : "ws";
+            const presenceUrl = `${wsScheme}://${window.location.host}/ws/presence/`;
+            let presenceSocket = null;
+            let heartbeatInterval = null;
+
+            function connectPresence() {
+                console.log("Connecting to presence WebSocket:", presenceUrl);
+                presenceSocket = new WebSocket(presenceUrl);
+
+                presenceSocket.onopen = () => {
+                    console.log("✅ Presence WebSocket connected");
+                    
+                    // Send heartbeat every 30 seconds to keep connection alive
+                    heartbeatInterval = setInterval(() => {
+                        if (presenceSocket && presenceSocket.readyState === WebSocket.OPEN) {
+                            presenceSocket.send(JSON.stringify({ type: 'heartbeat' }));
+                        }
+                    }, 30000);
+                };
+
+                presenceSocket.onmessage = (e) => {
+                    const data = JSON.parse(e.data);
+                    
+                    if (data.type === 'presence') {
+                        // Update all status indicators on the page
+                        updateUserStatus(data.user_id, data.status);
+                    }
+                };
+
+                presenceSocket.onerror = (err) => {
+                    console.error("Presence WebSocket error:", err);
+                };
+
+                presenceSocket.onclose = () => {
+                    console.log("❌ Presence disconnected - reconnecting in 3s...");
+                    if (heartbeatInterval) {
+                        clearInterval(heartbeatInterval);
+                    }
+                    setTimeout(connectPresence, 3000);
+                };
+            }
+
+            function updateUserStatus(userId, status) {
+                // Update all status dots for this user across the page
+                const statusDots = document.querySelectorAll(`[data-user-id="${userId}"] .status-dot, .status-dot[data-user-id="${userId}"]`);
+                statusDots.forEach(dot => {
+                    // Remove old status classes
+                    dot.classList.remove('bg-green-500', 'bg-gray-300', 'bg-yellow-500', 'bg-red-500');
+                    
+                    // Add new status class
+                    if (status === 'ONLINE') {
+                        dot.classList.add('bg-green-500');
+                    } else if (status === 'AWAY') {
+                        dot.classList.add('bg-yellow-500');
+                    } else if (status === 'BUSY') {
+                        dot.classList.add('bg-red-500');
+                    } else {
+                        dot.classList.add('bg-gray-300');
+                    }
+                });
+            }
+
+            // Idle/Away Detection
+            let idleTimeout, awayTimeout;
+            let currentUserStatus = 'ONLINE';
+
+            function setUserStatus(status) {
+                if (currentUserStatus === status) return;
+                
+                currentUserStatus = status;
+                
+                if (presenceSocket && presenceSocket.readyState === WebSocket.OPEN) {
+                    presenceSocket.send(JSON.stringify({
+                        type: 'status_change',
+                        status: status
+                    }));
+                    console.log(`Status changed to: ${status}`);
+                }
+            }
+
+            function resetIdleTimer() {
+                clearTimeout(idleTimeout);
+                clearTimeout(awayTimeout);
+                
+                // If user was away, bring them back online
+                if (currentUserStatus !== 'ONLINE') {
+                    setUserStatus('ONLINE');
+                }
+                
+                // Set to AWAY after 5 minutes of inactivity
+                idleTimeout = setTimeout(() => {
+                    setUserStatus('AWAY');
+                }, 5 * 60 * 1000);
+                
+                // Set to OFFLINE after 30 minutes of inactivity
+                awayTimeout = setTimeout(() => {
+                    setUserStatus('OFFLINE');
+                }, 30 * 60 * 1000);
+            }
+
+            // Detect user activity
+            const activityEvents = ['mousedown', 'keydown', 'scroll', 'touchstart', 'mousemove', 'click'];
+            activityEvents.forEach(event => {
+                document.addEventListener(event, resetIdleTimer, { passive: true });
+            });
+
+            connectPresence();
+
+            // Start idle detection
+            resetIdleTimer();
+
+            // Make functions globally available
+            window.updateUserStatus = updateUserStatus;
+            window.setUserStatus = setUserStatus;
+        }
+        
+        setupPresence();
         {% endif %}
         
         // --- Mobile Menu Toggle ---

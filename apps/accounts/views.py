@@ -183,6 +183,11 @@ class LoginView(View):
         user = authenticate(request, id_token=id_token)
 
         if user:
+            # Set user ONLINE on login
+            user.status = User.Status.ONLINE
+            user.last_seen = timezone.now()
+            user.save(update_fields=['status', 'last_seen'])
+            
             login(request, user)
             messages.success(request, f'Welcome back, {user.username}!')
             return JsonResponse({'status': 'ok'})
@@ -330,6 +335,14 @@ class LogoutView(View):
     """User logout view."""
     
     def get(self, request):
+        user = request.user
+        
+        # Set user OFFLINE on logout
+        if user.is_authenticated:
+            user.status = User.Status.OFFLINE
+            user.last_seen = timezone.now()
+            user.save(update_fields=['status', 'last_seen'])
+        
         logout(request)
         messages.info(request, 'You have been logged out successfully.')
         return redirect('accounts:login')
