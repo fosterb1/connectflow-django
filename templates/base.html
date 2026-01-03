@@ -412,7 +412,10 @@
                             </div>
                             <div id="notification-list" class="overflow-y-auto max-h-[60vh]">
                                 {% for notification in recent_notifications %}
-                                    <div class="p-4 border-b border-gray-50 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-700/50 transition cursor-pointer {% if not notification.is_read %}bg-indigo-50/30 dark:bg-indigo-900/10{% endif %}" onclick="{% if notification.link %}window.location.href='{{ notification.link }}'{% endif %}">
+                                    <div class="notification-item p-4 border-b border-gray-50 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-700/50 transition cursor-pointer {% if not notification.is_read %}bg-indigo-50/30 dark:bg-indigo-900/10{% endif %}" 
+                                         data-notification-id="{{ notification.id }}"
+                                         data-notification-link="{{ notification.link }}"
+                                         data-is-read="{{ notification.is_read|lower }}">
                                         <div class="flex space-x-3">
                                             <div class="flex-shrink-0 w-8 h-8 bg-indigo-100 dark:bg-indigo-900 text-indigo-600 dark:text-indigo-300 rounded-full flex items-center justify-center font-black text-[10px]">
                                                 {{ notification.notification_type|slice:":1" }}
@@ -560,25 +563,82 @@
                     }
 
                     // Add to dropdown (top)
+                    const notificationList = document.getElementById('notification-list');
+                    const noNotificationsMsg = document.getElementById('no-notifications-msg');
+                    
                     if (noNotificationsMsg) {
                         noNotificationsMsg.remove();
                     }
                     
                     const item = document.createElement('div');
-                    item.className = 'p-4 border-b border-gray-50 dark:border-gray-700 hover:bg-indigo-50 dark:hover:bg-indigo-900/20 transition cursor-pointer bg-indigo-50/30 dark:bg-indigo-900/10';
+                    item.className = 'notification-item p-4 border-b border-gray-50 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-700/50 transition cursor-pointer bg-indigo-50/30 dark:bg-indigo-900/10';
+                    item.dataset.notificationId = data.id;
+                    item.dataset.notificationLink = data.link || '';
+                    item.dataset.isRead = 'false';
                     item.innerHTML = `
                         <div class="flex space-x-3">
-                            <div class="flex-shrink-0 w-8 h-8 bg-indigo-100 text-indigo-600 rounded-full flex items-center justify-center font-black text-[10px]">
+                            <div class="flex-shrink-0 w-8 h-8 bg-indigo-100 dark:bg-indigo-900 text-indigo-600 dark:text-indigo-300 rounded-full flex items-center justify-center font-black text-[10px]">
                                 ${data.notification_type[0]}
                             </div>
                             <div>
                                 <p class="text-sm font-bold text-gray-800 dark:text-white">${data.title}</p>
                                 <p class="text-xs text-gray-600 dark:text-gray-400 line-clamp-2">${data.content}</p>
-                                <p class="text-[10px] text-gray-400 mt-1">${data.created_at}</p>
+                                <p class="text-[10px] text-gray-400 mt-1">just now</p>
                             </div>
                         </div>
                     `;
-                    item.onclick = () => { if (data.link) window.location.href = data.link; };
+                    
+                    // Add click handler to new notification
+                    item.onclick = async (e) => {
+                        e.stopPropagation();
+                        
+                        const notificationId = item.dataset.notificationId;
+                        const notificationLink = item.dataset.notificationLink;
+                        const isRead = item.dataset.isRead === 'true';
+                        
+                        if (!isRead && notificationId) {
+                            try {
+                                const response = await fetch(`/accounts/notifications/${notificationId}/mark-read/`, {
+                                    method: 'POST',
+                                    headers: {
+                                        'X-CSRFToken': getCookie('csrftoken'),
+                                        'Content-Type': 'application/json'
+                                    }
+                                });
+                                
+                                const responseData = await response.json();
+                                
+                                if (responseData.success) {
+                                    const countBadge = document.getElementById('notification-count');
+                                    const mobileCountBadge = document.getElementById('mobile-notification-count');
+                                    
+                                    if (responseData.unread_count === 0) {
+                                        if (countBadge) countBadge.classList.add('hidden');
+                                        if (mobileCountBadge) mobileCountBadge.classList.add('hidden');
+                                    } else {
+                                        if (countBadge) {
+                                            countBadge.textContent = responseData.unread_count;
+                                            countBadge.classList.remove('hidden');
+                                        }
+                                        if (mobileCountBadge) {
+                                            mobileCountBadge.textContent = responseData.unread_count;
+                                            mobileCountBadge.classList.remove('hidden');
+                                        }
+                                    }
+                                    
+                                    item.classList.remove('bg-indigo-50/30', 'dark:bg-indigo-900/10');
+                                    item.dataset.isRead = 'true';
+                                }
+                            } catch (error) {
+                                console.error('Error marking notification as read:', error);
+                            }
+                        }
+                        
+                        if (notificationLink && notificationLink !== 'None' && notificationLink !== '') {
+                            window.location.href = notificationLink;
+                        }
+                    };
+                    
                     if (notificationList) notificationList.prepend(item);
 
                     // Show browser notification if permitted
@@ -619,6 +679,70 @@
                 }
             });
             if (dropdown) dropdown.onclick = (e) => e.stopPropagation();
+
+            // Handle individual notification clicks
+            function setupNotificationClickHandlers() {
+                const notificationItems = document.querySelectorAll('.notification-item');
+                
+                notificationItems.forEach(item => {
+                    item.onclick = async (e) => {
+                        e.stopPropagation();
+                        
+                        const notificationId = item.dataset.notificationId;
+                        const notificationLink = item.dataset.notificationLink;
+                        const isRead = item.dataset.isRead === 'true';
+                        
+                        // Only mark as read if it's not already read
+                        if (!isRead && notificationId) {
+                            try {
+                                const response = await fetch(`/accounts/notifications/${notificationId}/mark-read/`, {
+                                    method: 'POST',
+                                    headers: {
+                                        'X-CSRFToken': getCookie('csrftoken'),
+                                        'Content-Type': 'application/json'
+                                    }
+                                });
+                                
+                                const data = await response.json();
+                                
+                                if (data.success) {
+                                    // Update the count badges
+                                    const countBadge = document.getElementById('notification-count');
+                                    const mobileCountBadge = document.getElementById('mobile-notification-count');
+                                    
+                                    if (data.unread_count === 0) {
+                                        if (countBadge) countBadge.classList.add('hidden');
+                                        if (mobileCountBadge) mobileCountBadge.classList.add('hidden');
+                                    } else {
+                                        if (countBadge) {
+                                            countBadge.textContent = data.unread_count;
+                                            countBadge.classList.remove('hidden');
+                                        }
+                                        if (mobileCountBadge) {
+                                            mobileCountBadge.textContent = data.unread_count;
+                                            mobileCountBadge.classList.remove('hidden');
+                                        }
+                                    }
+                                    
+                                    // Remove unread styling
+                                    item.classList.remove('bg-indigo-50/30', 'dark:bg-indigo-900/10');
+                                    item.dataset.isRead = 'true';
+                                }
+                            } catch (error) {
+                                console.error('Error marking notification as read:', error);
+                            }
+                        }
+                        
+                        // Navigate to the link if it exists
+                        if (notificationLink && notificationLink !== 'None') {
+                            window.location.href = notificationLink;
+                        }
+                    };
+                });
+            }
+            
+            // Initialize on page load
+            setupNotificationClickHandlers();
 
             if (markReadBtn) {
                 markReadBtn.onclick = (e) => {

@@ -12,9 +12,11 @@ import json
 import os
 from django.contrib.auth import get_user_model
 from .forms import ProfileSettingsForm
+from .models import Notification
 from apps.organizations.models import Organization
 from django.db.models import Q
 from django.urls import reverse
+from django.utils import timezone
 
 User = get_user_model()
 
@@ -394,6 +396,26 @@ class UserProfileView(View):
 def mark_notifications_as_read(request):
     request.user.notifications.filter(is_read=False).update(is_read=True)
     return JsonResponse({'success': True})
+
+
+@login_required
+@require_POST
+def mark_notification_as_read(request, notification_id):
+    """Mark a single notification as read."""
+    try:
+        notification = request.user.notifications.get(id=notification_id)
+        notification.is_read = True
+        notification.save()
+        
+        # Get updated count
+        unread_count = request.user.notifications.filter(is_read=False).count()
+        
+        return JsonResponse({
+            'success': True,
+            'unread_count': unread_count
+        })
+    except Notification.DoesNotExist:
+        return JsonResponse({'success': False, 'error': 'Notification not found'}, status=404)
 
 
 @login_required

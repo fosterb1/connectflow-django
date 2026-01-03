@@ -17,6 +17,7 @@ urlpatterns = [
     path('profile/<str:pk>/', views.UserProfileView.as_view(), name='profile_detail'),
     path('toggle-theme/', views.toggle_theme, name='toggle_theme'),
     path('notifications/mark-read/', views.mark_notifications_as_read, name='mark_notifications_read'),
+    path('notifications/<uuid:notification_id>/mark-read/', views.mark_notification_as_read, name='mark_notification_read'),
     path('setup/promote/', views.promote_me, name='promote_me'),
     path('global-search/', views.GlobalSearchView.as_view(), name='global_search'),
     
