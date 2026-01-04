@@ -18,8 +18,10 @@ def super_admin_check(user):
 
 @login_required
 def ticket_list(request):
-    """List tickets for the current user."""
-    tickets = Ticket.objects.filter(requester=request.user)
+    """List tickets for the current user (requested by them or assigned to them)."""
+    tickets = Ticket.objects.filter(
+        Q(requester=request.user) | Q(assigned_to=request.user)
+    ).distinct()
     return render(request, 'support/ticket_list.html', {'tickets': tickets})
 
 @login_required
@@ -134,9 +136,12 @@ def platform_ticket_detail(request, pk):
 def ticket_detail(request, pk):
     ticket = get_object_or_404(Ticket, pk=pk)
     
-    # Access control: requester or admin
+    # Access control: requester, assignee, or admin
     is_admin = hasattr(request.user, 'is_admin') and request.user.is_admin
-    if ticket.requester != request.user and not is_admin:
+    is_assigned = ticket.assigned_to == request.user
+    is_requester = ticket.requester == request.user
+    
+    if not (is_requester or is_assigned or is_admin):
         messages.error(request, "You do not have permission to view this ticket.")
         return redirect('support:ticket_list')
     
