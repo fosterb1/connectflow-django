@@ -58,10 +58,26 @@ class MessageSerializer(serializers.ModelSerializer):
 
 class ChannelSerializer(serializers.ModelSerializer):
     member_count = serializers.IntegerField(read_only=True)
+    display_name = serializers.SerializerMethodField()
     
     class Meta:
         model = Channel
         fields = [
             'id', 'name', 'description', 'channel_type', 'organization', 
-            'is_private', 'read_only', 'member_count', 'created_at'
+            'is_private', 'read_only', 'member_count', 'display_name', 'created_at'
         ]
+    
+    def get_display_name(self, obj):
+        """Get a friendly display name for the channel"""
+        request = self.context.get('request')
+        
+        # For DM channels, show the other participant's name
+        if obj.channel_type == Channel.ChannelType.DIRECT and request and request.user:
+            # Get the other member (not the current user)
+            other_member = obj.members.exclude(id=request.user.id).first()
+            if other_member:
+                return other_member.get_full_name() or other_member.username
+            return "Direct Message"
+        
+        # For other channels, use the name or description
+        return obj.name

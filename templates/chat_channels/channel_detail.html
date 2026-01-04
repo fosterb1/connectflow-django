@@ -2230,24 +2230,47 @@ async function openForwardModal(messageId) {
         }
         
         // Render channel list
-        channelList.innerHTML = availableChannels.map(ch => `
-            <button onclick="selectForwardChannel('${ch.id}', this)" 
-                    class="w-full text-left px-4 py-3 rounded-lg border-2 border-gray-200 dark:border-gray-700 hover:border-indigo-500 dark:hover:border-indigo-500 transition-all channel-forward-option group"
-                    data-channel-id="${ch.id}">
-                <div class="flex items-center">
-                    <div class="w-10 h-10 bg-gradient-to-br from-indigo-100 to-purple-100 dark:from-indigo-900 dark:to-purple-900 rounded-lg flex items-center justify-center mr-3 group-hover:scale-110 transition-transform">
-                        <span class="text-lg font-black text-indigo-600 dark:text-indigo-400">#</span>
+        channelList.innerHTML = availableChannels.map(ch => {
+            // Better display name for DM channels
+            let displayName = ch.name;
+            let displayIcon = '#';
+            let iconColor = 'indigo';
+            
+            if (ch.channel_type === 'DIRECT' || ch.name.startsWith('dm-')) {
+                // For DMs, show the other participant's name
+                displayIcon = '💬';
+                iconColor = 'blue';
+                // If we have participants info, use it, otherwise show "Direct Message"
+                displayName = ch.display_name || ch.description || 'Direct Message';
+            } else if (ch.channel_type === 'PRIVATE') {
+                displayIcon = '🔒';
+                iconColor = 'purple';
+            } else if (ch.channel_type === 'OFFICIAL') {
+                displayIcon = '📢';
+                iconColor = 'amber';
+            }
+            
+            return `
+                <button onclick="selectForwardChannel('${ch.id}', this)" 
+                        class="w-full text-left px-4 py-3 rounded-lg border-2 border-gray-200 dark:border-gray-700 hover:border-indigo-500 dark:hover:border-indigo-500 transition-all channel-forward-option group"
+                        data-channel-id="${ch.id}">
+                    <div class="flex items-center">
+                        <div class="w-10 h-10 bg-gradient-to-br from-${iconColor}-100 to-${iconColor}-100 dark:from-${iconColor}-900 dark:to-${iconColor}-900 rounded-lg flex items-center justify-center mr-3 group-hover:scale-110 transition-transform">
+                            <span class="text-lg">${displayIcon}</span>
+                        </div>
+                        <div class="flex-1">
+                            <div class="font-black text-sm text-gray-800 dark:text-white">${displayName}</div>
+                            <div class="text-xs text-gray-500 dark:text-gray-400 font-medium">
+                                ${ch.channel_type === 'DIRECT' ? 'Direct Message' : ch.channel_type.replace('_', ' ')} • ${ch.member_count || 0} members
+                            </div>
+                        </div>
+                        <svg class="w-5 h-5 text-indigo-600 hidden check-icon" fill="currentColor" viewBox="0 0 20 20">
+                            <path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"/>
+                        </svg>
                     </div>
-                    <div class="flex-1">
-                        <div class="font-black text-sm text-gray-800 dark:text-white">${ch.name}</div>
-                        <div class="text-xs text-gray-500 dark:text-gray-400 font-medium">${ch.member_count || 0} members</div>
-                    </div>
-                    <svg class="w-5 h-5 text-indigo-600 hidden check-icon" fill="currentColor" viewBox="0 0 20 20">
-                        <path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"/>
-                    </svg>
-                </div>
-            </button>
-        `).join('');
+                </button>
+            `;
+        }).join('');
         
     } catch (error) {
         console.error('Error loading channels:', error);
