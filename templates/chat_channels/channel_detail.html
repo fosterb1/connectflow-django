@@ -2410,8 +2410,8 @@ document.addEventListener('DOMContentLoaded', () => {
                 
                 console.log('Forwarding message:', messageText.substring(0, 50) + '...');
                 
-                // Send forwarded message via API
-                const res = await fetch(`/api/v1/messages/`, {
+                // Send forwarded message via simple Django view
+                const res = await fetch('/channels/json/forward-message/', {
                     method: 'POST',
                     credentials: 'same-origin',
                     headers: {
