@@ -2197,7 +2197,7 @@ async function openForwardModal(messageId) {
             credentials: 'same-origin',
             headers: {
                 'Content-Type': 'application/json',
-                'X-CSRFToken': csrfToken
+                'X-CSRFToken': getCookie('csrftoken')
             }
         });
         
