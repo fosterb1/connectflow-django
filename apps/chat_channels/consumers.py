@@ -204,6 +204,19 @@ class ChatConsumer(AsyncWebsocketConsumer):
                     'is_typing': data.get('is_typing', False)
                 }
             )
+        elif message_type == 'forward_message':
+            # Handle message forwarding
+            message_id = data.get('message_id')
+            target_channel = data.get('target_channel')
+            content = data.get('content', '')
+            
+            if message_id and target_channel:
+                forwarded_msg = await self.forward_message(message_id, target_channel, content)
+                if forwarded_msg:
+                    await self.send(text_data=json.dumps({
+                        'type': 'forward_success',
+                        'message': 'Message forwarded successfully'
+                    }))
 
     async def chat_message(self, event):
         # Send message to WebSocket
@@ -499,6 +512,37 @@ class ChatConsumer(AsyncWebsocketConsumer):
             return True
         except Message.DoesNotExist:
             return False
+
+    @database_sync_to_async
+    def forward_message(self, message_id, target_channel_id, content):
+        """Forward a message to another channel"""
+        try:
+            # Get the original message
+            original_message = Message.objects.get(id=message_id)
+            
+            # Get the target channel
+            target_channel = Channel.objects.get(id=target_channel_id)
+            
+            # Check if user has access to target channel
+            if not target_channel.members.filter(id=self.user.id).exists():
+                return None
+            
+            # Create forwarded message
+            forwarded_message = Message.objects.create(
+                channel=target_channel,
+                sender=self.user,
+                content=content or original_message.content,
+                message_type=original_message.message_type,
+                forwarded_from=original_message
+            )
+            
+            return {
+                'id': str(forwarded_message.id),
+                'channel': str(target_channel.id),
+                'channel_name': target_channel.name
+            }
+        except (Message.DoesNotExist, Channel.DoesNotExist):
+            return None
 
     @database_sync_to_async
     def toggle_reaction(self, message_id, emoji):

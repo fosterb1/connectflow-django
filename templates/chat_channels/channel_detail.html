@@ -414,6 +414,41 @@
         </div>
         {% endif %}
 
+        <!-- Forward Message Modal -->
+        <div id="forward-message-modal" class="hidden fixed inset-0 bg-black/60 z-[100] flex items-center justify-center backdrop-blur-sm">
+            <div class="bg-white dark:bg-gray-800 rounded-2xl shadow-2xl w-full max-w-md mx-4 transform transition-all">
+                <div class="px-6 py-4 border-b border-gray-100 dark:border-gray-700 flex items-center justify-between">
+                    <h3 class="text-lg font-black text-gray-800 dark:text-white uppercase tracking-wider">Forward Message</h3>
+                    <button onclick="closeForwardModal()" class="text-gray-400 hover:text-gray-600 dark:hover:text-gray-200">
+                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+                        </svg>
+                    </button>
+                </div>
+                
+                <div class="p-6">
+                    <label class="block text-xs font-black uppercase tracking-widest text-gray-700 dark:text-gray-300 mb-3">Select Channel</label>
+                    <div id="channel-list-forward" class="space-y-2 max-h-96 overflow-y-auto">
+                        <div class="text-center py-8 text-gray-400">
+                            <svg class="w-8 h-8 mx-auto mb-2 animate-spin" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"></path>
+                            </svg>
+                            <p class="text-sm font-medium">Loading channels...</p>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="px-6 py-4 border-t border-gray-100 dark:border-gray-700 flex justify-end gap-3">
+                    <button onclick="closeForwardModal()" class="px-4 py-2 text-sm font-bold text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg transition">
+                        Cancel
+                    </button>
+                    <button id="forward-confirm-btn" class="px-4 py-2 text-sm font-bold bg-indigo-600 text-white hover:bg-indigo-700 rounded-lg transition shadow-lg shadow-indigo-100 dark:shadow-none">
+                        Forward
+                    </button>
+                </div>
+            </div>
+        </div>
+
         <div class="message-history" id="messages-container">
             {% for message in chat_messages %}
                 {% if message.show_date_separator %}
@@ -462,6 +497,15 @@
                                     <div class="mb-1 bg-gray-50/80 dark:bg-gray-800/50 border-l-4 border-indigo-500 rounded-lg p-2 cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-700/50 transition-colors" onclick="jumpToMessage('{{ message.parent_message.id }}')">
                                         <p class="text-[10px] font-black text-indigo-600 dark:text-indigo-400 uppercase tracking-widest mb-0.5">{{ message.parent_message.sender.get_full_name }}</p>
                                         <p class="text-xs text-gray-500 dark:text-gray-400 truncate">{% if message.parent_message.is_deleted %}<span class="italic">This message was deleted.</span>{% else %}{{ message.parent_message.content }}{% endif %}</p>
+                                    </div>
+                                {% endif %}
+                                
+                                {% if message.forwarded_from %}
+                                    <div class="flex items-center text-xs text-gray-500 dark:text-gray-400 mb-1 gap-1 {% if message.sender == user %}justify-end{% endif %}">
+                                        <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8.684 13.342C8.886 12.938 9 12.482 9 12c0-.482-.114-.938-.316-1.342m0 2.684a3 3 0 110-2.684m0 2.684l6.632 3.316m-6.632-6l6.632-3.316"></path>
+                                        </svg>
+                                        <span class="font-black uppercase tracking-wider text-[10px]">Forwarded</span>
                                     </div>
                                 {% endif %}
 
@@ -1635,20 +1679,7 @@ document.addEventListener("DOMContentLoaded", function () {
                     handleMessageDelete({ message_id: messageId });
                 }
             } else if (action === 'forward') {
-                const targetId = prompt('Enter target channel ID:');
-                if (targetId) {
-                    const res = await fetch(`/api/v1/messages/${messageId}/forward/`, {
-                        method: 'POST',
-                        headers: { 'X-CSRFToken': csrfToken, 'Content-Type': 'application/json' },
-                        body: JSON.stringify({ target_channel_id: targetId })
-                    });
-                    if (res.ok) {
-                        alert('Message forwarded successfully!');
-                    } else {
-                        const data = await res.json();
-                        throw new Error(data.error || "Failed to forward message");
-                    }
-                }
+                openForwardModal(messageId);
             } else if (action === 'add-task') {
                 const res = await fetch(`/api/v1/messages/${messageId}/create_task/`, {
                     method: 'POST',
@@ -2145,6 +2176,141 @@ function insertMarkdown(before, after) {
     
     input.focus();
 }
+
+// Forward message functions
+let selectedMessageToForward = null;
+let selectedChannelToForwardTo = null;
+
+async function openForwardModal(messageId) {
+    selectedMessageToForward = messageId;
+    selectedChannelToForwardTo = null;
+    
+    const modal = document.getElementById('forward-message-modal');
+    const channelList = document.getElementById('channel-list-forward');
+    
+    // Show modal
+    modal.classList.remove('hidden');
+    
+    try {
+        // Fetch user's channels from API
+        const authToken = '{{ user.auth_token.key }}';
+        const res = await fetch('/api/v1/channels/', {
+            headers: {
+                'Authorization': `Token ${authToken}`,
+                'Content-Type': 'application/json'
+            }
+        });
+        
+        if (!res.ok) throw new Error('Failed to load channels');
+        
+        const channels = await res.json();
+        
+        // Filter out current channel
+        const currentChannelId = '{{ channel.id }}';
+        const availableChannels = channels.filter(ch => ch.id !== currentChannelId);
+        
+        if (availableChannels.length === 0) {
+            channelList.innerHTML = `
+                <div class="text-center py-8 text-gray-400">
+                    <svg class="w-12 h-12 mx-auto mb-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20 13V6a2 2 0 00-2-2H6a2 2 0 00-2 2v7m16 0v5a2 2 0 01-2 2H6a2 2 0 01-2-2v-5m16 0h-2.586a1 1 0 00-.707.293l-2.414 2.414a1 1 0 01-.707.293h-3.172a1 1 0 01-.707-.293l-2.414-2.414A1 1 0 006.586 13H4"></path>
+                    </svg>
+                    <p class="text-sm font-bold">No other channels available</p>
+                    <p class="text-xs mt-1">You need to be a member of other channels to forward messages.</p>
+                </div>
+            `;
+            return;
+        }
+        
+        // Render channel list
+        channelList.innerHTML = availableChannels.map(ch => `
+            <button onclick="selectForwardChannel('${ch.id}', this)" 
+                    class="w-full text-left px-4 py-3 rounded-lg border-2 border-gray-200 dark:border-gray-700 hover:border-indigo-500 dark:hover:border-indigo-500 transition-all channel-forward-option group"
+                    data-channel-id="${ch.id}">
+                <div class="flex items-center">
+                    <div class="w-10 h-10 bg-gradient-to-br from-indigo-100 to-purple-100 dark:from-indigo-900 dark:to-purple-900 rounded-lg flex items-center justify-center mr-3 group-hover:scale-110 transition-transform">
+                        <span class="text-lg font-black text-indigo-600 dark:text-indigo-400">#</span>
+                    </div>
+                    <div class="flex-1">
+                        <div class="font-black text-sm text-gray-800 dark:text-white">${ch.name}</div>
+                        <div class="text-xs text-gray-500 dark:text-gray-400 font-medium">${ch.member_count || 0} members</div>
+                    </div>
+                    <svg class="w-5 h-5 text-indigo-600 hidden check-icon" fill="currentColor" viewBox="0 0 20 20">
+                        <path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"/>
+                    </svg>
+                </div>
+            </button>
+        `).join('');
+        
+    } catch (error) {
+        console.error('Error loading channels:', error);
+        channelList.innerHTML = `
+            <div class="text-center py-8 text-red-400">
+                <svg class="w-12 h-12 mx-auto mb-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                </svg>
+                <p class="text-sm font-bold">Error loading channels</p>
+                <p class="text-xs mt-1">Please try again</p>
+            </div>
+        `;
+    }
+}
+
+function selectForwardChannel(channelId, button) {
+    selectedChannelToForwardTo = channelId;
+    
+    // Visual feedback
+    document.querySelectorAll('.channel-forward-option').forEach(opt => {
+        opt.classList.remove('border-indigo-500', 'bg-indigo-50', 'dark:bg-indigo-900/20');
+        opt.querySelector('.check-icon').classList.add('hidden');
+    });
+    
+    button.classList.add('border-indigo-500', 'bg-indigo-50', 'dark:bg-indigo-900/20');
+    button.querySelector('.check-icon').classList.remove('hidden');
+}
+
+function closeForwardModal() {
+    document.getElementById('forward-message-modal').classList.add('hidden');
+    selectedMessageToForward = null;
+    selectedChannelToForwardTo = null;
+}
+
+// Handle forward confirmation
+document.addEventListener('DOMContentLoaded', () => {
+    const forwardBtn = document.getElementById('forward-confirm-btn');
+    if (forwardBtn) {
+        forwardBtn.onclick = async function() {
+            if (!selectedMessageToForward || !selectedChannelToForwardTo) {
+                showToast('Please select a channel', 'error');
+                return;
+            }
+            
+            try {
+                // Get the original message content
+                const messageEl = document.getElementById(`message-${selectedMessageToForward}`);
+                const messageText = messageEl.querySelector('.formatted-message, .message-content-text')?.textContent || '';
+                
+                // Send forwarded message via WebSocket
+                if (chatSocket && chatSocket.readyState === WebSocket.OPEN) {
+                    chatSocket.send(JSON.stringify({
+                        type: 'forward_message',
+                        message_id: selectedMessageToForward,
+                        target_channel: selectedChannelToForwardTo,
+                        content: messageText
+                    }));
+                    
+                    showToast('Message forwarded successfully!', 'success');
+                    closeForwardModal();
+                } else {
+                    throw new Error('WebSocket not connected');
+                }
+            } catch (error) {
+                console.error('Error forwarding message:', error);
+                showToast('Error forwarding message. Please try again.', 'error');
+            }
+        };
+    }
+});
 
 // Thread management
 let currentThreadId = null;
