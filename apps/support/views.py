@@ -93,44 +93,52 @@ def chatbot(request):
 @user_passes_test(super_admin_check)
 def platform_ticket_detail(request, pk):
     """Detail view for platform admins to manage a ticket."""
-    ticket = get_object_or_404(Ticket, pk=pk)
-    
-    if request.method == 'POST':
-        if 'update_ticket' in request.POST:
-            admin_form = TicketAdminForm(request.POST, instance=ticket)
-            if admin_form.is_valid():
-                admin_form.save()
-                messages.success(request, "Ticket details updated.")
-                return redirect('support:platform_ticket_detail', pk=pk)
+    try:
+        ticket = get_object_or_404(Ticket, pk=pk)
         
-        elif 'send_message' in request.POST:
-            message_form = TicketMessageForm(request.POST, request.FILES)
-            if message_form.is_valid():
-                message = message_form.save(commit=False)
-                message.ticket = ticket
-                message.sender = request.user
-                message.is_internal_note = request.POST.get('is_internal_note') == 'on'
-                message.save()
-                
-                # If not an internal note, update status to AWAITING_USER
-                if not message.is_internal_note:
-                    ticket.status = Ticket.Status.AWAITING_USER
-                    ticket.save()
-                
-                messages.success(request, "Message sent.")
-                return redirect('support:platform_ticket_detail', pk=pk)
-    else:
-        admin_form = TicketAdminForm(instance=ticket)
-        message_form = TicketMessageForm()
+        if request.method == 'POST':
+            if 'update_ticket' in request.POST:
+                admin_form = TicketAdminForm(request.POST, instance=ticket)
+                if admin_form.is_valid():
+                    admin_form.save()
+                    messages.success(request, "Ticket details updated.")
+                    return redirect('support:platform_ticket_detail', pk=pk)
+            
+            elif 'send_message' in request.POST:
+                message_form = TicketMessageForm(request.POST, request.FILES)
+                if message_form.is_valid():
+                    message = message_form.save(commit=False)
+                    message.ticket = ticket
+                    message.sender = request.user
+                    message.is_internal_note = request.POST.get('is_internal_note') == 'on'
+                    message.save()
+                    
+                    # If not an internal note, update status to AWAITING_USER
+                    if not message.is_internal_note:
+                        ticket.status = Ticket.Status.AWAITING_USER
+                        ticket.save()
+                    
+                    messages.success(request, "Message sent.")
+                    return redirect('support:platform_ticket_detail', pk=pk)
+        else:
+            admin_form = TicketAdminForm(instance=ticket)
+            message_form = TicketMessageForm()
+            
+        messages_list = ticket.messages.all()
         
-    messages_list = ticket.messages.all()
-    
-    return render(request, 'support/platform/ticket_detail.html', {
-        'ticket': ticket,
-        'messages': messages_list,
-        'admin_form': admin_form,
-        'message_form': message_form
-    })
+        return render(request, 'support/platform/ticket_detail.html', {
+            'ticket': ticket,
+            'messages': messages_list,
+            'admin_form': admin_form,
+            'message_form': message_form
+        })
+    except Exception as e:
+        # Log the error and show a user-friendly message
+        import logging
+        logger = logging.getLogger(__name__)
+        logger.error(f"Error in platform_ticket_detail: {str(e)}", exc_info=True)
+        messages.error(request, f"Error loading ticket: {str(e)}")
+        return redirect('support:platform_ticket_list')
 
 @login_required
 def ticket_detail(request, pk):

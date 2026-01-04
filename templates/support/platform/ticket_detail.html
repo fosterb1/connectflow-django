@@ -29,7 +29,9 @@
                 </div>
                 <div class="flex-1">
                     <div class="flex items-center justify-between">
-                        <h3 class="text-sm font-black text-gray-800 uppercase tracking-widest">{{ ticket.requester.get_full_name }}</h3>
+                        <h3 class="text-sm font-black text-gray-800 uppercase tracking-widest">
+                            {% if ticket.requester.get_full_name %}{{ ticket.requester.get_full_name }}{% else %}{{ ticket.requester.username }}{% endif %}
+                        </h3>
                         <span class="text-[10px] text-gray-400 font-medium">{{ ticket.created_at|date:"F d, Y @ H:i" }}</span>
                     </div>
                     <p class="text-xs text-gray-500 font-medium mb-2">{{ ticket.requester.email }} • Organization: {% if ticket.organization %}{{ ticket.organization.name }}{% else %}None{% endif %}</p>
@@ -145,10 +147,7 @@
                     <div class="flex justify-between items-center text-xs">
                         <span class="text-gray-400 font-bold">Total Internal Notes</span>
                         <span class="font-black text-amber-600">
-                            {% with notes=0 %}
-                                {% for m in messages %}{% if m.is_internal_note %}{% increment notes %}{% endif %}{% endfor %}
-                                {{ notes }}
-                            {% endwith %}
+                            {{ messages|length }}
                         </span>
                     </div>
                     <div class="flex justify-between items-center text-xs">
