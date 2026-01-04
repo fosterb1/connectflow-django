@@ -2254,17 +2254,14 @@ async function openForwardModal(messageId) {
         
         // Render channel list
         channelList.innerHTML = availableChannels.map(ch => {
-            // Better display name for DM channels
+            // Use channel name directly for now
             let displayName = ch.name;
             let displayIcon = '#';
             let iconColor = 'indigo';
             
             if (ch.channel_type === 'DIRECT' || ch.name.startsWith('dm-')) {
-                // For DMs, show the other participant's name
                 displayIcon = '💬';
                 iconColor = 'blue';
-                // If we have participants info, use it, otherwise show "Direct Message"
-                displayName = ch.display_name || ch.description || 'Direct Message';
             } else if (ch.channel_type === 'PRIVATE') {
                 displayIcon = '🔒';
                 iconColor = 'purple';
