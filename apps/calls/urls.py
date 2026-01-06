@@ -9,5 +9,6 @@ urlpatterns = [
     path('<uuid:call_id>/join/', views.join_call, name='join_call'),
     path('<uuid:call_id>/leave/', views.leave_call, name='leave_call'),
     path('<uuid:call_id>/end/', views.end_call, name='end_call'),
+    path('<uuid:call_id>/reject/', views.reject_call, name='reject_call'),
     path('<uuid:call_id>/status/', views.call_status, name='call_status'),
 ]

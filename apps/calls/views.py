@@ -68,6 +68,44 @@ def initiate_call(request):
         call.status = Call.CallStatus.RINGING
         call.save()
         
+        # Send notifications to all participants (except initiator)
+        from apps.accounts.models import Notification
+        from asgiref.sync import async_to_sync
+        from channels.layers import get_channel_layer
+        from django.urls import reverse
+        
+        channel_layer = get_channel_layer()
+        call_url = reverse('calls:call_room', kwargs={'call_id': str(call.id)})
+        
+        # Get all invited participants except the initiator
+        invited_participants = call.participants.exclude(id=request.user.id)
+        
+        for participant in invited_participants:
+            # Create notification in database
+            notification = Notification.notify(
+                recipient=participant,
+                sender=request.user,
+                title=f"Incoming {call.get_call_type_display()}",
+                content=f"{request.user.get_full_name() or request.user.username} is calling you",
+                notification_type='CALL',
+                link=call_url
+            )
+            
+            # Send real-time notification via WebSocket
+            async_to_sync(channel_layer.group_send)(
+                f"notifications_{participant.id}",
+                {
+                    'type': 'send_notification',
+                    'id': str(notification.id),
+                    'title': notification.title,
+                    'content': notification.content,
+                    'notification_type': notification.notification_type,
+                    'link': notification.link,
+                    'call_id': str(call.id),
+                    'call_type': call.call_type,
+                }
+            )
+        
         return JsonResponse({
             'success': True,
             'call_id': str(call.id),
@@ -194,6 +232,39 @@ def end_call(request, call_id):
     call.save()
     
     return JsonResponse({'success': True})
+
+
+@login_required
+@require_POST
+def reject_call(request, call_id):
+    """Reject an incoming call."""
+    call = get_object_or_404(Call, pk=call_id)
+    
+    try:
+        participant = CallParticipant.objects.get(call=call, user=request.user)
+        participant.status = CallParticipant.ParticipantStatus.REJECTED
+        participant.save()
+        
+        # Check if all participants rejected
+        active_or_ringing = CallParticipant.objects.filter(
+            call=call,
+            status__in=[
+                CallParticipant.ParticipantStatus.INVITED,
+                CallParticipant.ParticipantStatus.RINGING,
+                CallParticipant.ParticipantStatus.JOINED
+            ]
+        ).exclude(user=call.initiator).count()
+        
+        if active_or_ringing == 0:
+            # All participants rejected or left
+            call.status = Call.CallStatus.REJECTED
+            call.ended_at = timezone.now()
+            call.save()
+        
+        return JsonResponse({'success': True})
+    
+    except CallParticipant.DoesNotExist:
+        return JsonResponse({'success': False, 'error': 'Not invited to call'}, status=400)
 
 
 @login_required

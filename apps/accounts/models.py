@@ -224,6 +224,7 @@ class Notification(models.Model):
         PROJECT = 'PROJECT', _('Project Update')
         CHANNEL = 'CHANNEL', _('Channel Activity')
         MEMBERSHIP = 'MEMBERSHIP', _('Membership Update')
+        CALL = 'CALL', _('Incoming Call')
         SYSTEM = 'SYSTEM', _('System Alert')
 
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
