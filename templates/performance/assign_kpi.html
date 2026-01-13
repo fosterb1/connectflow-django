@@ -1,0 +1,148 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Assign KPIs - ConnectFlow Pro{% endblock %}
+
+{% block content %}
+<div class="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+    <!-- Header -->
+    <div class="mb-8">
+        <a href="{% url 'performance:kpi_metric_list' %}" class="inline-flex items-center text-sm font-medium text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200 mb-4">
+            <svg class="w-5 h-5 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"/>
+            </svg>
+            Back to KPI Metrics
+        </a>
+        <h1 class="text-3xl font-bold text-gray-900 dark:text-white">Assign KPIs to Team Members</h1>
+        <p class="mt-2 text-sm text-gray-600 dark:text-gray-400">Assign performance metrics to your team members for evaluation</p>
+    </div>
+
+    <!-- Assignment Form -->
+    <div class="bg-white dark:bg-gray-800 shadow rounded-lg p-6">
+        <form id="assignForm" class="space-y-6">
+            {% csrf_token %}
+            
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <!-- Select Metric -->
+                <div>
+                    <label for="metric_id" class="block text-sm font-medium text-gray-700 dark:text-gray-300">
+                        KPI Metric <span class="text-red-500">*</span>
+                    </label>
+                    <select name="metric_id" id="metric_id" required
+                            class="mt-1 block w-full rounded-md border-gray-300 dark:border-gray-600 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 dark:bg-gray-700 dark:text-white sm:text-sm">
+                        <option value="">Select a metric...</option>
+                        {% for metric in metrics %}
+                        <option value="{{ metric.id }}" data-description="{{ metric.description }}">
+                            {{ metric.name }} ({{ metric.get_metric_type_display }})
+                        </option>
+                        {% endfor %}
+                    </select>
+                    <p id="metricDescription" class="mt-2 text-sm text-gray-500 dark:text-gray-400 italic"></p>
+                </div>
+
+                <!-- Select User -->
+                <div>
+                    <label for="user_id" class="block text-sm font-medium text-gray-700 dark:text-gray-300">
+                        Team Member <span class="text-red-500">*</span>
+                    </label>
+                    <select name="user_id" id="user_id" required
+                            class="mt-1 block w-full rounded-md border-gray-300 dark:border-gray-600 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 dark:bg-gray-700 dark:text-white sm:text-sm">
+                        <option value="">Select a team member...</option>
+                        {% for user in users %}
+                        <option value="{{ user.id }}">
+                            {{ user.get_full_name }} ({{ user.get_role_display }})
+                        </option>
+                        {% endfor %}
+                    </select>
+                </div>
+            </div>
+
+            <!-- Review Period -->
+            <div>
+                <label for="review_period" class="block text-sm font-medium text-gray-700 dark:text-gray-300">
+                    Review Period <span class="text-red-500">*</span>
+                </label>
+                <select name="review_period" id="review_period" required
+                        class="mt-1 block w-full md:w-1/2 rounded-md border-gray-300 dark:border-gray-600 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 dark:bg-gray-700 dark:text-white sm:text-sm">
+                    <option value="">Select period...</option>
+                    <option value="{{ current_month }}">{{ current_month }} (Current Month)</option>
+                    <option value="{{ next_month }}">{{ next_month }} (Next Month)</option>
+                    <option value="{{ current_quarter }}">{{ current_quarter }} (Current Quarter)</option>
+                </select>
+                <p class="mt-1 text-sm text-gray-500 dark:text-gray-400">Format: YYYY-MM for monthly, YYYY-Q1 for quarterly</p>
+            </div>
+
+            <!-- Submit Button -->
+            <div class="flex items-center justify-between pt-4 border-t border-gray-200 dark:border-gray-700">
+                <div id="assignmentMessage" class="text-sm"></div>
+                <button type="submit" id="submitBtn"
+                        class="px-4 py-2 border border-transparent rounded-lg shadow-sm text-sm font-medium text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500">
+                    Assign KPI
+                </button>
+            </div>
+        </form>
+    </div>
+
+    <!-- Current Assignments -->
+    <div class="mt-8">
+        <h2 class="text-xl font-semibold text-gray-900 dark:text-white mb-4">Recent Assignments</h2>
+        <div class="bg-white dark:bg-gray-800 shadow overflow-hidden sm:rounded-lg">
+            <div class="px-4 py-5 sm:p-6">
+                <p class="text-sm text-gray-500 dark:text-gray-400">
+                    View all assignments in the <a href="{% url 'admin:performance_kpiassignment_changelist' %}" class="text-indigo-600 dark:text-indigo-400 hover:underline">admin panel</a>.
+                </p>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+// Show metric description when selected
+document.getElementById('metric_id').addEventListener('change', function() {
+    const selected = this.options[this.selectedIndex];
+    const description = selected.getAttribute('data-description');
+    document.getElementById('metricDescription').textContent = description || '';
+});
+
+// Handle form submission
+document.getElementById('assignForm').addEventListener('submit', async function(e) {
+    e.preventDefault();
+    
+    const formData = new FormData(this);
+    const submitBtn = document.getElementById('submitBtn');
+    const message = document.getElementById('assignmentMessage');
+    
+    submitBtn.disabled = true;
+    submitBtn.textContent = 'Assigning...';
+    message.textContent = '';
+    
+    try {
+        const response = await fetch('{% url "performance:assign_kpi" %}', {
+            method: 'POST',
+            body: formData,
+            headers: {
+                'X-CSRFToken': formData.get('csrfmiddlewaretoken')
+            }
+        });
+        
+        const data = await response.json();
+        
+        if (response.ok && data.success) {
+            message.innerHTML = '<span class="text-green-600 dark:text-green-400">✓ KPI assigned successfully!</span>';
+            this.reset();
+            setTimeout(() => {
+                message.textContent = '';
+            }, 3000);
+        } else {
+            message.innerHTML = '<span class="text-red-600 dark:text-red-400">✗ ' + (data.error || 'Assignment failed') + '</span>';
+        }
+    } catch (error) {
+        message.innerHTML = '<span class="text-red-600 dark:text-red-400">✗ Network error. Please try again.</span>';
+    } finally {
+        submitBtn.disabled = false;
+        submitBtn.textContent = 'Assign KPI';
+    }
+});
+</script>
+
+{% endblock %}

@@ -154,9 +154,19 @@ def assign_kpi(request):
     else:
         users = User.objects.none()
     
+    # Generate period options
+    from apps.performance.utils import ReviewPeriodHelper
+    now = timezone.now()
+    current_month = ReviewPeriodHelper.get_current_period('monthly')
+    next_month = ReviewPeriodHelper.get_next_period(current_month)
+    current_quarter = ReviewPeriodHelper.get_current_period('quarterly')
+    
     context = {
         'metrics': metrics,
-        'users': users
+        'users': users,
+        'current_month': current_month,
+        'next_month': next_month,
+        'current_quarter': current_quarter
     }
     
     return render(request, 'performance/assign_kpi.html', context)
