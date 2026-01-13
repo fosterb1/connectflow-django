@@ -1,0 +1,193 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Create Performance Review - ConnectFlow Pro{% endblock %}
+
+{% block content %}
+<div class="max-w-3xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+    <!-- Header -->
+    <div class="mb-8">
+        <a href="{% url 'performance:team_overview' %}" class="inline-flex items-center text-sm font-medium text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200 mb-4">
+            <svg class="w-5 h-5 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"/>
+            </svg>
+            Back to Team Overview
+        </a>
+        <h1 class="text-3xl font-bold text-gray-900 dark:text-white">Create Performance Review</h1>
+        <p class="mt-2 text-sm text-gray-600 dark:text-gray-400">Evaluate a team member's performance for a specific period</p>
+    </div>
+
+    <!-- Info Alert -->
+    <div class="mb-6 bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg p-4">
+        <div class="flex">
+            <svg class="h-5 w-5 text-blue-400" fill="currentColor" viewBox="0 0 20 20">
+                <path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clip-rule="evenodd"/>
+            </svg>
+            <div class="ml-3">
+                <h3 class="text-sm font-medium text-blue-800 dark:text-blue-200">How it works</h3>
+                <div class="mt-2 text-sm text-blue-700 dark:text-blue-300">
+                    <ul class="list-disc list-inside space-y-1">
+                        <li>Select a team member and review period</li>
+                        <li>System will automatically calculate scores based on their work</li>
+                        <li>Review will be created in "Draft" status</li>
+                        <li>You can add manual ratings and comments before finalizing</li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Form -->
+    <div class="bg-white dark:bg-gray-800 shadow rounded-lg">
+        <form id="createReviewForm" class="p-6 space-y-6">
+            {% csrf_token %}
+            
+            <!-- Team Member Selection -->
+            <div>
+                <label for="user_id" class="block text-sm font-medium text-gray-700 dark:text-gray-300">
+                    Team Member <span class="text-red-500">*</span>
+                </label>
+                <select name="user_id" id="user_id" required
+                        class="mt-1 block w-full rounded-md border-gray-300 dark:border-gray-600 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 dark:bg-gray-700 dark:text-white sm:text-sm">
+                    <option value="">Select a team member...</option>
+                    {% for user in users %}
+                    <option value="{{ user.id }}">
+                        {{ user.get_full_name }} - {{ user.get_role_display }}
+                    </option>
+                    {% endfor %}
+                </select>
+                <p class="mt-1 text-xs text-gray-500 dark:text-gray-400">Who are you reviewing?</p>
+            </div>
+
+            <!-- Review Period -->
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                    <label for="period_start" class="block text-sm font-medium text-gray-700 dark:text-gray-300">
+                        Period Start Date <span class="text-red-500">*</span>
+                    </label>
+                    <input type="date" name="period_start" id="period_start" required
+                           class="mt-1 block w-full rounded-md border-gray-300 dark:border-gray-600 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 dark:bg-gray-700 dark:text-white sm:text-sm">
+                    <p class="mt-1 text-xs text-gray-500 dark:text-gray-400">First day of review period</p>
+                </div>
+
+                <div>
+                    <label for="period_end" class="block text-sm font-medium text-gray-700 dark:text-gray-300">
+                        Period End Date <span class="text-red-500">*</span>
+                    </label>
+                    <input type="date" name="period_end" id="period_end" required
+                           class="mt-1 block w-full rounded-md border-gray-300 dark:border-gray-600 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 dark:bg-gray-700 dark:text-white sm:text-sm">
+                    <p class="mt-1 text-xs text-gray-500 dark:text-gray-400">Last day of review period</p>
+                </div>
+            </div>
+
+            <!-- Quick Period Selectors -->
+            <div class="flex flex-wrap gap-2">
+                <button type="button" onclick="setLastMonth()" class="inline-flex items-center px-3 py-1.5 border border-gray-300 dark:border-gray-600 rounded-md text-xs font-medium text-gray-700 dark:text-gray-200 bg-white dark:bg-gray-700 hover:bg-gray-50 dark:hover:bg-gray-600">
+                    Last Month
+                </button>
+                <button type="button" onclick="setCurrentMonth()" class="inline-flex items-center px-3 py-1.5 border border-gray-300 dark:border-gray-600 rounded-md text-xs font-medium text-gray-700 dark:text-gray-200 bg-white dark:bg-gray-700 hover:bg-gray-50 dark:hover:bg-gray-600">
+                    Current Month
+                </button>
+                <button type="button" onclick="setLastQuarter()" class="inline-flex items-center px-3 py-1.5 border border-gray-300 dark:border-gray-600 rounded-md text-xs font-medium text-gray-700 dark:text-gray-200 bg-white dark:bg-gray-700 hover:bg-gray-50 dark:hover:bg-gray-600">
+                    Last Quarter
+                </button>
+            </div>
+
+            <!-- Status Message -->
+            <div id="statusMessage" class="hidden"></div>
+
+            <!-- Actions -->
+            <div class="flex items-center justify-end space-x-3 pt-6 border-t border-gray-200 dark:border-gray-700">
+                <a href="{% url 'performance:team_overview' %}"
+                   class="px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg shadow-sm text-sm font-medium text-gray-700 dark:text-gray-200 bg-white dark:bg-gray-800 hover:bg-gray-50 dark:hover:bg-gray-700">
+                    Cancel
+                </a>
+                <button type="submit" id="submitBtn"
+                        class="px-4 py-2 border border-transparent rounded-lg shadow-sm text-sm font-medium text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500">
+                    Create Review & Generate Scores
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<script>
+// Quick period setters
+function setLastMonth() {
+    const now = new Date();
+    const lastMonth = new Date(now.getFullYear(), now.getMonth() - 1, 1);
+    const lastMonthEnd = new Date(now.getFullYear(), now.getMonth(), 0);
+    
+    document.getElementById('period_start').value = lastMonth.toISOString().split('T')[0];
+    document.getElementById('period_end').value = lastMonthEnd.toISOString().split('T')[0];
+}
+
+function setCurrentMonth() {
+    const now = new Date();
+    const monthStart = new Date(now.getFullYear(), now.getMonth(), 1);
+    const monthEnd = new Date(now.getFullYear(), now.getMonth() + 1, 0);
+    
+    document.getElementById('period_start').value = monthStart.toISOString().split('T')[0];
+    document.getElementById('period_end').value = monthEnd.toISOString().split('T')[0];
+}
+
+function setLastQuarter() {
+    const now = new Date();
+    const currentQuarter = Math.floor(now.getMonth() / 3);
+    const lastQuarter = currentQuarter === 0 ? 3 : currentQuarter - 1;
+    const year = currentQuarter === 0 ? now.getFullYear() - 1 : now.getFullYear();
+    
+    const quarterStart = new Date(year, lastQuarter * 3, 1);
+    const quarterEnd = new Date(year, (lastQuarter + 1) * 3, 0);
+    
+    document.getElementById('period_start').value = quarterStart.toISOString().split('T')[0];
+    document.getElementById('period_end').value = quarterEnd.toISOString().split('T')[0];
+}
+
+// Form submission
+document.getElementById('createReviewForm').addEventListener('submit', async function(e) {
+    e.preventDefault();
+    
+    const formData = new FormData(this);
+    const submitBtn = document.getElementById('submitBtn');
+    const statusMsg = document.getElementById('statusMessage');
+    
+    submitBtn.disabled = true;
+    submitBtn.textContent = 'Creating review & calculating scores...';
+    statusMsg.classList.add('hidden');
+    
+    try {
+        const response = await fetch('{% url "performance:create_review" %}', {
+            method: 'POST',
+            body: formData,
+            headers: {
+                'X-CSRFToken': formData.get('csrfmiddlewaretoken')
+            }
+        });
+        
+        const data = await response.json();
+        
+        if (response.ok && data.success) {
+            statusMsg.innerHTML = '<div class="bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800 rounded-lg p-4"><p class="text-sm text-green-800 dark:text-green-200">✓ Review created successfully! Redirecting...</p></div>';
+            statusMsg.classList.remove('hidden');
+            
+            // Redirect to review detail page
+            setTimeout(() => {
+                window.location.href = data.redirect_url;
+            }, 1500);
+        } else {
+            statusMsg.innerHTML = '<div class="bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg p-4"><p class="text-sm text-red-800 dark:text-red-200">✗ ' + (data.error || 'Failed to create review') + '</p></div>';
+            statusMsg.classList.remove('hidden');
+            submitBtn.disabled = false;
+            submitBtn.textContent = 'Create Review & Generate Scores';
+        }
+    } catch (error) {
+        statusMsg.innerHTML = '<div class="bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg p-4"><p class="text-sm text-red-800 dark:text-red-200">✗ Network error. Please try again.</p></div>';
+        statusMsg.classList.remove('hidden');
+        submitBtn.disabled = false;
+        submitBtn.textContent = 'Create Review & Generate Scores';
+    }
+});
+</script>
+
+{% endblock %}

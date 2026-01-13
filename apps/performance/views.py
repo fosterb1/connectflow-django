@@ -220,45 +220,64 @@ def team_performance_overview(request):
 
 
 @login_required
-@require_http_methods(["POST"])
 def create_review(request):
     """Create a performance review (Manager view)."""
-    user_id = request.POST.get('user_id')
-    period_start = request.POST.get('period_start')
-    period_end = request.POST.get('period_end')
+    if not PerformancePermissions.can_view_team_performance(request.user):
+        return HttpResponseForbidden("You don't have permission to create reviews.")
     
-    target_user = get_object_or_404(User, id=user_id)
+    if request.method == 'POST':
+        user_id = request.POST.get('user_id')
+        period_start = request.POST.get('period_start')
+        period_end = request.POST.get('period_end')
+        
+        target_user = get_object_or_404(User, id=user_id)
+        
+        if not PerformancePermissions.can_create_review(request.user, target_user):
+            return JsonResponse({'error': 'Permission denied'}, status=403)
+        
+        review = PerformanceReview.objects.create(
+            user=target_user,
+            reviewer=request.user,
+            organization=request.user.organization,
+            review_period_start=period_start,
+            review_period_end=period_end
+        )
+        
+        # Generate scores automatically
+        PerformanceScoringService.generate_review_scores(review, request.user)
+        
+        # Log creation
+        PerformanceAuditLog.log_action(
+            organization=request.user.organization,
+            actor=request.user,
+            action=PerformanceAuditLog.ActionType.REVIEW_CREATED,
+            target_user=target_user,
+            review=review,
+            details={
+                'period': f"{period_start} to {period_end}"
+            }
+        )
+        
+        return JsonResponse({
+            'success': True,
+            'review_id': str(review.id),
+            'redirect_url': f'/performance/review/{review.id}/'
+        })
     
-    if not PerformancePermissions.can_create_review(request.user, target_user):
-        return JsonResponse({'error': 'Permission denied'}, status=403)
+    # GET request - show form
+    # Get users that can be reviewed
+    if request.user.is_admin:
+        users = User.objects.filter(organization=request.user.organization)
+    elif request.user.role == User.Role.TEAM_MANAGER:
+        users = User.objects.filter(teams__manager=request.user).distinct()
+    else:
+        users = User.objects.none()
     
-    review = PerformanceReview.objects.create(
-        user=target_user,
-        reviewer=request.user,
-        organization=request.user.organization,
-        review_period_start=period_start,
-        review_period_end=period_end
-    )
+    context = {
+        'users': users
+    }
     
-    # Generate scores automatically
-    PerformanceScoringService.generate_review_scores(review, request.user)
-    
-    # Log creation
-    PerformanceAuditLog.log_action(
-        organization=request.user.organization,
-        actor=request.user,
-        action=PerformanceAuditLog.ActionType.REVIEW_CREATED,
-        target_user=target_user,
-        review=review,
-        details={
-            'period': f"{period_start} to {period_end}"
-        }
-    )
-    
-    return JsonResponse({
-        'success': True,
-        'review_id': str(review.id)
-    })
+    return render(request, 'performance/create_review.html', context)
 
 
 @login_required
