@@ -1,0 +1,53 @@
+{% extends "base.html" %}
+
+{% block title %}Analytics - {{ form.title }}{% endblock %}
+
+{% block content %}
+<div class="min-h-screen bg-gray-50 py-8">
+    <div class="max-w-7xl mx-auto px-4">
+        <div class="mb-6">
+            <a href="{% url 'tools_forms:form_edit' form.id %}" class="text-sm text-gray-500 hover:text-gray-700">← Back to Form</a>
+            <h1 class="text-3xl font-bold text-gray-900 mt-2">{{ form.title }} - Analytics</h1>
+        </div>
+
+        <div class="bg-white rounded-lg shadow p-6 mb-6">
+            <h2 class="text-lg font-semibold mb-2">Overview</h2>
+            <p class="text-3xl font-bold text-blue-600">{{ total_responses }}</p>
+            <p class="text-sm text-gray-600">Total Responses</p>
+        </div>
+
+        <div class="space-y-6">
+            {% for stat in field_stats %}
+            <div class="bg-white rounded-lg shadow p-6">
+                <h3 class="text-lg font-semibold text-gray-900 mb-4">{{ stat.field.label }}</h3>
+                <p class="text-sm text-gray-600 mb-3">{{ stat.total_responses }} response{{ stat.total_responses|pluralize }}</p>
+
+                {% if stat.options %}
+                    <div class="space-y-2">
+                        {% for option in stat.options %}
+                        <div>
+                            <div class="flex justify-between mb-1">
+                                <span class="text-sm text-gray-700">{{ option.label }}</span>
+                                <span class="text-sm font-medium text-gray-900">{{ option.count }} ({{ option.percentage|floatformat:0 }}%)</span>
+                            </div>
+                            <div class="w-full bg-gray-200 rounded-full h-2">
+                                <div class="bg-blue-600 h-2 rounded-full" style="width: {{ option.percentage }}%"></div>
+                            </div>
+                        </div>
+                        {% endfor %}
+                    </div>
+                {% elif stat.average %}
+                    <p class="text-2xl font-bold text-blue-600">{{ stat.average|floatformat:1 }} ⭐</p>
+                {% elif stat.min %}
+                    <div class="grid grid-cols-3 gap-4">
+                        <div><p class="text-sm text-gray-600">Min</p><p class="text-xl font-bold">{{ stat.min }}</p></div>
+                        <div><p class="text-sm text-gray-600">Avg</p><p class="text-xl font-bold">{{ stat.average|floatformat:1 }}</p></div>
+                        <div><p class="text-sm text-gray-600">Max</p><p class="text-xl font-bold">{{ stat.max }}</p></div>
+                    </div>
+                {% endif %}
+            </div>
+            {% endfor %}
+        </div>
+    </div>
+</div>
+{% endblock %}

@@ -1,0 +1,132 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block title %}{{ form.title }} - ConnectFlow Pro{% endblock %}
+
+{% block content %}
+<div class="min-h-screen bg-gray-50 py-12">
+    <div class="max-w-3xl mx-auto px-4 sm:px-6 lg:px-8">
+        
+        <!-- Form Header -->
+        <div class="bg-white rounded-lg shadow-sm p-8 mb-6">
+            <h1 class="text-3xl font-bold text-gray-900 mb-3">{{ form.title }}</h1>
+            {% if form.description %}
+            <p class="text-gray-600">{{ form.description }}</p>
+            {% endif %}
+            <div class="mt-4 flex items-center text-sm text-gray-500">
+                <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
+                    {{ form.get_form_type_display }}
+                </span>
+                <span class="ml-3">{{ fields.count }} question{{ fields.count|pluralize }}</span>
+            </div>
+        </div>
+
+        <!-- Form Fields -->
+        <form method="post" class="bg-white rounded-lg shadow-sm p-8">
+            {% csrf_token %}
+            
+            <div class="space-y-8">
+                {% for field in fields %}
+                <div class="pb-6 border-b border-gray-200 last:border-0">
+                    <label class="block text-base font-medium text-gray-900 mb-2">
+                        {{ field.label }}
+                        {% if field.is_required %}
+                        <span class="text-red-500">*</span>
+                        {% endif %}
+                    </label>
+                    
+                    {% if field.help_text %}
+                    <p class="text-sm text-gray-600 mb-3">{{ field.help_text }}</p>
+                    {% endif %}
+
+                    {% if field.field_type == 'SHORT_TEXT' %}
+                        <input type="text" 
+                               name="field_{{ field.id }}" 
+                               {% if field.is_required %}required{% endif %}
+                               placeholder="{{ field.placeholder }}"
+                               class="shadow-sm focus:ring-blue-500 focus:border-blue-500 block w-full sm:text-sm border-gray-300 rounded-md">
+                    
+                    {% elif field.field_type == 'LONG_TEXT' %}
+                        <textarea name="field_{{ field.id }}" 
+                                  rows="4"
+                                  {% if field.is_required %}required{% endif %}
+                                  placeholder="{{ field.placeholder }}"
+                                  class="shadow-sm focus:ring-blue-500 focus:border-blue-500 block w-full sm:text-sm border-gray-300 rounded-md"></textarea>
+                    
+                    {% elif field.field_type == 'EMAIL' %}
+                        <input type="email" 
+                               name="field_{{ field.id }}" 
+                               {% if field.is_required %}required{% endif %}
+                               placeholder="{{ field.placeholder }}"
+                               class="shadow-sm focus:ring-blue-500 focus:border-blue-500 block w-full sm:text-sm border-gray-300 rounded-md">
+                    
+                    {% elif field.field_type == 'NUMBER' %}
+                        <input type="number" 
+                               name="field_{{ field.id }}" 
+                               {% if field.is_required %}required{% endif %}
+                               class="shadow-sm focus:ring-blue-500 focus:border-blue-500 block w-full sm:text-sm border-gray-300 rounded-md">
+                    
+                    {% elif field.field_type == 'DATE' %}
+                        <input type="date" 
+                               name="field_{{ field.id }}" 
+                               {% if field.is_required %}required{% endif %}
+                               class="shadow-sm focus:ring-blue-500 focus:border-blue-500 block w-full sm:text-sm border-gray-300 rounded-md">
+                    
+                    {% elif field.field_type == 'RATING' %}
+                        <div class="flex space-x-2">
+                            {% for i in "12345" %}
+                            <label class="inline-flex items-center">
+                                <input type="radio" name="field_{{ field.id }}" value="{{ forloop.counter }}" 
+                                       {% if field.is_required %}required{% endif %}
+                                       class="focus:ring-blue-500 h-4 w-4 text-blue-600 border-gray-300">
+                                <span class="ml-1 text-2xl">⭐</span>
+                            </label>
+                            {% endfor %}
+                        </div>
+                    
+                    {% elif field.field_type == 'MULTIPLE_CHOICE' %}
+                        <div class="space-y-2">
+                            {% for option in field.options %}
+                            <label class="flex items-center">
+                                <input type="radio" name="field_{{ field.id }}" value="{{ option }}" 
+                                       {% if field.is_required %}required{% endif %}
+                                       class="focus:ring-blue-500 h-4 w-4 text-blue-600 border-gray-300">
+                                <span class="ml-3 text-sm text-gray-700">{{ option }}</span>
+                            </label>
+                            {% endfor %}
+                        </div>
+                    
+                    {% elif field.field_type == 'DROPDOWN' %}
+                        <select name="field_{{ field.id }}" 
+                                {% if field.is_required %}required{% endif %}
+                                class="shadow-sm focus:ring-blue-500 focus:border-blue-500 block w-full sm:text-sm border-gray-300 rounded-md">
+                            <option value="">Select an option</option>
+                            {% for option in field.options %}
+                            <option value="{{ option }}">{{ option }}</option>
+                            {% endfor %}
+                        </select>
+                    
+                    {% else %}
+                        <input type="text" 
+                               name="field_{{ field.id }}" 
+                               {% if field.is_required %}required{% endif %}
+                               class="shadow-sm focus:ring-blue-500 focus:border-blue-500 block w-full sm:text-sm border-gray-300 rounded-md">
+                    {% endif %}
+                </div>
+                {% endfor %}
+            </div>
+
+            <div class="mt-8 flex justify-end">
+                <button type="submit" 
+                        class="inline-flex items-center px-6 py-3 border border-transparent text-base font-medium rounded-md shadow-sm text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500">
+                    Submit Response
+                    <svg class="ml-2 -mr-1 h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 7l5 5m0 0l-5 5m5-5H6"/>
+                    </svg>
+                </button>
+            </div>
+        </form>
+
+    </div>
+</div>
+{% endblock %}

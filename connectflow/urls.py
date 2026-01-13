@@ -30,9 +30,15 @@ urlpatterns = [
     path('support/', include('apps.support.urls')),
     path('calls/', include('apps.calls.urls')),
     path('performance/', include('apps.performance.urls')),
+    path('tools/', include('apps.tools.urls')),
     
     # API v1
     path('api/v1/', include('connectflow.api_urls')),
+    
+    # Public form submission (no auth required)
+    path('f/<str:share_link>/', include([
+        path('', include('apps.tools.forms.public_urls')),
+    ])),
     
     path('', RedirectView.as_view(url='/accounts/login/', permanent=False)),
     

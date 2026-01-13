@@ -63,6 +63,7 @@ INSTALLED_APPS = [
     'apps.support',
     'apps.calls',
     'apps.performance',
+    'apps.tools.forms',
 ]
 
 MIDDLEWARE = [
