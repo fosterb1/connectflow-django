@@ -60,7 +60,7 @@ def form_create(request):
         )
         
         messages.success(request, f'Form "{title}" created successfully!')
-        return redirect('tools_forms:form_edit', form_id=form.id)
+        return redirect('tools:forms:form_edit', form_id=form.id)
     
     form_types = Form.FormType.choices
     context = {
@@ -77,7 +77,7 @@ def form_edit(request, form_id):
     # Permission check
     if form.created_by != request.user and not request.user.is_superuser:
         messages.error(request, "You don't have permission to edit this form.")
-        return redirect('tools_forms:form_list')
+        return redirect('tools:forms:form_list')
     
     if request.method == 'POST':
         # Update form settings
@@ -94,7 +94,7 @@ def form_edit(request, form_id):
         
         form.save()
         messages.success(request, 'Form settings updated!')
-        return redirect('tools_forms:form_edit', form_id=form.id)
+        return redirect('tools:forms:form_edit', form_id=form.id)
     
     context = {
         'form': form,
@@ -192,7 +192,7 @@ def form_responses(request, form_id):
     # Permission check
     if form.created_by != request.user and not request.user.is_superuser:
         messages.error(request, "You don't have permission to view responses.")
-        return redirect('tools_forms:form_list')
+        return redirect('tools:forms:form_list')
     
     responses = form.responses.all().select_related('user').order_by('-submitted_at')
     
@@ -213,7 +213,7 @@ def form_analytics(request, form_id):
     # Permission check
     if form.created_by != request.user and not request.user.is_superuser:
         messages.error(request, "You don't have permission to view analytics.")
-        return redirect('tools_forms:form_list')
+        return redirect('tools:forms:form_list')
     
     responses = form.responses.all()
     
@@ -325,7 +325,7 @@ def form_delete(request, form_id):
     form.delete()
     
     messages.success(request, f'Form "{form_title}" deleted successfully.')
-    return redirect('tools_forms:form_list')
+    return redirect('tools:forms:form_list')
 
 
 # ============================================
