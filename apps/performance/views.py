@@ -156,17 +156,34 @@ def assign_kpi(request):
     
     # Generate period options
     from apps.performance.utils import ReviewPeriodHelper
-    now = timezone.now()
-    current_month = ReviewPeriodHelper.get_current_period('monthly')
-    next_month = ReviewPeriodHelper.get_next_period(current_month)
-    current_quarter = ReviewPeriodHelper.get_current_period('quarterly')
+    try:
+        current_month = ReviewPeriodHelper.get_current_period('monthly')
+        next_month = ReviewPeriodHelper.get_next_period(current_month)
+        current_quarter = ReviewPeriodHelper.get_current_period('quarterly')
+    except Exception:
+        # Fallback if period helper fails
+        now = timezone.now()
+        current_month = now.strftime('%Y-%m')
+        next_month = (now + timedelta(days=32)).strftime('%Y-%m')
+        quarter = (now.month - 1) // 3 + 1
+        current_quarter = f"{now.year}-Q{quarter}"
+    
+    # Get pre-selected metric if provided
+    selected_metric_id = request.GET.get('metric')
+    selected_metric = None
+    if selected_metric_id:
+        try:
+            selected_metric = metrics.filter(id=selected_metric_id).first()
+        except Exception:
+            pass
     
     context = {
         'metrics': metrics,
         'users': users,
         'current_month': current_month,
         'next_month': next_month,
-        'current_quarter': current_quarter
+        'current_quarter': current_quarter,
+        'selected_metric': selected_metric
     }
     
     return render(request, 'performance/assign_kpi.html', context)

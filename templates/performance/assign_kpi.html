@@ -32,12 +32,15 @@
                             class="mt-1 block w-full rounded-md border-gray-300 dark:border-gray-600 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 dark:bg-gray-700 dark:text-white sm:text-sm">
                         <option value="">Select a metric...</option>
                         {% for metric in metrics %}
-                        <option value="{{ metric.id }}" data-description="{{ metric.description }}">
+                        <option value="{{ metric.id }}" data-description="{{ metric.description }}" 
+                                {% if selected_metric and selected_metric.id == metric.id %}selected{% endif %}>
                             {{ metric.name }} ({{ metric.get_metric_type_display }})
                         </option>
                         {% endfor %}
                     </select>
-                    <p id="metricDescription" class="mt-2 text-sm text-gray-500 dark:text-gray-400 italic"></p>
+                    <p id="metricDescription" class="mt-2 text-sm text-gray-500 dark:text-gray-400 italic">
+                        {% if selected_metric %}{{ selected_metric.description }}{% endif %}
+                    </p>
                 </div>
 
                 <!-- Select User -->
