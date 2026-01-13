@@ -29,6 +29,9 @@ from apps.accounts.models import User
 @login_required
 def kpi_metric_list(request):
     """List all KPI metrics for the organization (Manager view)."""
+    if not request.user.organization:
+        return redirect('accounts:dashboard')
+    
     if not PerformancePermissions.can_view_team_performance(request.user):
         return HttpResponseForbidden("You don't have permission to view KPI metrics.")
     
@@ -49,6 +52,9 @@ def kpi_metric_list(request):
 @require_http_methods(["GET", "POST"])
 def kpi_metric_create(request):
     """Create a new KPI metric (Manager view)."""
+    if not request.user.organization:
+        return redirect('accounts:dashboard')
+    
     if not PerformancePermissions.can_create_kpi_metric(request.user):
         return HttpResponseForbidden("You don't have permission to create KPI metrics.")
     
@@ -104,6 +110,9 @@ def kpi_metric_create(request):
 @login_required
 def assign_kpi(request):
     """Assign KPIs to users (Manager view)."""
+    if not request.user.organization:
+        return redirect('accounts:dashboard')
+    
     if not PerformancePermissions.can_view_team_performance(request.user):
         return HttpResponseForbidden("You don't have permission to assign KPIs.")
     
@@ -192,6 +201,9 @@ def assign_kpi(request):
 @login_required
 def team_performance_overview(request):
     """Team-level performance overview (Manager view)."""
+    if not request.user.organization:
+        return redirect('accounts:dashboard')
+    
     if not PerformancePermissions.can_view_team_performance(request.user):
         return HttpResponseForbidden("You don't have permission to view team performance.")
     
@@ -222,6 +234,9 @@ def team_performance_overview(request):
 @login_required
 def create_review(request):
     """Create a performance review (Manager view)."""
+    if not request.user.organization:
+        return redirect('accounts:dashboard')
+    
     if not PerformancePermissions.can_view_team_performance(request.user):
         return HttpResponseForbidden("You don't have permission to create reviews.")
     
