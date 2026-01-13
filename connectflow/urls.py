@@ -29,6 +29,7 @@ urlpatterns = [
     path('channels/', include('apps.chat_channels.urls')),
     path('support/', include('apps.support.urls')),
     path('calls/', include('apps.calls.urls')),
+    path('performance/', include('apps.performance.urls')),
     
     # API v1
     path('api/v1/', include('connectflow.api_urls')),

@@ -62,6 +62,7 @@ INSTALLED_APPS = [
     'apps.chat_channels',
     'apps.support',
     'apps.calls',
+    'apps.performance',
 ]
 
 MIDDLEWARE = [
