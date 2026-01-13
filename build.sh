@@ -8,7 +8,10 @@ echo "Collecting static files..."
 python manage.py collectstatic --noinput
 
 echo "Running database migrations..."
-# Use --run-syncdb to handle existing tables gracefully
-python manage.py migrate --run-syncdb --noinput 2>&1 | grep -v "relation.*already exists" || python manage.py migrate tools_forms --fake-initial --noinput
+# Fake the tools_forms initial migration if tables already exist
+python manage.py migrate tools_forms 0001 --fake-initial --noinput
+
+# Then run all other migrations normally
+python manage.py migrate --noinput
 
 echo "Build complete!"
