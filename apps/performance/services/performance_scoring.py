@@ -15,7 +15,7 @@ from django.utils import timezone
 from django.db import transaction
 
 from apps.performance.models import (
-    KPIMetric, PerformanceReview, PerformanceScore, PerformanceAuditLog
+    KPIMetric, PerformanceReview, PerformanceScore, PerformanceAuditLog, Responsibility
 )
 from apps.organizations.models import ProjectTask
 
@@ -33,20 +33,34 @@ class PerformanceScoringService:
         """
         metric_name_lower = metric.name.lower()
         
-        # Get user's tasks in the review period
+        # Get user's tasks and responsibilities in the review period
         user_tasks = ProjectTask.objects.filter(
             assigned_to=user,
             created_at__gte=period_start,
             created_at__lte=period_end
         )
         
-        # Task Completion Rate
-        if 'completion' in metric_name_lower or 'completed' in metric_name_lower:
-            return PerformanceScoringService._calculate_completion_rate(user_tasks)
+        user_responsibilities = Responsibility.objects.filter(
+            user=user,
+            deadline__gte=period_start,
+            deadline__lte=period_end
+        )
         
-        # Deadline Adherence
+        # Task Completion Rate (Includes Responsibilities)
+        if 'completion' in metric_name_lower or 'completed' in metric_name_lower:
+            task_score = PerformanceScoringService._calculate_completion_rate(user_tasks)
+            resp_score = PerformanceScoringService._calculate_responsibility_score(user_responsibilities)
+            if user_tasks.exists() and user_responsibilities.exists():
+                return (task_score + resp_score) / 2
+            return resp_score if user_responsibilities.exists() else task_score
+        
+        # Deadline Adherence (Includes Responsibilities)
         elif 'deadline' in metric_name_lower or 'on time' in metric_name_lower:
-            return PerformanceScoringService._calculate_deadline_adherence(user_tasks)
+            task_score = PerformanceScoringService._calculate_deadline_adherence(user_tasks)
+            resp_score = PerformanceScoringService._calculate_responsibility_deadline_score(user_responsibilities)
+            if user_tasks.exists() and user_responsibilities.exists():
+                return (task_score + resp_score) / 2
+            return resp_score if user_responsibilities.exists() else task_score
         
         # Task Volume / Output
         elif 'volume' in metric_name_lower or 'output' in metric_name_lower:
@@ -138,6 +152,35 @@ class PerformanceScoringService:
         quality_rate = ((total_count - reopened_count) / total_count) * 100
         return Decimal(str(max(0, quality_rate))).quantize(Decimal('0.01'), rounding=ROUND_HALF_UP)
     
+    @staticmethod
+    def _calculate_responsibility_score(responsibilities):
+        """Calculate percentage of completed responsibilities."""
+        total_count = responsibilities.count()
+        if total_count == 0:
+            return Decimal('100.00')
+        
+        completed_count = responsibilities.filter(
+            status=Responsibility.Status.COMPLETED
+        ).count()
+        
+        rate = (completed_count / total_count) * 100
+        return Decimal(str(rate)).quantize(Decimal('0.01'), rounding=ROUND_HALF_UP)
+
+    @staticmethod
+    def _calculate_responsibility_deadline_score(responsibilities):
+        """Calculate percentage of responsibilities completed on time."""
+        total_count = responsibilities.count()
+        if total_count == 0:
+            return Decimal('100.00')
+        
+        on_time_count = responsibilities.filter(
+            status=Responsibility.Status.COMPLETED,
+            completed_at__lte=models.F('deadline')
+        ).count()
+        
+        rate = (on_time_count / total_count) * 100
+        return Decimal(str(rate)).quantize(Decimal('0.01'), rounding=ROUND_HALF_UP)
+
     @staticmethod
     def calculate_final_score(review):
         """

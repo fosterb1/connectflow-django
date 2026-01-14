@@ -484,3 +484,72 @@ class PerformanceAuditLog(models.Model):
             action=action,
             **kwargs
         )
+
+
+class Responsibility(models.Model):
+    """
+    Specific duties or role-based tasks assigned to a member.
+    Members or managers can check these off as they are performed.
+    """
+    class Status(models.TextChoices):
+        PENDING = 'PENDING', _('Pending')
+        COMPLETED = 'COMPLETED', _('Completed')
+        OVERDUE = 'OVERDUE', _('Overdue')
+
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    organization = models.ForeignKey(
+        'organizations.Organization',
+        on_delete=models.CASCADE,
+        related_name='responsibilities'
+    )
+    user = models.ForeignKey(
+        'accounts.User',
+        on_delete=models.CASCADE,
+        related_name='responsibilities',
+        db_index=True
+    )
+    assigned_by = models.ForeignKey(
+        'accounts.User',
+        on_delete=models.SET_NULL,
+        null=True,
+        related_name='assigned_responsibilities'
+    )
+    
+    title = models.CharField(max_length=255)
+    description = models.TextField(blank=True)
+    deadline = models.DateTimeField(db_index=True)
+    
+    status = models.CharField(
+        max_length=20,
+        choices=Status.choices,
+        default=Status.PENDING,
+        db_index=True
+    )
+    
+    completed_at = models.DateTimeField(null=True, blank=True)
+    completed_by = models.ForeignKey(
+        'accounts.User',
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name='completed_responsibilities'
+    )
+    
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        db_table = 'responsibilities'
+        verbose_name = _('Responsibility')
+        verbose_name_plural = _('Responsibilities')
+        ordering = ['deadline', 'status']
+
+    def __str__(self):
+        return f"{self.title} - {self.user.get_full_name()}"
+
+    def save(self, *args, **kwargs):
+        from django.utils import timezone
+        # Auto-update status to overdue if deadline passed and still pending
+        if self.status == self.Status.PENDING and self.deadline < timezone.now():
+            self.status = self.Status.OVERDUE
+        super().save(*args, **kwargs)

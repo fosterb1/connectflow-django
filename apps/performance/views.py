@@ -15,7 +15,7 @@ from decimal import Decimal
 
 from apps.performance.models import (
     KPIMetric, KPIAssignment, PerformanceReview, 
-    PerformanceScore, PerformanceAuditLog, KPIThreshold
+    PerformanceScore, PerformanceAuditLog, KPIThreshold, Responsibility
 )
 from apps.performance.services import PerformanceScoringService
 from apps.performance.permissions import PerformancePermissions
@@ -25,6 +25,72 @@ from apps.accounts.models import User
 # ============================================================================
 # MANAGER VIEWS
 # ============================================================================
+
+@login_required
+@require_http_methods(["POST"])
+def add_responsibility(request, user_id):
+    """Assign a responsibility to a team member (Manager view)."""
+    if not request.user.organization:
+        return JsonResponse({'error': 'No organization'}, status=400)
+    
+    target_user = get_object_or_404(User, id=user_id, organization=request.user.organization)
+    
+    if not PerformancePermissions.can_assign_kpi(request.user, target_user):
+        return JsonResponse({'error': 'Permission denied'}, status=403)
+    
+    title = request.POST.get('title')
+    description = request.POST.get('description', '')
+    deadline = request.POST.get('deadline')
+    
+    if not title or not deadline:
+        return JsonResponse({'error': 'Title and deadline are required'}, status=400)
+    
+    responsibility = Responsibility.objects.create(
+        organization=request.user.organization,
+        user=target_user,
+        assigned_by=request.user,
+        title=title,
+        description=description,
+        deadline=deadline
+    )
+    
+    return JsonResponse({
+        'success': True,
+        'id': str(responsibility.id),
+        'title': responsibility.title
+    })
+
+
+@login_required
+@require_http_methods(["POST"])
+def complete_responsibility(request, responsibility_id):
+    """Mark a responsibility as completed (Member or Manager view)."""
+    responsibility = get_object_or_404(
+        Responsibility.objects.select_related('user'), 
+        id=responsibility_id
+    )
+    
+    # Check permission (Owner of responsibility or their manager/admin)
+    is_owner = responsibility.user_id == request.user.id
+    is_manager = PerformancePermissions.can_assign_kpi(request.user, responsibility.user)
+    
+    if not (is_owner or is_manager):
+        return JsonResponse({'error': 'Permission denied'}, status=403)
+    
+    if responsibility.status == Responsibility.Status.COMPLETED:
+        return JsonResponse({'error': 'Already completed'}, status=400)
+    
+    responsibility.status = Responsibility.Status.COMPLETED
+    responsibility.completed_at = timezone.now()
+    responsibility.completed_by = request.user
+    responsibility.save()
+    
+    return JsonResponse({
+        'success': True,
+        'completed_at': responsibility.completed_at.isoformat(),
+        'completed_by': request.user.get_full_name()
+    })
+
 
 @login_required
 def kpi_metric_list(request):
@@ -436,6 +502,11 @@ def member_kpi_portfolio(request, user_id):
         user=member
     ).select_related('metric', 'assigned_by').order_by('-review_period', 'metric__name')
     
+    # Get responsibilities
+    responsibilities = Responsibility.objects.filter(user=member).order_by('-deadline')
+    pending_responsibilities = responsibilities.filter(status__in=[Responsibility.Status.PENDING, Responsibility.Status.OVERDUE])
+    completed_responsibilities = responsibilities.filter(status=Responsibility.Status.COMPLETED)[:10]
+
     # Group by review period
     from collections import defaultdict
     assignments_by_period = defaultdict(list)
@@ -455,6 +526,8 @@ def member_kpi_portfolio(request, user_id):
         'member': member,
         'assignments_by_period': dict(assignments_by_period),
         'all_assignments': assignments,
+        'pending_responsibilities': pending_responsibilities,
+        'completed_responsibilities': completed_responsibilities,
         'draft_reviews': draft_reviews,
         'finalized_reviews': finalized_reviews,
         'total_kpis': assignments.count(),

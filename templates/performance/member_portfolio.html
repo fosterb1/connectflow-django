@@ -32,6 +32,59 @@
         </div>
     </div>
 
+    <!-- Responsibilities Checklist Section -->
+    <div class="mb-8">
+        <div class="flex items-center justify-between mb-4">
+            <h2 class="text-2xl font-bold text-gray-900 dark:text-white">Responsibilities & Role Duties</h2>
+            <button onclick="showAddResponsibilityModal()" 
+                    class="inline-flex items-center px-4 py-2 border border-gray-300 dark:border-gray-600 shadow-sm text-sm font-medium rounded-md text-gray-700 dark:text-gray-200 bg-white dark:bg-gray-700 hover:bg-gray-50 dark:hover:bg-gray-600">
+                <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/>
+                </svg>
+                Assign Duty
+            </button>
+        </div>
+
+        <div class="bg-white dark:bg-gray-800 rounded-lg shadow overflow-hidden">
+            <div class="divide-y divide-gray-200 dark:divide-gray-700">
+                {% if pending_responsibilities %}
+                    {% for resp in pending_responsibilities %}
+                    <div class="p-6 flex items-center justify-between hover:bg-gray-50 dark:hover:bg-gray-700 transition" id="resp-{{ resp.id }}">
+                        <div class="flex-1">
+                            <div class="flex items-center space-x-3">
+                                <h3 class="text-lg font-semibold text-gray-900 dark:text-white">{{ resp.title }}</h3>
+                                {% if resp.status == 'OVERDUE' %}
+                                <span class="px-2 py-0.5 text-xs font-bold rounded bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200">OVERDUE</span>
+                                {% else %}
+                                <span class="px-2 py-0.5 text-xs font-bold rounded bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200">PENDING</span>
+                                {% endif %}
+                            </div>
+                            <p class="mt-1 text-sm text-gray-600 dark:text-gray-400">{{ resp.description }}</p>
+                            <div class="mt-2 flex items-center text-xs text-gray-500 dark:text-gray-400">
+                                <svg class="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"/>
+                                </svg>
+                                Deadline: {{ resp.deadline|date:"M d, Y H:i" }}
+                            </div>
+                        </div>
+                        <button onclick="completeResponsibility('{{ resp.id }}')"
+                                class="ml-4 inline-flex items-center px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition shadow-sm text-sm">
+                            <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/>
+                            </svg>
+                            Mark as Done
+                        </button>
+                    </div>
+                    {% endfor %}
+                {% else %}
+                    <div class="p-8 text-center text-gray-500 dark:text-gray-400">
+                        No pending responsibilities for this member.
+                    </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+
     <!-- Summary Stats -->
     <div class="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
         <div class="bg-white dark:bg-gray-800 rounded-lg shadow p-6">
@@ -245,4 +298,99 @@
     </div>
     {% endif %}
 </div>
+
+<!-- Add Responsibility Modal -->
+<div id="add-responsibility-modal" class="hidden fixed z-10 inset-0 overflow-y-auto">
+    <div class="flex items-end justify-center min-h-screen pt-4 px-4 pb-20 text-center sm:block sm:p-0">
+        <div class="fixed inset-0 bg-gray-500 bg-opacity-75 transition-opacity"></div>
+        <div class="inline-block align-bottom bg-white dark:bg-gray-800 rounded-lg px-4 pt-5 pb-4 text-left overflow-hidden shadow-xl transform transition-all sm:my-8 sm:align-middle sm:max-w-lg sm:w-full sm:p-6">
+            <h3 class="text-lg leading-6 font-medium text-gray-900 dark:text-white mb-4">Assign Responsibility</h3>
+            <form id="addResponsibilityForm" class="space-y-4">
+                {% csrf_token %}
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Title</label>
+                    <input type="text" name="title" required placeholder="e.g., Weekly Server Maintenance" 
+                           class="shadow-sm focus:ring-indigo-500 focus:border-indigo-500 block w-full sm:text-sm border-gray-300 dark:border-gray-600 dark:bg-gray-700 rounded-md">
+                </div>
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Description</label>
+                    <textarea name="description" rows="3" placeholder="Describe the responsibility..."
+                              class="shadow-sm focus:ring-indigo-500 focus:border-indigo-500 block w-full sm:text-sm border-gray-300 dark:border-gray-600 dark:bg-gray-700 rounded-md"></textarea>
+                </div>
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Deadline</label>
+                    <input type="datetime-local" name="deadline" required
+                           class="shadow-sm focus:ring-indigo-500 focus:border-indigo-500 block w-full sm:text-sm border-gray-300 dark:border-gray-600 dark:bg-gray-700 rounded-md">
+                </div>
+                
+                <div class="mt-5 sm:mt-6 sm:flex sm:flex-row-reverse gap-3">
+                    <button type="submit" class="w-full inline-flex justify-center rounded-md border border-transparent shadow-sm px-4 py-2 bg-indigo-600 text-base font-medium text-white hover:bg-indigo-700 focus:outline-none sm:ml-3 sm:w-auto sm:text-sm">
+                        Assign Responsibility
+                    </button>
+                    <button onclick="closeAddResponsibilityModal()" type="button" class="mt-3 w-full inline-flex justify-center rounded-md border border-gray-300 dark:border-gray-600 shadow-sm px-4 py-2 bg-white dark:bg-gray-700 text-base font-medium text-gray-700 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-600 focus:outline-none sm:mt-0 sm:w-auto sm:text-sm">
+                        Cancel
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<script>
+function showAddResponsibilityModal() {
+    document.getElementById('add-responsibility-modal').classList.remove('hidden');
+}
+
+function closeAddResponsibilityModal() {
+    document.getElementById('add-responsibility-modal').classList.add('hidden');
+    document.getElementById('addResponsibilityForm').reset();
+}
+
+document.getElementById('addResponsibilityForm').addEventListener('submit', async function(e) {
+    e.preventDefault();
+    const formData = new FormData(this);
+    
+    try {
+        const response = await fetch('{% url "performance:add_responsibility" member.id %}', {
+            method: 'POST',
+            body: formData,
+            headers: {
+                'X-CSRFToken': formData.get('csrfmiddlewaretoken')
+            }
+        });
+        const data = await response.json();
+        if (data.success) {
+            location.reload();
+        } else {
+            alert('Error: ' + (data.error || 'Failed to assign responsibility'));
+        }
+    } catch (error) {
+        alert('Network error. Please try again.');
+    }
+});
+
+async function completeResponsibility(respId) {
+    if (!confirm('Mark this responsibility as completed?')) return;
+    
+    try {
+        const response = await fetch(`/performance/responsibility/${respId}/complete/`, {
+            method: 'POST',
+            headers: {
+                'X-CSRFToken': '{{ csrf_token }}'
+            }
+        });
+        const data = await response.json();
+        if (data.success) {
+            const el = document.getElementById(`resp-${respId}`);
+            el.classList.add('opacity-50');
+            setTimeout(() => location.reload(), 500);
+        } else {
+            alert('Error: ' + (data.error || 'Failed to complete'));
+        }
+    } catch (error) {
+        alert('Network error. Please try again.');
+    }
+}
+</script>
+
 {% endblock %}
