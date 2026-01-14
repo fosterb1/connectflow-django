@@ -289,7 +289,8 @@ def create_review(request):
         users = User.objects.none()
     
     context = {
-        'users': users
+        'users': users,
+        'selected_user_id': request.GET.get('user')
     }
     
     return render(request, 'performance/create_review.html', context)

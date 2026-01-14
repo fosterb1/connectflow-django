@@ -86,11 +86,13 @@
                 <div class="ml-4">
                     <p class="text-sm font-medium text-gray-600 dark:text-gray-400">Avg. Score</p>
                     <p class="text-2xl font-bold text-gray-900 dark:text-white">
-                        {% if finalized_reviews %}
-                            {{ finalized_reviews|first.final_score|default:"N/A" }}
-                        {% else %}
-                            N/A
-                        {% endif %}
+                        {% with first_review=finalized_reviews|first %}
+                            {% if first_review %}
+                                {{ first_review.final_score|default:"N/A" }}
+                            {% else %}
+                                N/A
+                            {% endif %}
+                        {% endwith %}
                     </p>
                 </div>
             </div>

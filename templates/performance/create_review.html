@@ -51,7 +51,7 @@
                         class="mt-1 block w-full rounded-md border-gray-300 dark:border-gray-600 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 dark:bg-gray-700 dark:text-white sm:text-sm">
                     <option value="">Select a team member...</option>
                     {% for user in users %}
-                    <option value="{{ user.id }}">
+                    <option value="{{ user.id }}" {% if selected_user_id == user.id|stringformat:"s" or selected_user_id == user.id|stringformat:"i" %}selected{% endif %}>
                         {{ user.get_full_name }} - {{ user.get_role_display }}
                     </option>
                     {% endfor %}
