@@ -80,7 +80,7 @@
                 <a href="{% url 'performance:assign_kpi' %}?metric={{ metric.id }}" class="text-sm font-medium text-indigo-600 dark:text-indigo-400 hover:text-indigo-500">
                     Assign to Users
                 </a>
-                <a href="{% url 'admin:performance_kpimetric_change' metric.id %}" class="text-sm font-medium text-gray-600 dark:text-gray-400 hover:text-gray-500">
+                <a href="{% url 'performance:kpi_metric_edit' metric.id %}" class="text-sm font-medium text-gray-600 dark:text-gray-400 hover:text-gray-500">
                     Edit
                 </a>
             </div>

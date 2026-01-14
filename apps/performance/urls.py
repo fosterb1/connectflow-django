@@ -9,6 +9,7 @@ urlpatterns = [
     # Manager Views - KPI Management
     path('kpi/metrics/', views.kpi_metric_list, name='kpi_metric_list'),
     path('kpi/metrics/create/', views.kpi_metric_create, name='kpi_metric_create'),
+    path('kpi/metrics/<uuid:metric_id>/edit/', views.kpi_metric_edit, name='kpi_metric_edit'),
     path('kpi/assign/', views.assign_kpi, name='assign_kpi'),
     
     # Manager Views - Reviews

@@ -211,6 +211,62 @@ def kpi_metric_create(request):
 
 
 @login_required
+@require_http_methods(["GET", "POST"])
+def kpi_metric_edit(request, metric_id):
+    """Edit an existing KPI metric (Manager view)."""
+    metric = get_object_or_404(KPIMetric, id=metric_id, organization=request.user.organization)
+    
+    if not PerformancePermissions.can_edit_kpi_metric(request.user, metric):
+        return HttpResponseForbidden("You don't have permission to edit this KPI metric.")
+    
+    if request.method == 'POST':
+        metric.name = request.POST.get('name')
+        metric.description = request.POST.get('description', '')
+        metric.metric_type = request.POST.get('metric_type')
+        metric.weight = Decimal(request.POST.get('weight', '1.00'))
+        metric.role = request.POST.get('role') if request.POST.get('role') else None
+        metric.team_id = request.POST.get('team') if request.POST.get('team') else None
+        metric.save()
+        
+        # Update or create threshold
+        if request.POST.get('target_value'):
+            threshold, created = KPIThreshold.objects.get_or_create(metric=metric, defaults={'target_value': 0})
+            threshold.min_value = request.POST.get('min_value') if request.POST.get('min_value') else None
+            threshold.target_value = Decimal(request.POST.get('target_value'))
+            threshold.max_value = request.POST.get('max_value') if request.POST.get('max_value') else None
+            threshold.pass_fail_enabled = request.POST.get('pass_fail_enabled') == 'on'
+            threshold.save()
+        elif hasattr(metric, 'threshold'):
+            metric.threshold.delete()
+        
+        # Log update
+        PerformanceAuditLog.log_action(
+            organization=request.user.organization,
+            actor=request.user,
+            action=PerformanceAuditLog.ActionType.METRIC_UPDATED,
+            metric=metric,
+            details={'name': metric.name}
+        )
+        
+        return redirect('performance:kpi_metric_list')
+    
+    # GET request
+    from apps.organizations.models import Team
+    teams = Team.objects.filter(
+        department__organization=request.user.organization
+    ).select_related('department')
+    
+    context = {
+        'metric': metric,
+        'teams': teams,
+        'role_choices': User.Role.choices,
+        'metric_type_choices': KPIMetric.MetricType.choices
+    }
+    
+    return render(request, 'performance/kpi_metric_form.html', context)
+
+
+@login_required
 def assign_kpi(request):
     """Assign KPIs to users (Manager view)."""
     if not request.user.organization:

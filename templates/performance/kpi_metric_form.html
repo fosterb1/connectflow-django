@@ -1,7 +1,7 @@
 {% extends 'base.html' %}
 {% load static %}
 
-{% block title %}Create KPI Metric - ConnectFlow Pro{% endblock %}
+{% block title %}{% if metric %}Edit{% else %}Create{% endif %} KPI Metric - ConnectFlow Pro{% endblock %}
 
 {% block content %}
 <div class="max-w-3xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
@@ -13,8 +13,8 @@
             </svg>
             Back to KPI Metrics
         </a>
-        <h1 class="text-3xl font-bold text-gray-900 dark:text-white">Create KPI Metric</h1>
-        <p class="mt-2 text-sm text-gray-600 dark:text-gray-400">Define a new performance indicator for your team</p>
+        <h1 class="text-3xl font-bold text-gray-900 dark:text-white">{% if metric %}Edit{% else %}Create{% endif %} KPI Metric</h1>
+        <p class="mt-2 text-sm text-gray-600 dark:text-gray-400">{% if metric %}Update the definition of this performance indicator{% else %}Define a new performance indicator for your team{% endif %}</p>
     </div>
 
     <!-- Form -->
@@ -30,7 +30,7 @@
                     <label for="name" class="block text-sm font-medium text-gray-700 dark:text-gray-300">
                         Metric Name <span class="text-red-500">*</span>
                     </label>
-                    <input type="text" name="name" id="name" required
+                    <input type="text" name="name" id="name" value="{{ metric.name|default:'' }}" required
                            class="mt-1 block w-full rounded-md border-gray-300 dark:border-gray-600 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 dark:bg-gray-700 dark:text-white sm:text-sm"
                            placeholder="e.g., Task Completion Rate">
                     <p class="mt-1 text-xs text-gray-500 dark:text-gray-400">A clear, descriptive name for the metric</p>
@@ -42,7 +42,7 @@
                     </label>
                     <textarea name="description" id="description" rows="3"
                               class="mt-1 block w-full rounded-md border-gray-300 dark:border-gray-600 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 dark:bg-gray-700 dark:text-white sm:text-sm"
-                              placeholder="Describe what this metric measures and how it's calculated"></textarea>
+                              placeholder="Describe what this metric measures and how it's calculated">{{ metric.description|default:'' }}</textarea>
                 </div>
 
                 <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -54,7 +54,7 @@
                                 class="mt-1 block w-full rounded-md border-gray-300 dark:border-gray-600 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 dark:bg-gray-700 dark:text-white sm:text-sm">
                             <option value="">Select type...</option>
                             {% for value, label in metric_type_choices %}
-                            <option value="{{ value }}">{{ label }}</option>
+                            <option value="{{ value }}" {% if metric.metric_type == value %}selected{% endif %}>{{ label }}</option>
                             {% endfor %}
                         </select>
                         <p class="mt-1 text-xs text-gray-500 dark:text-gray-400">How the metric is measured</p>
@@ -64,7 +64,7 @@
                         <label for="weight" class="block text-sm font-medium text-gray-700 dark:text-gray-300">
                             Weight <span class="text-red-500">*</span>
                         </label>
-                        <input type="number" name="weight" id="weight" step="0.01" min="0" value="1.00" required
+                        <input type="number" name="weight" id="weight" step="0.01" min="0" value="{{ metric.weight|default:'1.00' }}" required
                                class="mt-1 block w-full rounded-md border-gray-300 dark:border-gray-600 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 dark:bg-gray-700 dark:text-white sm:text-sm">
                         <p class="mt-1 text-xs text-gray-500 dark:text-gray-400">Importance multiplier (1.0 = normal)</p>
                     </div>
@@ -85,7 +85,7 @@
                                 class="mt-1 block w-full rounded-md border-gray-300 dark:border-gray-600 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 dark:bg-gray-700 dark:text-white sm:text-sm">
                             <option value="">All roles</option>
                             {% for value, label in role_choices %}
-                            <option value="{{ value }}">{{ label }}</option>
+                            <option value="{{ value }}" {% if metric.role == value %}selected{% endif %}>{{ label }}</option>
                             {% endfor %}
                         </select>
                     </div>
@@ -98,7 +98,7 @@
                                 class="mt-1 block w-full rounded-md border-gray-300 dark:border-gray-600 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 dark:bg-gray-700 dark:text-white sm:text-sm">
                             <option value="">All teams</option>
                             {% for team in teams %}
-                            <option value="{{ team.id }}">{{ team.name }} ({{ team.department.name }})</option>
+                            <option value="{{ team.id }}" {% if metric.team_id == team.id %}selected{% endif %}>{{ team.name }} ({{ team.department.name }})</option>
                             {% endfor %}
                         </select>
                     </div>
@@ -115,7 +115,7 @@
                         <label for="min_value" class="block text-sm font-medium text-gray-700 dark:text-gray-300">
                             Minimum Value
                         </label>
-                        <input type="number" name="min_value" id="min_value" step="0.01"
+                        <input type="number" name="min_value" id="min_value" step="0.01" value="{{ metric.threshold.min_value|default:'' }}"
                                class="mt-1 block w-full rounded-md border-gray-300 dark:border-gray-600 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 dark:bg-gray-700 dark:text-white sm:text-sm"
                                placeholder="0">
                     </div>
@@ -124,7 +124,7 @@
                         <label for="target_value" class="block text-sm font-medium text-gray-700 dark:text-gray-300">
                             Target Value
                         </label>
-                        <input type="number" name="target_value" id="target_value" step="0.01"
+                        <input type="number" name="target_value" id="target_value" step="0.01" value="{{ metric.threshold.target_value|default:'' }}"
                                class="mt-1 block w-full rounded-md border-gray-300 dark:border-gray-600 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 dark:bg-gray-700 dark:text-white sm:text-sm"
                                placeholder="90">
                     </div>
@@ -133,14 +133,14 @@
                         <label for="max_value" class="block text-sm font-medium text-gray-700 dark:text-gray-300">
                             Maximum Value
                         </label>
-                        <input type="number" name="max_value" id="max_value" step="0.01"
+                        <input type="number" name="max_value" id="max_value" step="0.01" value="{{ metric.threshold.max_value|default:'' }}"
                                class="mt-1 block w-full rounded-md border-gray-300 dark:border-gray-600 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 dark:bg-gray-700 dark:text-white sm:text-sm"
                                placeholder="100">
                     </div>
                 </div>
 
                 <div class="flex items-center">
-                    <input type="checkbox" name="pass_fail_enabled" id="pass_fail_enabled"
+                    <input type="checkbox" name="pass_fail_enabled" id="pass_fail_enabled" {% if metric.threshold.pass_fail_enabled %}checked{% endif %}
                            class="h-4 w-4 rounded border-gray-300 text-indigo-600 focus:ring-indigo-500 dark:border-gray-600 dark:bg-gray-700">
                     <label for="pass_fail_enabled" class="ml-2 block text-sm text-gray-700 dark:text-gray-300">
                         Enable pass/fail threshold
@@ -156,7 +156,7 @@
                 </a>
                 <button type="submit"
                         class="px-4 py-2 border border-transparent rounded-lg shadow-sm text-sm font-medium text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500">
-                    Create KPI Metric
+                    {% if metric %}Save Changes{% else %}Create KPI Metric{% endif %}
                 </button>
             </div>
         </form>
