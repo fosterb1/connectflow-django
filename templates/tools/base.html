@@ -1,0 +1,63 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="container-fluid py-4">
+    <div class="row">
+        <!-- Sidebar Navigation -->
+        <div class="col-md-3 col-lg-2">
+            <div class="card shadow-sm mb-4">
+                <div class="card-header bg-white font-weight-bold">
+                    <i class="fas fa-tools mr-2"></i> Corporate Tools
+                </div>
+                <div class="list-group list-group-flush">
+                    <a href="{% url 'tools:dashboard' %}" 
+                       class="list-group-item list-group-item-action {% if request.resolver_match.url_name == 'dashboard' %}active{% endif %}">
+                        <i class="fas fa-tachometer-alt mr-2"></i> Dashboard
+                    </a>
+                    <a href="{% url 'tools:forms:form_list' %}" 
+                       class="list-group-item list-group-item-action {% if 'forms' in request.path %}active{% endif %}">
+                        <i class="fas fa-clipboard-list mr-2"></i> Forms & Surveys
+                    </a>
+                    <a href="{% url 'tools:documents:index' %}" 
+                       class="list-group-item list-group-item-action {% if 'documents' in request.path %}active{% endif %}">
+                        <i class="fas fa-folder-open mr-2"></i> Documents
+                    </a>
+                    <a href="{% url 'tools:announcements:index' %}" 
+                       class="list-group-item list-group-item-action {% if 'announcements' in request.path %}active{% endif %}">
+                        <i class="fas fa-bullhorn mr-2"></i> Announcements
+                    </a>
+                    <a href="{% url 'tools:bookings:index' %}" 
+                       class="list-group-item list-group-item-action {% if 'bookings' in request.path %}active{% endif %}">
+                        <i class="fas fa-calendar-check mr-2"></i> Bookings
+                    </a>
+                    <a href="{% url 'tools:timeoff:index' %}" 
+                       class="list-group-item list-group-item-action {% if 'timeoff' in request.path %}active{% endif %}">
+                        <i class="fas fa-umbrella-beach mr-2"></i> Time Off
+                    </a>
+                    <hr class="my-2">
+                    <a href="{% url 'performance:my_dashboard' %}" 
+                       class="list-group-item list-group-item-action">
+                        <i class="fas fa-chart-line mr-2"></i> Performance
+                    </a>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Main Content -->
+        <div class="col-md-9 col-lg-10">
+            {% if messages %}
+                {% for message in messages %}
+                    <div class="alert alert-{{ message.tags }} alert-dismissible fade show" role="alert">
+                        {{ message }}
+                        <button type="button" class="close" data-dismiss="alert" aria-label="Close">
+                            <span aria-hidden="true">&times;</span>
+                        </button>
+                    </div>
+                {% endfor %}
+            {% endif %}
+            
+            {% block tool_content %}{% endblock %}
+        </div>
+    </div>
+</div>
+{% endblock %}

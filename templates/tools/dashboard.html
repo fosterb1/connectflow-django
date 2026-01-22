@@ -1,0 +1,136 @@
+{% extends "tools/base.html" %}
+
+{% block tool_content %}
+<div class="d-flex justify-between items-center mb-4">
+    <h1 class="h3 text-gray-800">🛠️ Corporate Tools Dashboard</h1>
+</div>
+
+<div class="row">
+    <!-- Forms Summary -->
+    <div class="col-xl-3 col-md-6 mb-4">
+        <div class="card border-left-primary shadow h-100 py-2">
+            <div class="card-body">
+                <div class="row no-gutters align-items-center">
+                    <div class="col mr-2">
+                        <div class="text-xs font-weight-bold text-primary text-uppercase mb-1">
+                            Forms & Surveys</div>
+                        <div class="h5 mb-0 font-weight-bold text-gray-800">{{ form_count }} Active</div>
+                    </div>
+                    <div class="col-auto">
+                        <i class="fas fa-clipboard-list fa-2x text-gray-300"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Documents Summary -->
+    <div class="col-xl-3 col-md-6 mb-4">
+        <div class="card border-left-success shadow h-100 py-2">
+            <div class="card-body">
+                <div class="row no-gutters align-items-center">
+                    <div class="col mr-2">
+                        <div class="text-xs font-weight-bold text-success text-uppercase mb-1">
+                            Documents</div>
+                        <div class="h5 mb-0 font-weight-bold text-gray-800">{{ doc_count }} Files</div>
+                    </div>
+                    <div class="col-auto">
+                        <i class="fas fa-folder-open fa-2x text-gray-300"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Announcements Summary -->
+    <div class="col-xl-3 col-md-6 mb-4">
+        <div class="card border-left-info shadow h-100 py-2">
+            <div class="card-body">
+                <div class="row no-gutters align-items-center">
+                    <div class="col mr-2">
+                        <div class="text-xs font-weight-bold text-info text-uppercase mb-1">
+                            Announcements</div>
+                        <div class="h5 mb-0 font-weight-bold text-gray-800">{{ announcement_count }} New</div>
+                    </div>
+                    <div class="col-auto">
+                        <i class="fas fa-bullhorn fa-2x text-gray-300"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Time Off Summary -->
+    <div class="col-xl-3 col-md-6 mb-4">
+        <div class="card border-left-warning shadow h-100 py-2">
+            <div class="card-body">
+                <div class="row no-gutters align-items-center">
+                    <div class="col mr-2">
+                        <div class="text-xs font-weight-bold text-warning text-uppercase mb-1">
+                            Pending Time-Off</div>
+                        <div class="h5 mb-0 font-weight-bold text-gray-800">{{ pending_leave_requests }} Requests</div>
+                    </div>
+                    <div class="col-auto">
+                        <i class="fas fa-umbrella-beach fa-2x text-gray-300"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="row">
+    <!-- Recent Announcements -->
+    <div class="col-lg-6 mb-4">
+        <div class="card shadow mb-4">
+            <div class="card-header py-3 d-flex flex-row align-items-center justify-content-between">
+                <h6 class="m-0 font-weight-bold text-primary">📢 Recent Announcements</h6>
+                <a href="{% url 'tools:announcements:index' %}" class="btn btn-sm btn-outline-primary">View All</a>
+            </div>
+            <div class="card-body">
+                {% if recent_announcements %}
+                    {% for announcement in recent_announcements %}
+                        <div class="mb-3 pb-3 border-bottom">
+                            <div class="d-flex justify-content-between">
+                                <h6 class="font-weight-bold mb-1">{{ announcement.title }}</h6>
+                                <span class="badge badge-{{ announcement.priority|lower }}">{{ announcement.get_priority_display }}</span>
+                            </div>
+                            <p class="small text-gray-600 mb-0">{{ announcement.content|truncatewords:20 }}</p>
+                            <small class="text-muted">{{ announcement.created_at|timesince }} ago</small>
+                        </div>
+                    {% endfor %}
+                {% else %}
+                    <p class="text-center text-muted my-4">No recent announcements.</p>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+
+    <!-- Upcoming Bookings -->
+    <div class="col-lg-6 mb-4">
+        <div class="card shadow mb-4">
+            <div class="card-header py-3 d-flex flex-row align-items-center justify-content-between">
+                <h6 class="m-0 font-weight-bold text-primary">🏢 Your Upcoming Bookings</h6>
+                <a href="{% url 'tools:bookings:index' %}" class="btn btn-sm btn-outline-primary">View All</a>
+            </div>
+            <div class="card-body">
+                {% if upcoming_bookings %}
+                    {% for booking in upcoming_bookings %}
+                        <div class="mb-3 pb-3 border-bottom">
+                            <h6 class="font-weight-bold mb-1">{{ booking.title }}</h6>
+                            <p class="small text-gray-600 mb-1">
+                                <i class="fas fa-map-marker-alt mr-1"></i> {{ booking.resource.name }} ({{ booking.resource.location }})
+                            </p>
+                            <small class="text-primary font-weight-bold">
+                                {{ booking.start_time|date:"M d, H:i" }} - {{ booking.end_time|date:"H:i" }}
+                            </small>
+                        </div>
+                    {% endfor %}
+                {% else %}
+                    <p class="text-center text-muted my-4">No upcoming bookings.</p>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

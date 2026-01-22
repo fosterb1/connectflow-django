@@ -64,6 +64,10 @@ INSTALLED_APPS = [
     'apps.calls',
     'apps.performance',
     'apps.tools.forms',
+    'apps.tools.documents',
+    'apps.tools.announcements',
+    'apps.tools.bookings',
+    'apps.tools.timeoff',
 ]
 
 MIDDLEWARE = [
@@ -241,7 +245,7 @@ MEDIA_ROOT = BASE_DIR / 'media'
 
 # Authentication Backends
 AUTHENTICATION_BACKENDS = [
-    'django.contrib.auth.backends.ModelBackend',
+    'apps.accounts.authentication.EmailBackend', 'django.contrib.auth.backends.ModelBackend',
     'apps.accounts.authentication.FirebaseBackend',
 ]
 
@@ -287,3 +291,6 @@ if not DEBUG:
 
 
 
+
+
+CORS_ALLOW_ALL_ORIGINS = True

@@ -1,0 +1,81 @@
+{% extends "tools/base.html" %}
+
+{% block tool_content %}
+<div class="mb-4">
+    <nav aria-label="breadcrumb">
+        <ol class="breadcrumb">
+            <li class="breadcrumb-item"><a href="{% url 'tools:timeoff:index' %}">Time Off</a></li>
+            <li class="breadcrumb-item active">New Request</li>
+        </ol>
+    </nav>
+    <h2 class="h4 mb-0 text-gray-800"><i class="fas fa-paper-plane mr-2"></i> Submit Leave Request</h2>
+</div>
+
+<div class="row">
+    <div class="col-md-8">
+        <div class="card shadow-sm border-left-primary mb-4">
+            <div class="card-body">
+                <form method="post">
+                    {% csrf_token %}
+                    
+                    <div class="form-group">
+                        <label class="font-weight-bold">Leave Type</label>
+                        {{ form.leave_type }}
+                        {% if form.leave_type.errors %}<div class="text-danger small">{{ form.leave_type.errors }}</div>{% endif %}
+                    </div>
+                    
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="form-group">
+                                <label class="font-weight-bold">Start Date</label>
+                                {{ form.start_date }}
+                                {% if form.start_date.errors %}<div class="text-danger small">{{ form.start_date.errors }}</div>{% endif %}
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="form-group">
+                                <label class="font-weight-bold">End Date</label>
+                                {{ form.end_date }}
+                                {% if form.end_date.errors %}<div class="text-danger small">{{ form.end_date.errors }}</div>{% endif %}
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label class="font-weight-bold">Reason for Request</label>
+                        {{ form.reason }}
+                    </div>
+
+                    {% if form.non_field_errors %}
+                    <div class="alert alert-danger">
+                        {{ form.non_field_errors }}
+                    </div>
+                    {% endif %}
+
+                    <hr>
+                    <div class="d-flex justify-content-end">
+                        <a href="{% url 'tools:timeoff:index' %}" class="btn btn-link text-muted mr-3">Cancel</a>
+                        <button type="submit" class="btn btn-primary px-5">
+                            Submit Request
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+    
+    <div class="col-md-4">
+        <div class="card shadow-sm border-bottom-info">
+            <div class="card-header bg-white font-weight-bold">
+                <i class="fas fa-info-circle mr-2 text-info"></i> Leave Policy Info
+            </div>
+            <div class="card-body small">
+                <p><strong>Processing Time:</strong> Requests are usually reviewed within 48 hours by your manager.</p>
+                <p><strong>Calculations:</strong> Total days include weekends and holidays (simplified calculation for this prototype).</p>
+                <hr>
+                <p class="mb-0 text-muted">Ensure you have sufficient balance before requesting. "Sick Leave" and "Emergency Leave" might not deduct from your annual balance depending on company policy.</p>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

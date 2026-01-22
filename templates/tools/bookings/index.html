@@ -1,0 +1,126 @@
+{% extends "tools/base.html" %}
+
+{% block tool_content %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <h2 class="h4 mb-0 text-gray-800"><i class="fas fa-calendar-check mr-2"></i> Resource Bookings</h2>
+    {% if is_admin %}
+    <a href="{% url 'tools:bookings:resource_create' %}" class="btn btn-primary">
+        <i class="fas fa-plus mr-1"></i> Add Resource
+    </a>
+    {% endif %}
+</div>
+
+{% if pending_approvals %}
+<div class="card border-left-warning shadow-sm mb-4">
+    <div class="card-header bg-white py-3">
+        <h6 class="m-0 font-weight-bold text-warning"><i class="fas fa-clock mr-2"></i> Pending Approvals</h6>
+    </div>
+    <div class="card-body p-0">
+        <div class="table-responsive">
+            <table class="table table-hover mb-0">
+                <thead class="bg-light">
+                    <tr>
+                        <th>Resource</th>
+                        <th>Requested By</th>
+                        <th>Time Slot</th>
+                        <th>Action</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for booking in pending_approvals %}
+                    <tr>
+                        <td>{{ booking.resource.name }}</td>
+                        <td>{{ booking.user.get_full_name|default:booking.user.username }}</td>
+                        <td>{{ booking.start_time|date:"M d, H:i" }} - {{ booking.end_time|date:"H:i" }}</td>
+                        <td>
+                            <a href="{% url 'tools:bookings:booking_approve' booking.pk 'approve' %}" class="btn btn-sm btn-success">Approve</a>
+                            <a href="{% url 'tools:bookings:booking_approve' booking.pk 'reject' %}" class="btn btn-sm btn-danger">Reject</a>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+{% endif %}
+
+<div class="row">
+    <!-- Resources List -->
+    <div class="col-lg-7">
+        <div class="card shadow-sm mb-4">
+            <div class="card-header bg-white">
+                <h6 class="m-0 font-weight-bold text-primary">Available Resources</h6>
+            </div>
+            <div class="card-body">
+                <div class="row">
+                    {% for resource in resources %}
+                    <div class="col-md-6 mb-3">
+                        <div class="border rounded p-3 h-100 d-flex flex-column">
+                            <div class="d-flex justify-content-between align-items-start mb-2">
+                                <h6 class="font-weight-bold mb-0">{{ resource.name }}</h6>
+                                <span class="badge badge-light text-muted small">{{ resource.get_resource_type_display }}</span>
+                            </div>
+                            <p class="small text-muted flex-grow-1 mb-2">{{ resource.description|truncatechars:80 }}</p>
+                            <div class="small mb-3">
+                                <div><i class="fas fa-map-marker-alt mr-1"></i> {{ resource.location }}</div>
+                                {% if resource.capacity %}
+                                <div><i class="fas fa-users mr-1"></i> Max Capacity: {{ resource.capacity }}</div>
+                                {% endif %}
+                                {% if resource.requires_approval %}
+                                <div class="text-warning"><i class="fas fa-lock mr-1"></i> Requires Approval</div>
+                                {% endif %}
+                            </div>
+                            <a href="{% url 'tools:bookings:booking_create' resource.id %}" class="btn btn-block btn-outline-primary btn-sm">
+                                <i class="fas fa-bookmark mr-1"></i> Book Now
+                            </a>
+                        </div>
+                    </div>
+                    {% empty %}
+                    <div class="col-12 text-center py-4">
+                        <p class="text-muted">No resources available for booking.</p>
+                    </div>
+                    {% endfor %}
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- My Bookings -->
+    <div class="col-lg-5">
+        <div class="card shadow-sm mb-4">
+            <div class="card-header bg-white">
+                <h6 class="m-0 font-weight-bold text-primary">Your Bookings</h6>
+            </div>
+            <div class="card-body p-0">
+                <div class="list-group list-group-flush">
+                    {% for booking in my_bookings %}
+                    <div class="list-group-item">
+                        <div class="d-flex justify-content-between align-items-center mb-1">
+                            <h6 class="font-weight-bold mb-0">{{ booking.title }}</h6>
+                            <span class="badge badge-{% if booking.status == 'CONFIRMED' %}success{% elif booking.status == 'PENDING' %}warning{% else %}secondary{% endif %}">
+                                {{ booking.status }}
+                            </span>
+                        </div>
+                        <p class="small text-muted mb-1">{{ booking.resource.name }}</p>
+                        <div class="d-flex justify-content-between align-items-center">
+                            <small class="text-primary font-weight-bold">
+                                {{ booking.start_time|date:"M d, H:i" }} - {{ booking.end_time|date:"H:i" }}
+                            </small>
+                            {% if booking.status == 'CONFIRMED' or booking.status == 'PENDING' %}
+                            <a href="{% url 'tools:bookings:booking_cancel' booking.pk %}" class="btn btn-sm btn-link text-danger p-0" 
+                               onclick="return confirm('Cancel this booking?')">Cancel</a>
+                            {% endif %}
+                        </div>
+                    </div>
+                    {% empty %}
+                    <div class="py-4 text-center">
+                        <p class="text-muted small">You have no bookings.</p>
+                    </div>
+                    {% endfor %}
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

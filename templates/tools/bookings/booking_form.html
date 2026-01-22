@@ -1,0 +1,91 @@
+{% extends "tools/base.html" %}
+
+{% block tool_content %}
+<div class="mb-4">
+    <nav aria-label="breadcrumb">
+        <ol class="breadcrumb">
+            <li class="breadcrumb-item"><a href="{% url 'tools:bookings:index' %}">Bookings</a></li>
+            <li class="breadcrumb-item active">New Booking</li>
+        </ol>
+    </nav>
+    <h2 class="h4 mb-0 text-gray-800">Book: {{ resource.name }}</h2>
+</div>
+
+<div class="row">
+    <div class="col-md-8">
+        <div class="card shadow-sm mb-4">
+            <div class="card-body">
+                <form method="post">
+                    {% csrf_token %}
+                    
+                    <div class="form-group">
+                        <label class="font-weight-bold">Purpose / Title</label>
+                        {{ form.title }}
+                        {% if form.title.errors %}<div class="text-danger small">{{ form.title.errors }}</div>{% endif %}
+                    </div>
+                    
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="form-group">
+                                <label class="font-weight-bold">Start Time</label>
+                                {{ form.start_time }}
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="form-group">
+                                <label class="font-weight-bold">End Time</label>
+                                {{ form.end_time }}
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label class="font-weight-bold">Notes (Optional)</label>
+                        {{ form.description }}
+                    </div>
+
+                    {% if form.non_field_errors %}
+                    <div class="alert alert-danger">
+                        {{ form.non_field_errors }}
+                    </div>
+                    {% endif %}
+
+                    <hr>
+                    <div class="d-flex justify-content-end">
+                        <a href="{% url 'tools:bookings:index' %}" class="btn btn-link text-muted mr-3">Cancel</a>
+                        <button type="submit" class="btn btn-primary px-4">
+                            <i class="fas fa-check mr-1"></i> Confirm Booking
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+    
+    <div class="col-md-4">
+        <div class="card shadow-sm border-left-info">
+            <div class="card-body">
+                <h6 class="font-weight-bold text-info mb-3">Resource Details</h6>
+                <div class="small">
+                    <p class="mb-2"><strong>Location:</strong> {{ resource.location }}</p>
+                    <p class="mb-2"><strong>Type:</strong> {{ resource.get_resource_type_display }}</p>
+                    {% if resource.capacity %}
+                    <p class="mb-2"><strong>Capacity:</strong> {{ resource.capacity }} people</p>
+                    {% endif %}
+                    <p class="mb-0"><strong>Approval:</strong> 
+                        {% if resource.requires_approval %}
+                        <span class="text-warning font-weight-bold">Required</span>
+                        {% else %}
+                        <span class="text-success">Automatic</span>
+                        {% endif %}
+                    </p>
+                </div>
+                <hr>
+                <div class="alert alert-light border small mb-0">
+                    <i class="fas fa-info-circle mr-1"></i> Ensure you book enough time for setup and cleanup.
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

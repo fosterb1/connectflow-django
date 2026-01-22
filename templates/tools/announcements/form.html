@@ -1,0 +1,100 @@
+{% extends "tools/base.html" %}
+
+{% block tool_content %}
+<div class="mb-4">
+    <nav aria-label="breadcrumb">
+        <ol class="breadcrumb">
+            <li class="breadcrumb-item"><a href="{% url 'tools:dashboard' %}">Tools</a></li>
+            <li class="breadcrumb-item"><a href="{% url 'tools:announcements:index' %}">Announcements</a></li>
+            <li class="breadcrumb-item active">{{ title }}</li>
+        </ol>
+    </nav>
+    <h2 class="h4 mb-0 text-gray-800">{{ title }}</h2>
+</div>
+
+<div class="card shadow-sm mb-4">
+    <div class="card-body">
+        <form method="post">
+            {% csrf_token %}
+            
+            <div class="row">
+                <div class="col-md-8">
+                    <div class="form-group">
+                        <label class="font-weight-bold">Title</label>
+                        {{ form.title }}
+                        {% if form.title.errors %}<div class="text-danger small">{{ form.title.errors }}</div>{% endif %}
+                    </div>
+                    
+                    <div class="form-group">
+                        <label class="font-weight-bold">Content</label>
+                        {{ form.content }}
+                        {% if form.content.errors %}<div class="text-danger small">{{ form.content.errors }}</div>{% endif %}
+                    </div>
+                </div>
+                
+                <div class="col-md-4">
+                    <div class="form-group">
+                        <label class="font-weight-bold">Priority</label>
+                        {{ form.priority }}
+                    </div>
+                    
+                    <div class="form-group">
+                        <label class="font-weight-bold">Target Department</label>
+                        {{ form.target_department }}
+                        <small class="text-muted">Optional: Limit to specific department</small>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label class="font-weight-bold">Target Team</label>
+                        {{ form.target_team }}
+                        <small class="text-muted">Optional: Limit to specific team</small>
+                    </div>
+
+                    <div class="card bg-light mb-3">
+                        <div class="card-body p-3">
+                            <h6 class="font-weight-bold mb-3">Settings</h6>
+                            <div class="form-check mb-2">
+                                {{ form.is_pinned }}
+                                <label class="form-check-label" for="{{ form.is_pinned.id_for_label }}">
+                                    Pin to top
+                                </label>
+                            </div>
+                            <div class="form-check mb-2">
+                                {{ form.require_acknowledgement }}
+                                <label class="form-check-label" for="{{ form.require_acknowledgement.id_for_label }}">
+                                    Require acknowledgement
+                                </label>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="row mt-3">
+                <div class="col-md-4">
+                    <div class="form-group">
+                        <label class="font-weight-bold">Schedule Publication</label>
+                        {{ form.scheduled_at }}
+                        <small class="text-muted">Leave blank to publish immediately</small>
+                    </div>
+                </div>
+                <div class="col-md-4">
+                    <div class="form-group">
+                        <label class="font-weight-bold">Expiration Date</label>
+                        {{ form.expires_at }}
+                        <small class="text-muted">Optional: When to remove from view</small>
+                    </div>
+                </div>
+            </div>
+
+            <hr>
+            <div class="d-flex justify-content-end">
+                <a href="{% url 'tools:announcements:index' %}" class="btn btn-link text-muted mr-3">Cancel</a>
+                <button type="submit" class="btn btn-primary px-4">
+                    <i class="fas fa-save mr-1"></i> Save Announcement
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+{% endblock %}
